@@ -85,6 +85,10 @@ public final class FeatureCatalog {
         add("fix.video", "系统增强", "看完视频恢复正常刷新", "生命周期计数候选，待整合后实机验证", "system", "", HOT, true, "default", "生命周期清理");
         add("fix.permissions", "系统增强", "限制其他应用改刷新方式", "按UID及证书校验调用方，候选", "system", "", HOT, true, "default", "调用方校验");
         add("guard.config", "系统增强", "刷新配置损坏自动还原", "启动前检查，备份保留供恢复", "backend", "", REBOOT, false, "default", "配置守护");
+        // 海信用 ro.hx.test 当闸门，只有它为真才枚举第三方 TileService；而 ro.hx.test 同时是
+        // 安全特性总开关（SafeFeature.ENABLE = safe.enable && !ro.hx.test），不能碰。
+        // 这里改在 SystemUI 里补一次原厂私有的 addPackageTiles，只影响「编辑磁贴」的候选列表。
+        add("qs.extend", "系统增强", "控制中心拓展", "快捷设置的可添加磁贴里列出装有磁贴的第三方应用，打开编辑页即生效", "systemui", "", HOT, false, "default", "列出第三方磁贴");
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");
