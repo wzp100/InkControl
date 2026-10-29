@@ -585,10 +585,23 @@ public final class MainActivity extends Activity {
     }
 
     private View navCard(String title, String text, String meta, boolean strong, String description, View.OnClickListener click) {
+        return navCard(title, text, meta, strong, description, click, true);
+    }
+
+    /**
+     * {@code framed} 为假时这张卡片自己不画外框：它被放进带 {@code outline(12)} 描边的分组列表里，
+     * 再叠一层圆角 14 的框会在四角错开、直边叠成 4px，看着像「方框里套了个扁圆框」。
+     * 采用与普通功能行同一套处理：常态透明露出分组描边，按下时加粗框（圆角 12 与外框一致）。
+     */
+    private View navCard(String title, String text, String meta, boolean strong, String description,
+                         View.OnClickListener click, boolean framed) {
         LinearLayout card = new LinearLayout(this);
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(ink.dp(18), ink.dp(16), ink.dp(14), ink.dp(16));
-        card.setBackground(ink.pressable(ink.outline(14), ink.box(Ink.PAPER, Ink.INK, 3, 14)));
+        card.setBackground(framed
+                ? ink.pressable(ink.outline(14), ink.box(Ink.PAPER, Ink.INK, 3, 14))
+                : ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
+                        ink.box(Ink.PAPER, Ink.INK, 2, 12)));
         LinearLayout content = column(ink.text(title, 20, Ink.BOLD), spaced(paragraph(text, 13), 6));
         if (!meta.isEmpty()) content.addView(spaced(ink.text(meta, 13, strong ? Ink.BOLD : Ink.REGULAR), 8));
         card.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
@@ -725,7 +738,7 @@ public final class MainActivity extends Activity {
             String chosen = snapshot.config.requested(feature.id) ? snapshot.config.value(feature.id) : "default";
             return navCard(DisplayAlgorithms.name(scope), Guide.get(feature.id).summary,
                     Guide.optionName(feature, chosen) + " · " + Guide.selectionStatus(!chosen.equals("default"), status(feature.id)), snapshot.config.requested(feature.id),
-                    feature.title + "，打开算法与迟滞设置", v -> openFeature(feature.id));
+                    feature.title + "，打开算法与迟滞设置", v -> openFeature(feature.id), false);
         }
         // 字体是页内操作项，不带开关，直接进页面挑字体
         if (isFontNode(feature.id)) {
@@ -734,7 +747,7 @@ public final class MainActivity extends Activity {
             String meta = applied == null || applied.isEmpty() ? "未换过字体" : "上次应用 " + applied;
             if (saved != null && !saved.isEmpty() && !saved.equals(FONT_DIR_DEFAULT)) meta += " · 自定义目录";
             return navCard(feature.title, Guide.get(feature.id).summary, meta, false,
-                    feature.title + "，打开字体设置", v -> openFeature(feature.id));
+                    feature.title + "，打开字体设置", v -> openFeature(feature.id), false);
         }
         // 「显示信息修改」同样是页内操作项：自己没有开关，进去逐项开关
         if (feature.id.equals("lock.ext.edit")) {
@@ -743,7 +756,7 @@ public final class MainActivity extends Activity {
             String layout = Guide.optionName(FeatureCatalog.get("lock.ext"), snapshot.config.value("lock.ext"));
             String meta = shown == 0 ? "四项都不显示" : shown + " / " + EXT_ITEMS.length + " 项 · " + layout;
             return navCard(feature.title, Guide.get(feature.id).summary, meta, shown > 0,
-                    feature.title + "，选择显示哪几项", v -> openFeature(feature.id));
+                    feature.title + "，选择显示哪几项", v -> openFeature(feature.id), false);
         }
         ApplicationServices.Snapshot s = snapshot;
         boolean requested = s.config.requested(feature.id);
