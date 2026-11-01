@@ -25,6 +25,7 @@ public final class HookDispatcher implements IXposedHookLoadPackage {
         install(packageInfo, new com.inkcontrol.features.lock.Hook());
         install(packageInfo, new com.inkcontrol.features.desktop.Hook());
         install(packageInfo, new com.inkcontrol.features.qsext.Hook());
+        install(packageInfo, new com.inkcontrol.features.navbar.Hook());
         if (role.equals("system")) {
             install(packageInfo, new com.inkcontrol.features.motion.Hook());
             install(packageInfo, new com.inkcontrol.features.fix.Hook());

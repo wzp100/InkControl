@@ -89,6 +89,9 @@ public final class FeatureCatalog {
         // 安全特性总开关（SafeFeature.ENABLE = safe.enable && !ro.hx.test），不能碰。
         // 这里改在 SystemUI 里补一次原厂私有的 addPackageTiles，只影响「编辑磁贴」的候选列表。
         add("qs.extend", "系统增强", "控制中心拓展", "快捷设置的可添加磁贴里列出装有磁贴的第三方应用，打开编辑页即生效", "systemui", "", HOT, false, "default", "列出第三方磁贴");
+        // 原厂把导航栏背景写死在 BarTransitions 里（资源覆盖无效），只能在画完之后重绘；
+        // 开关是运行期读的，改完下一帧就变，不用重启系统界面。
+        add("navbar.white", "系统增强", "三大金刚键漂白", "把底部导航栏的黑底白键改成白底黑键，切换开关立即生效", "systemui", "", HOT, false, "default", "白底黑键");
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");
