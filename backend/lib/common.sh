@@ -359,23 +359,23 @@ ic_accessibility_sync() {
     ic_short=$1; ic_full=$2; ic_want=$3
     ic_current=$(settings get secure enabled_accessibility_services 2>/dev/null)
     [ "$ic_current" = null ] && ic_current=""
-    case ",$ic_current," in
-        *",$ic_short,"*|*",$ic_full,"*) ic_present=1 ;;
-        *) ic_present=0 ;;
-    esac
+    # 这个设置是冒号分隔（不是逗号）：先剔掉该组件的所有副本，拿到「不含它」的干净列表。
+    # 原实现按逗号判断存在性，永远判「不在列表里」，每应用一次配置就再追加一份，实测攒了十几份重复。
+    ic_clean=$(printf '%s' "$ic_current" | tr ':' '\n' | grep -vxF "$ic_short" | grep -vxF "$ic_full" | paste -sd: -)
     if [ "$ic_want" = 1 ]; then
-        [ "$ic_present" = 1 ] && return 0
-        if [ -n "$ic_current" ]; then ic_next="$ic_current:$ic_short"; else ic_next="$ic_short"; fi
-        settings put secure enabled_accessibility_services "$ic_next" || return 1
-        settings put secure accessibility_enabled 1 || return 1
+        if [ -n "$ic_clean" ]; then ic_next="$ic_clean:$ic_short"; else ic_next="$ic_short"; fi
     else
-        [ "$ic_present" = 0 ] && return 0
-        ic_next=$(printf '%s' "$ic_current" | tr ':' '\n' | grep -vxF "$ic_short" | grep -vxF "$ic_full" | paste -sd: -)
-        if [ -n "$ic_next" ]; then
-            settings put secure enabled_accessibility_services "$ic_next" || return 1
-        else
-            settings delete secure enabled_accessibility_services || return 1
-        fi
+        ic_next=$ic_clean
+    fi
+    # 幂等：目标值与现值一致就一个字节都不写，开机与每轮巡检都只读一次设置。
+    [ "$ic_next" = "$ic_current" ] && return 0
+    if [ -n "$ic_next" ]; then
+        settings put secure enabled_accessibility_services "$ic_next" || return 1
+    else
+        settings delete secure enabled_accessibility_services || return 1
+    fi
+    if [ "$ic_want" = 1 ]; then
+        settings put secure accessibility_enabled 1 || return 1
     fi
     return 0
 }

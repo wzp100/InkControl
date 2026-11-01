@@ -103,7 +103,7 @@ final class Guide {
                 {"应用名单", "refresh.apps"}});
         cat("字体", "把系统字体换成目录里的任意 TTF/OTF，点「应用」立刻全局生效，不用重启。", new String[][]{
                 {"字体", "font.dir"}});
-        cat("体感", "用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。开关打开时自动启用「墨控体感」无障碍服务，关闭后自动撤掉。", new String[][]{
+        cat("体感", "实现类似盒盖息屏、翻盖亮屏的功能，调用的是距离传感器，需要无障碍服务支持。", new String[][]{
                 {"行为", "wave.lock", "wave.coverDelay", "wave.wake"}});
         cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
