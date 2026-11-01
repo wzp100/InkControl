@@ -857,7 +857,7 @@ GPU 记录到执行错误	GPU execution error recorded
 近距离传感器	Proximity sensor
 屏幕顶部的一个小传感器，检测正前方是否有物体靠近。手或布料遮住它时，手机判断“被覆盖”。	A small sensor at the top of the screen that detects whether an object is near. When a hand or cloth covers it, the phone treats itself as covered.
 体感	Proximity
-用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。需要系统无障碍中启用「墨控体感」服务。	Cover the top proximity sensor with your hand or an object to turn off the screen while locked; uncover to wake and try to exit the lock screen. Requires enabling the InkControl gestures accessibility service.
+用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。开关打开时自动启用「墨控体感」无障碍服务，关闭后自动撤掉。	Cover the top proximity sensor with your hand or an object to turn off the screen while locked; uncover to wake and try to exit the lock screen. The InkControl gestures accessibility service is enabled automatically while this is on and removed when it is off.
 行为	Behavior
 遮挡传感器息屏、移开唤醒	Sleep on cover, wake on uncover
 遮挡一段时间后息屏	Sleep after being covered for a while
@@ -890,10 +890,10 @@ GPU 记录到执行错误	GPU execution error recorded
 锁屏通知：一个开关管显示与来源	Lock-screen notifications: one switch for visibility and source
 关闭后，六种锁屏样式都不再画通知区：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。开启后统计通知并显示，来源可在下面二选一：系统通知或微信未读。	When off, none of the six lock styles draw the notification area (the notification box on Editorial, the corner box on Landscape, the counts on Swiss and Liquid Glass, the pixel count and cell all disappear). When on, notifications are counted and shown; pick the source below: system notifications or WeChat unread.
 只影响显示，开启时通知照常统计；关掉再打开马上恢复，不用等新的通知。	Display only; notifications keep counting while enabled. Toggling restores instantly without waiting for a new notification.
-近距离传感器被持续遮挡一段时间后锁定并关闭屏幕；需在系统无障碍中启用「墨控体感」服务	Lock and turn off the screen after the sensor stays covered for a while; enable the InkControl gestures accessibility service.
-遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏；需在系统无障碍中启用「墨控体感」服务	Light the screen and try to exit the lock screen once the cover ends; enable the InkControl gestures accessibility service.
-近距离传感器被持续遮挡达到「遮挡延时」设定的时间后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。需要系统无障碍中启用「墨控体感」服务。	Lock and turn off the screen once the sensor stays covered past the Cover delay. Good for avoiding misfires in a pocket or under clothing. Requires the InkControl gestures accessibility service.
-遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。需要系统无障碍中启用「墨控体感」服务。	Light the screen after the cover ends. Without a secure lock screen it also tries to exit the lock screen; with one, it only lights the screen. Requires the InkControl gestures accessibility service.
+近距离传感器被持续遮挡一段时间后锁定并关闭屏幕；开关打开时自动启用「墨控体感」服务	Lock and turn off the screen after the sensor stays covered for a while; the InkControl gestures accessibility service is enabled automatically while this is on.
+遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏；开关打开时自动启用「墨控体感」服务	Light the screen and try to exit the lock screen once the cover ends; the InkControl gestures accessibility service is enabled automatically while this is on.
+近距离传感器被持续遮挡达到「遮挡延时」设定的时间后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。开关打开时墨控会自动启用「墨控体感」无障碍服务，关闭后自动撤掉。	Lock and turn off the screen once the sensor stays covered past the Cover delay. Good for avoiding misfires in a pocket or under clothing. InkControl enables the gestures accessibility service automatically while this is on and removes it when off.
+遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。开关打开时墨控会自动启用「墨控体感」无障碍服务，关闭后自动撤掉。	Light the screen after the cover ends. Without a secure lock screen it also tries to exit the lock screen; with one, it only lights the screen. InkControl enables the gestures accessibility service automatically while this is on and removes it when off.
 原厂没有过渡动画；开启后各场景可分别设置	Enable per-scenario transitions instead of stock instant switching
 所有切换都是瞬间跳变，很难看出画面从哪来、到哪去。	Instant jumps give little indication of where a view came from or is going.
 切换有方向感：从点的地方展开、从一侧推入等。	Directional transitions reveal from the touch point or slide in from one side.

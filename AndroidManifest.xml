@@ -7,16 +7,16 @@
         <activity android:name="com.inkcontrol.ui.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
-        <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" />
-        <service android:name="com.inkcontrol.features.refresh.RefreshService" android:exported="true" android:label="@string/accessibility_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true">
+        <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" android:process=":state" />
+        <service android:name="com.inkcontrol.features.refresh.RefreshService" android:exported="true" android:label="@string/accessibility_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":refresh">
             <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config"/>
         </service>
-        <service android:name="com.inkcontrol.features.wave.WaveService" android:exported="true" android:label="@string/wave_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true">
+        <service android:name="com.inkcontrol.features.wave.WaveService" android:exported="true" android:label="@string/wave_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":motion">
             <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/wave_accessibility_service_config"/>
         </service>
-        <activity android:name="com.inkcontrol.features.wave.WaveUnlockActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <activity android:name="com.inkcontrol.features.wave.WaveUnlockActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" android:process=":motion" />
         <meta-data android:name="xposedmodule" android:value="true" />
         <meta-data android:name="xposeddescription" android:value="@string/module_description" />
         <meta-data android:name="xposedminversion" android:value="82" />

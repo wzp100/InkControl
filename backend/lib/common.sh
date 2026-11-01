@@ -353,30 +353,41 @@ ic_restore_font() {
     ic_log "font: 恢复原厂字体（来自备份） -> $dst"
     echo "已恢复原厂字体（$(( $(stat -c %s "$dst") / 1024 / 1024 )) MB），界面已刷新。"
 }
-# 自动刷新依赖随 App 提供的无障碍服务；只按刷新总开关增删该组件，关闭时不改写系统设置。
-ic_accessibility() {
-    ic_component=com.inkcontrol/.features.refresh.RefreshService
-    ic_component_full=com.inkcontrol/com.inkcontrol.features.refresh.RefreshService
+# 系统无障碍里按功能开关增删一个组件。系统可能存短名（/.features.x.Y）也可能存全名，两种都认。
+# $1 短组件  $2 全组件  $3 期望状态（1 启用 / 0 关闭）
+ic_accessibility_sync() {
+    ic_short=$1; ic_full=$2; ic_want=$3
     ic_current=$(settings get secure enabled_accessibility_services 2>/dev/null)
     [ "$ic_current" = null ] && ic_current=""
     case ",$ic_current," in
-        *",$ic_component,"*|*",$ic_component_full,"*) ic_present=1 ;;
+        *",$ic_short,"*|*",$ic_full,"*) ic_present=1 ;;
         *) ic_present=0 ;;
     esac
-    if ic_enabled refresh.master; then
+    if [ "$ic_want" = 1 ]; then
         [ "$ic_present" = 1 ] && return 0
-        if [ -n "$ic_current" ]; then ic_next="$ic_current:$ic_component"; else ic_next="$ic_component"; fi
+        if [ -n "$ic_current" ]; then ic_next="$ic_current:$ic_short"; else ic_next="$ic_short"; fi
         settings put secure enabled_accessibility_services "$ic_next" || return 1
         settings put secure accessibility_enabled 1 || return 1
     else
         [ "$ic_present" = 0 ] && return 0
-        ic_next=$(printf '%s' "$ic_current" | tr ':' '\n' | grep -vxF "$ic_component" | grep -vxF "$ic_component_full" | paste -sd: -)
+        ic_next=$(printf '%s' "$ic_current" | tr ':' '\n' | grep -vxF "$ic_short" | grep -vxF "$ic_full" | paste -sd: -)
         if [ -n "$ic_next" ]; then
             settings put secure enabled_accessibility_services "$ic_next" || return 1
         else
             settings delete secure enabled_accessibility_services || return 1
         fi
     fi
+    return 0
+}
+# 自动刷新与体感各有一个随 App 提供的无障碍服务，都按各自开关增删：开关打开即启用、关闭即移除。
+# 开机（service.sh）与每次应用配置（inkctl apply）都会走这里，所以重启后不用手动去系统设置里点。
+ic_accessibility() {
+    if ic_enabled refresh.master; then ic_want_refresh=1; else ic_want_refresh=0; fi
+    ic_accessibility_sync com.inkcontrol/.features.refresh.RefreshService \
+        com.inkcontrol/com.inkcontrol.features.refresh.RefreshService "$ic_want_refresh" || return 1
+    if ic_enabled wave.lock || ic_enabled wave.wake; then ic_want_wave=1; else ic_want_wave=0; fi
+    ic_accessibility_sync com.inkcontrol/.features.wave.WaveService \
+        com.inkcontrol/com.inkcontrol.features.wave.WaveService "$ic_want_wave" || return 1
     return 0
 }
 ic_prepare_restore() {

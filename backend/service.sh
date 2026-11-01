@@ -48,6 +48,9 @@ while [ ! -f "$MODDIR/disable" ] && [ ! -f "$MODDIR/remove" ]; do
             fi
         fi
     fi
+    # 无障碍服务自愈：清理工具、系统或手动操作把「已启用服务」改掉后，下个周期补回来。
+    # ic_accessibility 幂等——状态已经对时只读一次设置，不写盘；开关本身关着则不会擅自加。
+    ic_accessibility 2>/dev/null || :
     now=$(date +%s)
     if [ "$(awk -F= '$1=="guard.config" {print $2}' "$IC_BOOT")" = 1 ] && [ "$now" -ge "$next_backup" ]; then backup_now; next_backup=$((now + 21600)); fi
     sleep 60
