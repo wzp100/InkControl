@@ -34,7 +34,11 @@ import java.util.concurrent.Executors;
  */
 public final class MainActivity extends Activity {
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor();
-    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "大功能排序", TERMS = "__terms";
+    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "大功能排序", SHORTCUTS = "桌面快捷方式", TERMS = "__terms";
+    /** 启动时直接打开「模块设置」下某一页用的 extra。 */
+    private static final String MODULE_EXTRA = "module";
+    /** 「模块设置」下这些是页面而不是普通选项，进程重建时要保留当前页。 */
+    private static final List<String> MODULE_PAGES = Arrays.asList(INSTALL, DIAGNOSE, ORDER, SHORTCUTS);
     private static final String[] TABS = {FEATURES, MODULE};
     private static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL};
     private static final int EXPORT_REQUEST = 100;
@@ -95,7 +99,7 @@ public final class MainActivity extends Activity {
             tab = state.getString("tab", FEATURES);
             if (!Arrays.asList(TABS).contains(tab)) tab = FEATURES;
             modulePage = state.getString("module", "");
-            if (!modulePage.isEmpty() && !modulePage.equals(INSTALL) && !modulePage.equals(DIAGNOSE)) modulePage = "";
+            if (!modulePage.isEmpty() && !MODULE_PAGES.contains(modulePage)) modulePage = "";
             category = state.getString("category", ""); featureId = state.getString("feature", "");
             if (!featureId.isEmpty()) {
                 featureId = Guide.destination(featureId);
@@ -108,7 +112,49 @@ public final class MainActivity extends Activity {
                 if (restored != null && singleItem(restored) != null) category = "";
             }
         }
+        // 进程重建（旋转、内存回收）时 state 里已经带着上次的位置，不再拿启动 intent 覆盖。
+        if (state == null) {
+            moduleTarget(getIntent());
+            shortcutTarget(getIntent());
+        }
         load();
+        render();
+        // 长按桌面图标弹出的列表跟着配置走：后台重建一次，内容没变时内部会直接跳过。
+        WORKER.execute(() -> UiShortcuts.apply(this));
+    }
+
+    /** 直接打开「模块设置」下的某一页（快捷面板里的「去设置」用）。 */
+    private void moduleTarget(android.content.Intent intent) {
+        if (intent == null) return;
+        String page = intent.getStringExtra(MODULE_EXTRA);
+        if (page == null || !MODULE_PAGES.contains(page)) return;
+        tab = MODULE; modulePage = page; category = ""; featureId = "";
+    }
+
+    /** 从桌面快捷方式进来：直接落到对应功能页，返回时回到该功能的分类而不是首页。 */
+    private void shortcutTarget(android.content.Intent intent) {
+        if (intent == null || !UiShortcuts.ACTION.equals(intent.getAction())) return;
+        String id = intent.getStringExtra(UiShortcuts.EXTRA);
+        if (id == null || id.isEmpty()) return;
+        String target = Guide.destination(id);
+        FeatureDefinition definition;
+        try { definition = FeatureCatalog.get(target); }
+        catch (RuntimeException unknown) { return; }
+        tab = FEATURES; modulePage = ""; featureId = target; category = definition.group;
+        Guide.Category restored = Guide.CATEGORIES.get(category);
+        if (restored != null && singleItem(restored) != null) category = "";
+    }
+
+    @Override protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent == null) return;
+        if (intent.getStringExtra(MODULE_EXTRA) != null) {
+            moduleTarget(intent); scroll = null; render(); return;
+        }
+        if (!UiShortcuts.ACTION.equals(intent.getAction())) return;
+        shortcutTarget(intent);
+        scroll = null;
         render();
     }
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -206,6 +252,7 @@ public final class MainActivity extends Activity {
                 if (modulePage.equals(INSTALL)) installation();
                 else if (modulePage.equals(DIAGNOSE)) diagnostics();
                 else if (modulePage.equals(ORDER)) categoryOrderPage();
+                else if (modulePage.equals(SHORTCUTS)) shortcutPage();
                 else moduleSettings();
             } else if (!loadError.isEmpty()) {
                 body.addView(spaced(paragraph("出错了先从这里处理：进「诊断」查看详情，或在「安装」重新导出 Magisk 模块 ZIP。", 14), 12));
@@ -1963,6 +2010,8 @@ public final class MainActivity extends Activity {
                 "", false, "打开诊断", v -> { modulePage = DIAGNOSE; render(); }), 12));
         body.addView(spaced(navCard("大功能排序", "调整首页各大功能的显示顺序，立即生效、随时可恢复默认。",
                 "", false, "打开大功能排序", v -> { modulePage = ORDER; render(); }), 12));
+        body.addView(spaced(navCard("桌面快捷方式", "长按桌面上的墨控图标，直接跳到最常用的几个功能；放哪几个由你决定。",
+                "", false, "选择快捷方式", v -> { modulePage = SHORTCUTS; render(); }), 12));
         body.addView(spaced(navCard("实验室", Guide.CATEGORIES.get("实验室").intro,
                 "", false, "打开实验室", v -> { tab = FEATURES; category = "实验室"; featureId = ""; scroll = null; render(); }), 12));
         body.addView(spaced(navCard("名词解释", "刷新方式、残影、关键帧、波形动画……这些词是什么意思。",
@@ -2119,6 +2168,129 @@ public final class MainActivity extends Activity {
         if (actions != null) content.addView(spaced(actions, 12));
         row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
         return row;
+    }
+
+    // ───────────────────────── 桌面快捷方式 ─────────────────────────
+
+    private void shortcutPage() {
+        List<String> chosen = UiShortcuts.saved(this);
+        body.addView(spaced(card(column(
+                heading("长按桌面图标", 18),
+                spaced(paragraph("长按桌面上的「墨控」图标，弹出的菜单里直接列出下面这几项，点一个就到对应功能页，"
+                        + "不再多一层面板。最多 " + UiShortcuts.MAX + " 个。", 14), 8),
+                spaced(paragraph("说明：这几条是安卓的「动态快捷方式」，桌面把它们画成一列「图标 + 名字」，"
+                        + "和系统自带的「分享 / 冻结 / 卸载」那一行是同一块菜单的不同样式。"
+                        + "名字只留两三个字，字多了会被桌面截成「遮挡息…」。", 13), 8))), 16));
+
+        LinearLayout chosenCard = column();
+        if (chosen.isEmpty()) chosenCard.addView(paragraph("还没有选择任何功能。", 14));
+        for (int i = 0; i < chosen.size(); i++) {
+            FeatureDefinition feature;
+            try { feature = FeatureCatalog.get(Guide.destination(chosen.get(i))); }
+            catch (RuntimeException unknown) { continue; }
+            chosenCard.addView(spaced(shortcutRow(i + 1, feature), 10));
+        }
+        body.addView(spaced(card(chosenCard), 16));
+
+        body.addView(spaced(ink.button("选择功能", Ink.Kind.PRIMARY, v -> shortcutPicker()), 12));
+        body.addView(spaced(ink.button("恢复默认四个", Ink.Kind.SECONDARY, v -> {
+            boolean ok = UiShortcuts.reset(this);
+            dismissNotice();
+            message = ok ? "已恢复默认：遮挡息屏、自定义锁屏、自动刷新、桌面主题" : "桌面没有接受这次改动，稍后再试一次";
+            messageFailed = !ok;
+            render();
+            if (ok) scheduleNoticeDismiss();
+        }), 12));
+        body.addView(spaced(paragraph("改完立即生效，不用重启桌面。个别桌面会缓存长按菜单，"
+                + "第一次可能要多等几秒，或者先滑一下桌面再长按。", 13), 12));
+    }
+
+    private View shortcutRow(int index, FeatureDefinition feature) {
+        LinearLayout row = new LinearLayout(this);
+        // 序号要对齐标题那一行，不能按整块居中：描述一长，圆点会掉到中间去。
+        row.setGravity(Gravity.TOP);
+        TextView number = ink.text(String.valueOf(index), 15, Ink.BOLD);
+        number.setGravity(Gravity.CENTER);
+        number.setBackground(ink.outline(20));
+        LinearLayout.LayoutParams badge = new LinearLayout.LayoutParams(ink.dp(26), ink.dp(26));
+        badge.topMargin = ink.dp(1);
+        row.addView(number, badge);
+        LinearLayout text = column(ink.text(feature.title, 16, Ink.MEDIUM),
+                spaced(paragraph(feature.group, 12), 2));
+        LinearLayout.LayoutParams content = new LinearLayout.LayoutParams(0, -2, 1);
+        content.leftMargin = ink.dp(12);
+        row.addView(text, content);
+        row.setContentDescription(ink.t(feature.title));
+        return row;
+    }
+
+    /** 选快捷方式：列全部分类下的功能，勾满上限后自动挡回。 */
+    private void shortcutPicker() {
+        Set<String> selected = new LinkedHashSet<>(UiShortcuts.saved(this));
+        List<CheckBox> boxes = new ArrayList<>();
+        List<String> ids = new ArrayList<>();
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        String lastGroup = null;
+        for (FeatureDefinition feature : FeatureCatalog.all()) {
+            // 纯页面项（「显示信息修改」「倒数日事项」这类）没有自己的开关，当快捷方式没意义
+            if (feature.acceptsPanel()) continue;
+            if (!feature.group.equals(lastGroup)) {
+                lastGroup = feature.group;
+                TextView header = ink.text(feature.group, 14, Ink.BOLD);
+                header.setPadding(ink.dp(10), ink.dp(14), ink.dp(10), ink.dp(4));
+                list.addView(header);
+            }
+            CheckBox box = new CheckBox(this);
+            box.setText(feature.title);
+            box.setTextSize(15);
+            box.setPadding(ink.dp(10), ink.dp(9), ink.dp(10), ink.dp(9));
+            box.setChecked(selected.contains(feature.id));
+            box.setOnCheckedChangeListener((button, checked) -> {
+                if (!checked) return;
+                int count = 0;
+                for (CheckBox other : boxes) if (other.isChecked()) count++;
+                if (count > UiShortcuts.MAX) {
+                    button.setChecked(false);
+                    Toast.makeText(this, "最多选 " + UiShortcuts.MAX + " 个，先取消一个再选", Toast.LENGTH_SHORT).show();
+                }
+            });
+            list.addView(box);
+            boxes.add(box);
+            ids.add(feature.id);
+        }
+        ScrollView scroller = new ScrollView(this);
+        scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroller.setScrollbarFadingEnabled(false);
+        scroller.addView(list);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(ink.dp(10), ink.dp(4), ink.dp(10), ink.dp(4));
+        content.addView(paragraph("勾选顺序按列表从上到下排列，与点选先后无关。", 12));
+        content.addView(scroller, new LinearLayout.LayoutParams(-1, ink.dp(380)));
+        new AlertDialog.Builder(this)
+                .setTitle(ink.t("选择快捷方式") + "（最多 " + UiShortcuts.MAX + " 个）")
+                .setView(content)
+                .setNegativeButton(ink.t("取消"), null)
+                .setPositiveButton(ink.t("保存"), (dialog, which) -> {
+                    List<String> picked = new ArrayList<>();
+                    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).isChecked()) picked.add(ids.get(i));
+                    if (picked.isEmpty()) {
+                        dismissNotice();
+                        message = "至少要留一个，否则长按图标不会弹出菜单";
+                        messageFailed = true;
+                        render();
+                        return;
+                    }
+                    boolean ok = UiShortcuts.save(this, picked);
+                    dismissNotice();
+                    message = ok
+                            ? "已保存 " + picked.size() + " 个快捷方式，长按桌面图标就能看到"
+                            : "桌面拒绝了这次更新（可能刚改过太多次），过一会儿再保存一次";
+                    messageFailed = !ok;
+                    render();
+                    if (ok) scheduleNoticeDismiss();
+                }).show();
     }
 
     // ───────────────────────── 诊断 ─────────────────────────

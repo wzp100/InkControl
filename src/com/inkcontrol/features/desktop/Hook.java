@@ -72,6 +72,7 @@ public final class Hook implements IXposedHookLoadPackage {
         XposedHelpers.findAndHookMethod("com.hmct.vision.Launcher",loader,"onResume",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){activity=new WeakReference<>((Activity)m.thisObject);handler.post(Hook::refresh);}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.Launcher",loader,"onDestroy",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){if(activity.get()==m.thisObject){widgets.clear();originals.clear();activity.clear();}}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.BubbleTextView",loader,"onDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam m){if(enabled)style((TextView)m.thisObject);}});
+        popupBudget();
         XposedHelpers.findAndHookMethod("com.hmct.vision.plugin.PluginView",loader,"addRemoteView",View.class,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){View remote=findClock((View)m.args[0]);if(remote!=null)addWidget((ViewGroup)m.thisObject,remote);}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.DragLayer",loader,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam m){if(!enabled||!RuntimeConfig.enabled("desktop.wallpaper"))return;View v=(View)m.thisObject;Bitmap b=Assets.bitmap("wallpaper-"+theme+".png");if(b!=null)((Canvas)m.args[0]).drawBitmap(b,null,new Rect(0,0,v.getWidth(),v.getHeight()),new Paint(3));}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.FolderIcon",loader,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){if(!enabled||!RuntimeConfig.enabled("desktop.icons"))return;try{
@@ -88,6 +89,50 @@ public final class Hook implements IXposedHookLoadPackage {
             pref.setOnPreferenceClickListener(x->{a.startActivity(new Intent().setClassName("com.inkcontrol","com.inkcontrol.ui.MainActivity"));return true;});a.getPreferenceScreen().addPreference(pref);
         }});
         XposedBridge.log("EinkThemes: launcher hooks installed pid="+android.os.Process.myPid());
+    }
+    /**
+     * 长按菜单的条目预算。
+     *
+     * <p>原厂 {@code popup.PopupPopulator.a(List ids, List system)} 里写的是
+     * {@code size = Math.min(4, 快捷方式数 + 系统项数)}：先把整行铺成「快捷方式」类型，
+     * 再把末尾几个槽位改成系统项（分享 / 冻结 / 卸载）。这台机的系统项正好占 3 个，
+     * 于是无论应用注册几条动态快捷方式，都只剩 1 个槽位 —— 这就是「海信桌面只显示 1 条」的真正原因，
+     * 与快捷方式的内容、标签长度都无关。
+     *
+     * <p>两行本来就是各自独立的容器（{@code ShortcutsItemView} 和 {@code SystemShortcutsItemView}），
+     * 所以按「快捷方式最多 4 个 + 系统项照原样」重算数组长度即可：快捷方式占前面几格，
+     * 系统项仍落在末尾，各行数量互不影响。只对墨控自己的快捷方式（id 以 {@code feature:} 开头）生效。
+     */
+    private static void popupBudget(){
+        try{
+            XposedHelpers.findAndHookMethod("com.hmct.vision.popup.b",loader,"a",List.class,List.class,new XC_MethodHook(){
+                @Override protected void afterHookedMethod(MethodHookParam m){
+                    try{
+                        Object result=m.getResult();
+                        if(!(result instanceof Object[]))return;
+                        List<?> ids=(List<?>)m.args[0];
+                        if(ids==null)return;
+                        boolean ours=false;
+                        for(Object id:ids)if(String.valueOf(id).startsWith("feature:")){ours=true;break;}
+                        if(!ours)return;
+                        List<?> system=(List<?>)m.args[1];
+                        int keep=system==null?0:system.size();
+                        int deep=Math.min(4,ids.size());
+                        int total=deep+keep;
+                        Object[] original=(Object[])result;
+                        if(total<=original.length)return;
+                        Class<?> type=original.getClass().getComponentType();
+                        Object[] expanded=(Object[])java.lang.reflect.Array.newInstance(type,total);
+                        Object shortcut=type.getField("a").get(null);
+                        Object single=type.getField("b").get(null);
+                        Object multi=type.getField("c").get(null);
+                        for(int i=0;i<deep;i++)expanded[i]=shortcut;
+                        for(int i=0;i<keep;i++)expanded[total-1-i]=keep==1?single:multi;
+                        m.setResult(expanded);
+                    }catch(Throwable failed){XposedBridge.log("EinkThemes: popup budget skipped "+failed.getClass().getSimpleName());}
+                }
+            });
+        }catch(Throwable missing){XposedBridge.log("EinkThemes: popup budget hook unavailable "+missing.getClass().getSimpleName());}
     }
     private static void attach(Context c){if(initialized)return;initialized=true;context=c;handler=new Handler(c.getMainLooper());RuntimeConfig.listen(Hook::refresh);
         handler.post(()->{try{Assets.init(c);c.getContentResolver().registerContentObserver(ThemeProvider.URI,true,new ContentObserver(handler){@Override public void onChange(boolean self,android.net.Uri uri){
