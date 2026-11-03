@@ -111,9 +111,9 @@ final class Guide {
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
         // 这一页是独立界面（不走功能开关列表），sections 留空；渲染由 MainActivity 特判。
         cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可以还原；系统分区里的原始文件始终保留，还原后仍是系统应用身份。", new String[][]{});
-        cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新；放开快捷设置里对第三方磁贴的限制；把底部导航栏改成白底黑键。", new String[][]{
+        cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新；放开快捷设置里对第三方磁贴的限制；把底部导航栏改成白底黑键；把系统设置存成可以写回的快照。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
-                {"安全", "fix.permissions"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"}});
+                {"安全", "fix.permissions"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"}, {"备份", "sys.backup"}});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
     }
     private static void cat(String name, String intro, String[][] sections) {
@@ -354,6 +354,8 @@ final class Guide {
                 .before("不开启时：黑底白键。").after("开启后：白底黑键；锁屏与通话界面维持原厂配色。")
                 .cost("只改系统界面自己画的那一条；全屏应用自己隐藏导航栏时不受影响。切换开关立即生效，不用重启系统界面。")
                 .option("default", "白底黑键", "").term("三大金刚键", "系统界面");
+        put("sys.backup").summary("把系统设置存成快照，需要时写回去").what("只备份系统设置本身：息屏时长、锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、显示模式、开发者选项开关。快照存在 /data/adb/inkcontrol/backup 里（清除应用数据也不会丢），恢复出厂或换回原样时逐条写回。")
+                .cost("不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。恢复不会覆盖系统文件，也不会让「设置」打不开——它是逐条写设置项，失败的那条跳过、其它的照写，恢复前还会先给当前状态拍一张，写坏了能退回去。少数临时状态项（下次闹钟、是否有更新）和无障碍服务清单会跳过，那几项由系统和墨控自己维护。");
         put("experiment.cache").summary("显示后端少做几次重复查询").what("GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结果缓存起来。")
                 .cost("只是局部优化，日常几乎感觉不到差别。需要 GPU 显示后端。").option("default", "缓存参数位置", "").term("GPU 显示后端");
         put("experiment.video").summary("旧版视频选择，已归入显示分类").what("旧配置继续保留。「显示 → 视频场景算法」选保持现状时沿用这里的选择；新页面明确选择算法时优先使用新选择。")

@@ -41,7 +41,7 @@ final class RootBridge {
         }
     }
     String run(String command, String input) throws Exception {
-        if (!command.matches("status|apply|applyfont|fontlist|restorefont|sysapp (state|remove|restore)")) throw new IllegalArgumentException("命令未注册");
+        if (!command.matches("status|apply|applyfont|fontlist|restorefont|sysapp (state|remove|restore)|sysbackup (list|save|restore|delete)")) throw new IllegalArgumentException("命令未注册");
         String controller = new File(payload(), "bin/inkctl").getCanonicalPath();
         if (!controller.matches("[a-zA-Z0-9_./-]+")) throw new SecurityException("控制器路径无效");
         Process process;
@@ -93,4 +93,20 @@ final class RootBridge {
     String sysAppRemove(String pkg) throws Exception { return run("sysapp remove", packageName(pkg) + "\n"); }
     /** pm install-existing --user 0：把系统里已有的包装回机主，权限身份不变。 */
     String sysAppRestore(String pkg) throws Exception { return run("sysapp restore", packageName(pkg) + "\n"); }
+
+    /**
+     * 系统设置快照。编号形如 20261103-213500，只允许字母数字下划线和短横线，
+     * 后端还会再校验一次——它会被拼进目录路径，不能让 `../` 混进来。
+     */
+    private static String snapshotId(String id) {
+        if (id == null || !id.matches("[0-9A-Za-z_-]{1,40}")) throw new IllegalArgumentException("快照编号无效");
+        return id;
+    }
+    /** 已有快照：每行「编号\t创建时间\t条数\t占用KB」。 */
+    String backupList() throws Exception { return run("sysbackup list", ""); }
+    /** 拍一张当前的系统设置快照，返回 id= 与 count= 两行。 */
+    String backupSave() throws Exception { return run("sysbackup save", ""); }
+    /** 逐条写回某个快照；返回 written=/skipped=/failed=/safety= 四行。 */
+    String backupRestore(String id) throws Exception { return run("sysbackup restore", snapshotId(id) + "\n"); }
+    String backupDelete(String id) throws Exception { return run("sysbackup delete", snapshotId(id) + "\n"); }
 }

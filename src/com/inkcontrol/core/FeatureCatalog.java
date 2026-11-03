@@ -92,6 +92,9 @@ public final class FeatureCatalog {
         // 原厂把导航栏背景写死在 BarTransitions 里（资源覆盖无效），只能在画完之后重绘；
         // 开关是运行期读的，改完下一帧就变，不用重启系统界面。
         add("navbar.white", "系统增强", "三大金刚键漂白", "把底部导航栏的黑底白键改成白底黑键，切换开关立即生效", "systemui", "", HOT, false, "default", "白底黑键");
+        // 纯页面项：进去是备份/恢复的操作页，自己没有开关。
+        // 只搬 settings 三张表并逐条回放，不覆盖 /data/data、不碰 packages.xml（整包盖回去会让「设置」启动即闪退）。
+        add("sys.backup", "系统增强", "备份系统设置", "把系统设置存成快照（息屏与锁屏时长、音量、输入法、字体名、护眼等），恢复出厂后逐条写回", "backend", "", HOT, false, "@panel", "打开备份");
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");

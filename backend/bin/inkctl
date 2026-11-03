@@ -2,6 +2,7 @@
 MODDIR=${0%/bin/inkctl}
 IC_LIB=$MODDIR/lib
 . "$IC_LIB/common.sh"
+. "$IC_LIB/sysbackup.sh"
 [ "$(id -u)" = 0 ] || { echo '需要Root授权' >&2; exit 1; }
 mkdir -p "$IC_STATE" || exit 1
 chmod 700 "$IC_STATE"
@@ -69,5 +70,19 @@ case "$1" in
             *) echo '仅支持 state/remove/restore' >&2; exit 2 ;;
         esac
         exit $? ;;
-    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont/sysapp' >&2; exit 2 ;;
+    sysbackup)
+        # 系统设置快照：list 列出、save 拍一张、restore/delete 针对某个编号。
+        # 编号只从 stdin 或第三个参数读，格式在后端再校验一次（不接受任何路径字符）。
+        action=$2
+        sid=$3
+        case "$action" in
+            list) ic_backup_list ;;
+            save) ic_backup_save ;;
+            restore|delete)
+                [ -n "$sid" ] || IFS= read -r sid || true
+                if [ "$action" = restore ]; then ic_backup_restore "$sid"; else ic_backup_delete "$sid"; fi ;;
+            *) echo '仅支持 list/save/restore/delete' >&2; exit 2 ;;
+        esac
+        exit $? ;;
+    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont/sysapp/sysbackup' >&2; exit 2 ;;
 esac

@@ -86,6 +86,10 @@ public final class MainActivity extends Activity {
     private boolean scrollToVisual;
     private View visualView;
 
+    /** 系统设置快照列表；null 表示还没读过，读的时候用 backupsLoading 挡重复请求。 */
+    private List<String[]> backups;
+    private boolean backupsLoading;
+
     @Override protected void attachBaseContext(android.content.Context base) { super.attachBaseContext(UiLanguage.wrap(base)); }
 
     interface Work { String run() throws Exception; }
@@ -805,6 +809,16 @@ public final class MainActivity extends Activity {
             return navCard(feature.title, Guide.get(feature.id).summary, meta, shown > 0,
                     feature.title + "，选择显示哪几项", v -> openFeature(feature.id), false);
         }
+        // 「备份系统设置」也是页内操作项：列表里显示有几张快照，不画开关
+        if (feature.id.equals("sys.backup")) {
+            if (backups == null && !backupsLoading) loadBackups();
+            String meta;
+            if (backups == null) meta = "正在读取…";
+            else if (backups.isEmpty()) meta = "还没有快照";
+            else meta = backups.size() + " 个快照 · 最近 " + stamp(backups.get(0)[1]);
+            return navCard(feature.title, Guide.get(feature.id).summary, meta, backups != null && !backups.isEmpty(),
+                    feature.title + "，打开备份", v -> openFeature(feature.id), false);
+        }
         ApplicationServices.Snapshot s = snapshot;
         boolean requested = s.config.requested(feature.id);
         boolean pending = busy && feature.id.equals(pendingId);
@@ -914,6 +928,8 @@ public final class MainActivity extends Activity {
         if (isFontNode(f.id)) { fontPage(f); return; }
         // 「显示信息修改」：四项显示开关收在一页，本页自己没有开关
         if (f.id.equals("lock.ext.edit")) { extItemsPage(f); return; }
+        // 「备份系统设置」：进去是操作页（拍快照 / 列快照 / 写回），没有开关
+        if (f.id.equals("sys.backup")) { backupPage(); return; }
         ApplicationServices.Snapshot s = snapshot;
         Guide.Entry g = Guide.get(f.id);
         boolean requested = s.config.requested(f.id);
@@ -2291,6 +2307,106 @@ public final class MainActivity extends Activity {
                     render();
                     if (ok) scheduleNoticeDismiss();
                 }).show();
+    }
+
+    // ───────────────────────── 备份系统设置 ─────────────────────────
+
+    private void backupPage() {
+        body.addView(spaced(card(column(
+                heading("存的是什么", 18),
+                spaced(paragraph("系统设置本身：息屏与锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、"
+                        + "显示模式、开发者选项这些。真机上约 420 项，恢复时逐条写回。", 14), 8),
+                spaced(paragraph("不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。"
+                        + "整包盖回去正是「设置」一打开就闪退的原因，这里只写设置项。", 13), 6))), 16));
+
+        body.addView(spaced(ink.button("立即备份当前设置", Ink.Kind.PRIMARY, v ->
+                perform("正在备份系统设置…", () -> {
+                    String[] saved = services.backupSave();
+                    backups = null;
+                    return "已备份 " + saved[1] + " 项设置，编号 " + saved[0];
+                }, false)), 12));
+
+        if (backups == null && !backupsLoading) loadBackups();
+        if (backups == null) { body.addView(note("正在读取已有快照…")); return; }
+
+        body.addView(spaced(heading("已有快照", 18), 18));
+        if (backups.isEmpty()) {
+            body.addView(paragraph("还没有备份过。点上面的按钮拍第一张。", 14));
+            return;
+        }
+        for (String[] item : backups) body.addView(spaced(snapshotCard(item), 10));
+        body.addView(spaced(paragraph("快照存在 /data/adb/inkcontrol/backup 下，清除应用数据不会带走。"
+                + "恢复只改设置项，不会覆盖系统文件；写之前还会先给当前状态拍一张，写坏了能退回去。", 13), 14));
+    }
+
+    private View snapshotCard(String[] item) {
+        String id = item[0], count = item[2], size = item[3];
+        LinearLayout card = column(ink.text(stamp(item[1]) + " · " + count + " 项 · " + size + " KB", 15, Ink.BOLD));
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setPadding(0, ink.dp(10), 0, 0);
+        actions.addView(ink.chip("写回", false, v -> restoreConfirm(id, count)));
+        LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(-2, -2);
+        removeParams.leftMargin = ink.dp(10);
+        actions.addView(ink.chip("删除", false, v -> confirm("删除快照",
+                "删掉 " + id + "？这张快照里的 " + count + " 项就找不回来了。", () -> removeSnapshot(id))), removeParams);
+        card.addView(actions);
+        return card;
+    }
+
+    private void restoreConfirm(String id, String count) {
+        confirm("写回系统设置",
+                "把 " + id + " 里的 " + count + " 项写回当前系统。\n\n"
+                        + "写之前会自动给现在的状态拍一张快照，写坏了可以用它退回去。"
+                        + "无线网络、字体这类要重启系统界面才看得出来；个别项可能要重启手机。",
+                () -> perform("正在写回设置…", () -> {
+                    String[] done = services.backupRestore(id);
+                    backups = null;
+                    String text = "已写回 " + done[0] + " 项，跳过 " + done[1] + " 项，失败 " + done[2] + " 项。";
+                    if (!done[3].isEmpty()) text += "\n写回前的状态已存为 " + done[3] + "。";
+                    return text;
+                }, true));
+    }
+
+    private void removeSnapshot(String id) {
+        perform("正在删除快照…", () -> {
+            services.backupDelete(id);
+            backups = null;
+            return "已删除快照 " + id;
+        }, false);
+    }
+
+    private void loadBackups() {
+        backupsLoading = true;
+        WORKER.execute(() -> {
+            List<String[]> loaded = null;
+            String error = "";
+            try { loaded = services.backupSnapshots(); } catch (Exception failure) { error = reason(failure); }
+            List<String[]> result = loaded;
+            String problem = error;
+            runOnUiThread(() -> {
+                backupsLoading = false;
+                if (isFinishing() || isDestroyed()) return;
+                // 读不到（多半是没给 Root）也要把页面画出来，否则只剩下「正在读取」一句
+                if (result == null) {
+                    backups = new ArrayList<>();
+                    message = problem;
+                    messageFailed = true;
+                } else backups = result;
+                render();
+            });
+        });
+    }
+
+    /** 秒级时间戳转成本地「MM-dd HH:mm」；解析不了就说明时间未知，别把数字直接丢给用户。 */
+    private static String stamp(String seconds) {
+        try {
+            long value = Long.parseLong(seconds) * 1000L;
+            if (value <= 0) return "时间未知";
+            return new java.text.SimpleDateFormat("MM-dd HH:mm", Locale.CHINA).format(new java.util.Date(value));
+        } catch (NumberFormatException invalid) {
+            return "时间未知";
+        }
     }
 
     // ───────────────────────── 诊断 ─────────────────────────

@@ -88,6 +88,47 @@ public final class ApplicationServices {
     public String sysAppRemove(String pkg) throws Exception { return root.sysAppRemove(pkg); }
     /** 还原到机主账号，仍是系统应用身份。 */
     public String sysAppRestore(String pkg) throws Exception { return root.sysAppRestore(pkg); }
+
+    /** 已有系统设置快照：{编号, 创建时间(秒), 条数, 占用KB}，最新的排在最前面。 */
+    public java.util.List<String[]> backupSnapshots() throws Exception {
+        java.util.List<String[]> result = new java.util.ArrayList<>();
+        for (String line : root.backupList().split("\n")) {
+            String[] parts = line.split("\t");
+            if (parts.length < 4 || parts[0].isEmpty()) continue;
+            result.add(new String[]{parts[0].trim(), parts[1].trim(), parts[2].trim(), parts[3].trim()});
+        }
+        // 后端按目录名升序输出，界面上要「最近的在最上面」，所以按创建时间倒序再排一次；
+        // 时间戳读不出来（老快照或手改过）就退回用编号比，编号本身就是 yyyyMMdd-HHmmss。
+        result.sort((left, right) -> {
+            long a = seconds(left[1]), b = seconds(right[1]);
+            return a == b ? right[0].compareTo(left[0]) : Long.compare(b, a);
+        });
+        return result;
+    }
+    private static long seconds(String text) {
+        try { return Long.parseLong(text); } catch (NumberFormatException invalid) { return 0L; }
+    }
+    /** 拍一张快照；返回 {编号, 条数}。 */
+    public String[] backupSave() throws Exception {
+        String id = "", count = "0";
+        for (String line : root.backupSave().split("\n")) {
+            if (line.startsWith("id=")) id = line.substring(3).trim();
+            else if (line.startsWith("count=")) count = line.substring(6).trim();
+        }
+        return new String[]{id, count};
+    }
+    /** 逐条写回；返回 {写入数, 跳过数, 失败数, 事前快照编号}。 */
+    public String[] backupRestore(String id) throws Exception {
+        String written = "0", skipped = "0", failed = "0", safety = "";
+        for (String line : root.backupRestore(id).split("\n")) {
+            if (line.startsWith("written=")) written = line.substring(8).trim();
+            else if (line.startsWith("skipped=")) skipped = line.substring(8).trim();
+            else if (line.startsWith("failed=")) failed = line.substring(7).trim();
+            else if (line.startsWith("safety=")) safety = line.substring(7).trim();
+        }
+        return new String[]{written, skipped, failed, safety};
+    }
+    public String backupDelete(String id) throws Exception { return root.backupDelete(id); }
     public String retry() throws Exception { features.retryApply(); return inspect(); }
     public String inspect() {
         try {

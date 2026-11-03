@@ -183,7 +183,9 @@ ic_supported
         for changed in (fake.replace('echo 29','echo 30'),fake.replace('echo HLTE203T','echo OTHER'),fake.replace('echo L1732.6.01.02','echo L1732.6.16.00')): self.shell(changed,1)
     def test_no_arbitrary_root_or_automatic_phone_operations(self):
         root=(ROOT/'src/com/inkcontrol/platform/RootBridge.java').read_text(encoding='utf-8')
-        self.assertIn('status|apply")',root)
+        # 白名单必须逐条列死：新增命令要同时改这里，避免悄悄放宽成「什么都能跑」
+        self.assertIn('status|apply|applyfont|fontlist|restorefont|sysapp (state|remove|restore)'
+                      '|sysbackup (list|save|restore|delete)")',root)
         for file in (ROOT/'src/com/inkcontrol/ui').glob('*.java'):
             text=file.read_text(encoding='utf-8'); self.assertNotIn('ProcessBuilder',text); self.assertNotIn('Settings.Global',text)
         for file in (ROOT/'src/com/inkcontrol/core').glob('*.java'):
