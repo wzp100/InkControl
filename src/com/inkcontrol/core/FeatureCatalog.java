@@ -73,7 +73,6 @@ public final class FeatureCatalog {
         add("wave.coverDelay", "体感", "遮挡延时", "遮挡持续多久才息屏，避免误触", "system", "wave.lock", HOT, false, "1000,500,2000,3000", "1秒,500毫秒,2秒,3秒");
         add("desktop.theme", "桌面", "桌面主题", "保留原厂桌面位置与布局", "launcher", "", HOT, false, "glass,paper,ink", "流光玻璃,纸间,墨构");
         add("desktop.icons", "桌面", "图标换肤", "独立恢复原厂图标", "launcher", "desktop.theme", HOT, false, "default", "主题图标");
-        add("desktop.font", "桌面", "字体换肤", "独立恢复原厂字体", "launcher", "desktop.theme", HOT, false, "default", "主题字体");
         add("desktop.wallpaper", "桌面", "壁纸材质", "仅覆盖显示，不改原厂壁纸文件", "launcher", "desktop.theme", HOT, false, "default", "主题材质");
         add("desktop.widget", "桌面", "主屏组件换肤", "复用原厂时钟插件的位置", "launcher", "desktop.theme", HOT, false, "clock,weather,music", "时钟,天气,音乐");
         add("font.dir", "字体", "字体", "把系统字体换成目录里的任意 TTF/OTF：点应用立刻全局生效（状态栏、锁屏、桌面与所有应用一起换，不用重启）", "backend", "", HOT, false, "@path", "字体目录");

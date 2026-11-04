@@ -11,14 +11,12 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -55,10 +53,7 @@ public final class Hook implements IXposedHookLoadPackage {
     private static final class Original {
         Drawable icon,styled;
         Object script;
-        Typeface font;
-        float textSize;
-        int color,padding,shadowColor,day;
-        float shadowRadius,shadowDx,shadowDy;
+        int day;
         String title,theme;
     }
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p)throws Throwable{
@@ -184,16 +179,16 @@ public final class Hook implements IXposedHookLoadPackage {
         String title=v.getText()==null?"":v.getText().toString();if(title.isEmpty()){Object label=field(v.getTag(),"t");if(label!=null)title=label.toString();else if(v.getContentDescription()!=null)title=v.getContentDescription().toString();}Drawable current=(Drawable)field(v,"H");Original o=originals.get(v);
         int day=java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR);
         if(o!=null&&theme.equals(o.theme)&&title.equals(o.title)&&current==o.styled&&(!"日历".equals(title)||o.day==day))return;
-        if(o==null){o=new Original();o.icon=current;o.script=field(v,"K");o.font=v.getTypeface();o.textSize=v.getTextSize();o.color=v.getCurrentTextColor();o.padding=v.getCompoundDrawablePadding();o.shadowRadius=v.getShadowRadius();o.shadowDx=v.getShadowDx();o.shadowDy=v.getShadowDy();o.shadowColor=v.getShadowColor();originals.put(v,o);}
+        if(o==null){o=new Original();o.icon=current;o.script=field(v,"K");originals.put(v,o);}
         else if(current!=o.styled){o.icon=current;Object script=field(v,"K");if(script!=null)o.script=script;}
-        o.title=title;o.theme=theme;o.day=day;if(RuntimeConfig.enabled("desktop.font")){v.setTypeface(Assets.face(theme,false));v.setTextColor(Color.rgb(17,17,17));v.setShadowLayer(0,0,0,0);v.setTextSize(TypedValue.COMPLEX_UNIT_PX,"paper".equals(theme)?25:24);v.setCompoundDrawablePadding(15);}
+        o.title=title;o.theme=theme;o.day=day;
         Bitmap b=RuntimeConfig.enabled("desktop.icons")?Assets.icon(title,theme):null;
         if(b!=null&&current!=null){int size=Math.max(80,Math.min(160,current.getIntrinsicWidth()));if(size<=0)size=112;Bitmap scaled=Bitmap.createScaledBitmap(b,size,size,true);
             Drawable drawable=(Drawable)loader.loadClass("com.hmct.vision.w").getConstructor(Bitmap.class).newInstance(scaled);setField(v,"K",null);v.getClass().getMethod("setIcon",Drawable.class).invoke(v,drawable);o.styled=drawable;
         }else o.styled=current;
     }catch(Throwable t){XposedBridge.log("EinkThemes: icon styling unavailable "+t.getClass().getSimpleName());}}
     private static void restore(TextView v){Original o=originals.remove(v);if(o==null)return;try{
-        v.setTypeface(o.font);v.setTextColor(o.color);v.setTextSize(TypedValue.COMPLEX_UNIT_PX,o.textSize);v.setCompoundDrawablePadding(o.padding);v.setShadowLayer(o.shadowRadius,o.shadowDx,o.shadowDy,o.shadowColor);setField(v,"K",o.script);if(o.icon!=null)v.getClass().getMethod("setIcon",Drawable.class).invoke(v,o.icon);
+        setField(v,"K",o.script);if(o.icon!=null)v.getClass().getMethod("setIcon",Drawable.class).invoke(v,o.icon);
     }catch(Throwable t){XposedBridge.log("EinkThemes: native icon restore unavailable "+t.getClass().getSimpleName());}}
     static void diagnostic(){try{if(context==null)return;JSONObject j=new JSONObject();j.put("pid",android.os.Process.myPid());j.put("theme",theme);j.put("kind",kind);j.put("enabled",enabled);j.put("styled_views",originals.size());j.put("clock_plugins",widgets.size());j.put("weather_available",!state.getString("temperature","").isEmpty());j.put("media_available",state.getBoolean("mediaAvailable"));
         File f=new File(context.getFilesDir(),"einkthemes-state.json");try(FileOutputStream out=new FileOutputStream(f)){out.write(j.toString(2).getBytes("UTF-8"));}

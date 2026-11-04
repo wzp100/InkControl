@@ -77,7 +77,6 @@ public final class ConfigProvider extends ContentProvider {
                 Bundle result = new Bundle();
                 result.putBoolean("enabled", config.enabled("desktop.theme"));
                 result.putBoolean("icons", config.enabled("desktop.icons"));
-                result.putBoolean("font", config.enabled("desktop.font"));
                 result.putBoolean("wallpaper", config.enabled("desktop.wallpaper"));
                 result.putBoolean("widget", config.enabled("desktop.widget"));
                 result.putString("theme", config.value("desktop.theme"));

@@ -99,7 +99,8 @@ public final class Configuration {
         if (legacyExt && !hasExtKey) flags.put("lock.ext", true);
         // 旧版残留键已删除：「字体2」（font2.*）并入「字体」（font.*）；
         // 「Google 设置图标修复」（fix.google）、「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、
-        // 「体感息屏唤醒」（wave.master）整体下线。设置状态的四项显示开关（lock.ext.wifi/bt/audio/airplane）
+        // 「体感息屏唤醒」（wave.master）整体下线；「字体换肤」（desktop.font）也下线，
+        // 全局「字体」（font.dir）已完全取代它。设置状态的四项显示开关（lock.ext.wifi/bt/audio/airplane）
         // 曾经下线过一阵子，旧配置里可能残留同名的行；它们现在是正式功能，已被上面的循环取走，
         // 这里仍保留匹配以防只写了半行（只有 flag 没有 .value）。
         // 容忍旧配置里的残留键，否则升级后 parse 抛「存在未知配置字段」
@@ -108,6 +109,7 @@ public final class Configuration {
             String name = key.endsWith(".value") ? key.substring(0, key.length() - 6) : key;
             return name.startsWith("font2.") || name.startsWith("fix.google")
                     || name.equals("lock.notifyhide") || name.equals("wave.master")
+                    || name.equals("desktop.font")
                     || name.matches("lock\\.ext\\.(wifi|bt|audio|airplane)");
         });
         if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");

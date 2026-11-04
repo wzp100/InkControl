@@ -107,11 +107,11 @@ final class Guide {
                 {"字体", "font.dir"}});
         cat("体感", "实现类似盒盖息屏、翻盖亮屏的功能，调用的是距离传感器，需要无障碍服务支持。", new String[][]{
                 {"行为", "wave.lock", "wave.coverDelay", "wave.wake"}});
-        cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
-                {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
+        cat("桌面", "原厂桌面的主题、图标、壁纸与组件；不改动图标位置和布局。", new String[][]{
+                {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.wallpaper", "desktop.widget"}});
         // 这一页是独立界面（不走功能开关列表），sections 留空；渲染由 MainActivity 特判。
-        cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可以还原；系统分区里的原始文件始终保留，还原后仍是系统应用身份。", new String[][]{});
-        cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新；放开快捷设置里对第三方磁贴的限制；把底部导航栏改成白底黑键；把系统设置存成可以写回的快照；冻结安全输入服务后仍能正常输密码。", new String[][]{
+        cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可还原；系统分区文件保留。常驻组件不在此列。", new String[][]{});
+        cat("系统增强", "修复原厂服务的几个问题，放开快捷磁贴、导航栏与密码框的限制。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions", "fix.safeime"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"}, {"备份", "sys.backup"}});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
@@ -325,10 +325,9 @@ final class Guide {
                 .before("锁屏背景、卡片阴影处偶尔出现水平细线。").after("细线消失，画面更干净。").cost("灰色渐变的层次会少一些，字体边缘的灰阶需要你实际看一看是否满意。需要 GPU 显示后端。")
                 .option("nearest", "点量化", "").term("抖动", "GPU 显示后端");
 
-        put("desktop.theme").summary("三套配套的桌面外观").what("给原厂桌面换一套完整的外观。下面的图标、字体、壁纸、组件可以分别开关；图标位置和桌面布局保持不变。").visual(Visual.DESKTOP_THEME)
+        put("desktop.theme").summary("三套配套的桌面外观").what("给原厂桌面换一套完整的外观。下面的图标、壁纸、组件可以分别开关；图标位置和桌面布局保持不变。").visual(Visual.DESKTOP_THEME)
                 .option("glass", "流光玻璃", "浅色玻璃质感卡片，细线图标。").option("paper", "纸间", "纸张质感与衬线字体，像一本笔记本。").option("ink", "墨构", "黑底反白、高对比，粗线条图标。");
         put("desktop.icons").summary("应用图标换成主题配套的黑白图标").what("把常用应用的图标换成与主题匹配的黑白图标（覆盖 39 个常用应用），在墨水屏上比彩色图标清晰得多。").cost("关闭后立即恢复原厂图标。").option("default", "主题图标", "");
-        put("desktop.font").summary("只换桌面图标下方应用名的字体").what("仅对原厂桌面图标下方的应用名生效：纸间主题用系统衬线体、墨构用窄体、流光玻璃用普通黑体，字号与字色也随主题调整。它不加载字体文件、也不改系统全局字体，图标以外任何界面都不受影响。").cost("关闭后恢复原厂字体。想要全局换字体请用「字体」。").option("default", "主题字体", "");
         put("font.dir").summary("换掉系统正在用的字体").what("填字体所在目录（默认是海信主题字体目录，也可以填 TF 卡上的文件夹，或点「选择目录」从文件管理器挑），目录里的 TTF/OTF 会逐个列出来，可用搜索框按名字过滤；墨控按文件头识别，文件不用改扩展名。点某个字体右侧的「应用」，字体文件会以独立路径写进 /data/fonts、把 HmctFont.ttf 与 persist.sys.font* 指过去，并微扰 font_scale 让所有界面立即重建——照海信主题商店做法复刻的全局热切换，状态栏、锁屏、桌面与正在运行的应用立刻一起换字，不用重启。目录读不到时，可用「从文件选择」直接挑一个字体文件。").cost("字体缺少中文字形时部分界面会出现方块，点「恢复原厂字体」即可退回系统默认字体。全局替换，桌面应用字体也会一起换。");
         put("font.pick").summary("记录上次应用的字体").what("只保存最近一次应用成功的字体名，用于在页面上标出「上次已应用」，不单独出现在分类里。");
         put("font.saf").summary("从文件管理器选中的字体记录").what("兼容旧版本：用系统文件选择器挑过字体时会写在这里。功能已经合并到「字体文件」一页，不再单独显示。");

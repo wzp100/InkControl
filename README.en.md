@@ -6,11 +6,11 @@
 
 **InkControl · 墨控** brings display algorithms, transitions, lock-screen controls, and stock-launcher themes to the **Hisense A5 Pro 经典版 (Classic Edition)** with its **monochrome E-ink screen**. One app contains its matching Magisk backend.
 
-**All 75 enhancements ship off by default** (only the four status switches under the lock-screen device status are on). Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
+**All 74 enhancements ship off by default** (only the four status switches under the lock-screen device status are on). Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
 
 | Display | Motion | Lock screen | Stock launcher | System |
 | --- | --- | --- | --- | --- |
-| Per-mode algorithms; separate video settings | Effects, previews, temperature timing curves | Weather, lyrics, notification count, four status items, six styles | Three themes; independent icons, fonts, widgets; long-press lists up to four shortcuts | Quick-settings tiles, white navigation bar, system-settings snapshots, system-app removal |
+| Per-mode algorithms; separate video settings | Effects, previews, temperature timing curves | Weather, lyrics, notification count, four status items, six styles | Three themes; independent icons, wallpaper, widgets; long-press lists up to four shortcuts | Quick-settings tiles, white navigation bar, system-settings snapshots, system-app removal |
 | Grayscale and binary groups; independent hysteresis | Existing display path and mode boundaries | Individual controls and conditional restoration; notifications and device status are mutually exclusive; Pixel uses a white background and an up-swipe hint; no stock bottom-bar overlay | Original layout and app positions retained | Every item is an independent switch; turning it off restores stock behaviour |
 
 > **Test devices only recommended: back up important data to a computer or independent storage first. Boot failure, permanent data loss, and unrecoverable device damage are possible. Read [risks and disclaimer](#risks-and-disclaimer) before installation.**
@@ -40,7 +40,7 @@ The backend checks `HLTE203T / Android 10 / arm64` plus the firmware fingerprint
 
 ## A look inside
 
-<table><tr><th>Home</th><th>Module settings</th><th>Launcher shortcuts</th></tr><tr><td><img src="docs/media/ui-home.png" alt="Home page: readiness chip, 25 of 75 enabled, per-category counts" width="260"></td><td><img src="docs/media/ui-settings.png" alt="Module settings: install, diagnostics, feature ordering, launcher shortcuts, lab, glossary, language and toast duration" width="260"></td><td><img src="docs/media/ui-shortcuts.png" alt="Launcher shortcut page: the four entries and their order" width="260"></td></tr></table>
+<table><tr><th>Home</th><th>Module settings</th><th>Launcher shortcuts</th></tr><tr><td><img src="docs/media/ui-home.png" alt="Home page: readiness chip, 25 of 74 enabled, per-category counts" width="260"></td><td><img src="docs/media/ui-settings.png" alt="Module settings: install, diagnostics, feature ordering, launcher shortcuts, lab, glossary, language and toast duration" width="260"></td><td><img src="docs/media/ui-shortcuts.png" alt="Launcher shortcut page: the four entries and their order" width="260"></td></tr></table>
 
 **Physical-device screenshots** of 0.2.2-r19 on `HLTE203T` (720×1440 framebuffer, scaled to 360×720). The home page shows the current readiness state and an "enabled / total" line; the middle page is **Module settings** (install wizard, diagnostics, feature ordering, launcher shortcuts, lab, glossary, plus language and toast duration further down the same list); the last page is **Module settings → Launcher shortcuts**, the order in which long-pressing the launcher icon lists up to four features. Captures show layout only — they do not establish panel grayscale or ghosting quality. English UI translation is no longer maintained: the app may still show Chinese text in places, as visible above.
 

@@ -175,10 +175,11 @@ public final class CoreTest {
         check(safeime.group.equals("系统增强") && safeime.role.equals("systemui")
                 && safeime.mode == FeatureDefinition.ApplyMode.HOT && !safeime.defaultOn
                 && safeime.values.size() == 1 && safeime.values.get(0).equals("default"));
-        // 已下线功能的旧配置残留键被容忍并丢弃：字体2、Google 图标、隐藏锁屏通知、体感息屏唤醒
+        // 已下线功能的旧配置残留键被容忍并丢弃：字体2、Google 图标、隐藏锁屏通知、体感息屏唤醒、字体换肤
         Configuration tolerated = Configuration.parse(config.text()
                 + "font2.pick=1\nfont2.pick.value=x\nfix.google=1\nfix.google.value=default\n"
-                + "lock.notifyhide=1\nlock.notifyhide.value=default\nwave.master=1\nwave.master.value=default\n");
+                + "lock.notifyhide=1\nlock.notifyhide.value=default\nwave.master=1\nwave.master.value=default\n"
+                + "desktop.font=1\ndesktop.font.value=default\n");
         check(tolerated.revision == 0 && !tolerated.requested("motion.lock") && !tolerated.requested("wave.lock"));
         // 旧配置的「拓展显示 = 设备状态」迁到独立的 lock.ext：通知关掉、设备状态打开；
         // 四项显示开关是正式功能，旧配置里的同名行照旧读入（这里是「开」）。

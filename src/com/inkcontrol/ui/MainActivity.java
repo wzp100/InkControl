@@ -679,6 +679,10 @@ public final class MainActivity extends Activity {
     private static final String[][] SYS_APPS = {
             {"com.hmct.updater", "系统更新"},
             {"com.tencent.android.location", "腾讯位置服务"},
+            // 只在配置工作资料 / 设备所有者 / 影子应用时才用到；冻结后进程即消失且不会回来。
+            // 另外两个常驻进程（com.hmct.tether、com.android.modemnotifier）是 android:persistent 组件，
+            // 冻结压不住，运行期卸载还会掀掉 system_server，所以刻意不放进这个列表。
+            {"com.android.managedprovisioning", "工作设置"},
     };
     /** 包名 → installed / removed / absent；没有条目表示还没读到。 */
     private final Map<String, String> sysAppStates = new java.util.HashMap<>();
@@ -693,7 +697,7 @@ public final class MainActivity extends Activity {
             body.postDelayed(() -> { if (!busy) perform("读取卸载状态", this::readSysAppStates, false); }, 60);
         }
         // 页头已经有分类名与 intro，这里只补一句「卸载到底做了什么」，不再重复标题
-        body.addView(card(column(paragraph("「卸载」只把应用从机主账号里移除，系统分区里的原始文件仍然保留，随时可以原样装回；装回后仍是系统应用身份，特权权限不会丢。", 14))));
+        body.addView(card(column(paragraph("「卸载」只从机主账号移除，系统文件保留，点「还原」即可装回。", 14))));
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setBackground(ink.outline(12));
@@ -702,7 +706,7 @@ public final class MainActivity extends Activity {
             list.addView(sysAppRow(SYS_APPS[i][0], SYS_APPS[i][1]));
         }
         body.addView(spaced(list, 18));
-        body.addView(spaced(paragraph("「腾讯位置服务」是系统预置的定位组件，卸载后依赖它的应用可能拿不到网络定位；需要时点「还原」即可。", 13), 10));
+        body.addView(spaced(paragraph("常驻组件不在此列：冻结压不住，卸载会让系统软重启。", 13), 10));
         body.addView(spaced(ink.button("重新读取状态", Ink.Kind.SECONDARY,
                 v -> perform("读取卸载状态", this::readSysAppStates, false)), 14));
     }
@@ -737,7 +741,7 @@ public final class MainActivity extends Activity {
         return name + "：" + sysAppStateLabel(state);
     }
 
-    /** 一次读完两个包的状态，返回给提示条；perform 成功后会自动重画页面。 */
+    /** 一次读完所有预置应用的状态，返回给提示条；perform 成功后会自动重画页面。 */
     private String readSysAppStates() throws Exception {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < SYS_APPS.length; i++) {
