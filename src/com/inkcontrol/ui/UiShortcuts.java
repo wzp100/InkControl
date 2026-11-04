@@ -60,7 +60,7 @@ final class UiShortcuts {
             {"desktop.wallpaper", "壁纸"},
             {"display.alg.stock", "原厂"}, {"display.apps", "极速"},
             {"font.dir", "字体"}, {"qs.extend", "磁贴"}, {"navbar.white", "导航"},
-            {"sys.backup", "备份"}, {"fix.modes", "少刷"}, {"fix.video", "视频"},
+            {"sys.backup", "备份"}, {"fix.modes", "少刷"}, {"fix.video", "视频"}, {"fix.safeime", "密码"},
             {"motion.master", "动画"}, {"experiment.video", "视频抖动"},
     };
 

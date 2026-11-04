@@ -170,6 +170,11 @@ public final class CoreTest {
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
+        // 「冻结安全输入服务后能输密码」归在「系统增强」，由 SystemUI 写系统设置，默认关闭。
+        FeatureDefinition safeime = FeatureCatalog.get("fix.safeime");
+        check(safeime.group.equals("系统增强") && safeime.role.equals("systemui")
+                && safeime.mode == FeatureDefinition.ApplyMode.HOT && !safeime.defaultOn
+                && safeime.values.size() == 1 && safeime.values.get(0).equals("default"));
         // 已下线功能的旧配置残留键被容忍并丢弃：字体2、Google 图标、隐藏锁屏通知、体感息屏唤醒
         Configuration tolerated = Configuration.parse(config.text()
                 + "font2.pick=1\nfont2.pick.value=x\nfix.google=1\nfix.google.value=default\n"

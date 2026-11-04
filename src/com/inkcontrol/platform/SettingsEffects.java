@@ -9,6 +9,8 @@ import com.inkcontrol.core.ConditionalRestore;
 final class SettingsEffects {
     private static final String KEY = "eink_keyguard_style";
     static void apply(Context context) {
+        // 安全输入法开关与锁屏样式各自持有写入所有权，互不干扰。
+        com.inkcontrol.features.fix.SafeInputEffects.apply(context);
         SharedPreferences ledger = context.createDeviceProtectedStorageContext().getSharedPreferences("inkcontrol-owned-settings", Context.MODE_PRIVATE);
         int current = Settings.Global.getInt(context.getContentResolver(), KEY, 0);
         if (RuntimeConfig.enabled("lock.style")) {

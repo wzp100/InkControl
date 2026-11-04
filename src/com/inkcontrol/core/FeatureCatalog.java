@@ -95,6 +95,12 @@ public final class FeatureCatalog {
         // 纯页面项：进去是备份/恢复的操作页，自己没有开关。
         // 只搬 settings 三张表并逐条回放，不覆盖 /data/data、不碰 packages.xml（整包盖回去会让「设置」启动即闪退）。
         add("sys.backup", "系统增强", "备份系统设置", "把系统设置存成快照（息屏与锁屏时长、音量、输入法、字体名、护眼等），恢复出厂后逐条写回", "backend", "", HOT, false, "@panel", "打开备份");
+        // 海信把「安全输入服务」硬编码进 system_server 的 InputMethodManagerService：密码框一律把
+        // mCurMethodId 改成 com.android.inputmethod.pinyin/.PinyinIME，完全不检查这个包是否还在。
+        // 冻结该输入服务后 framework 抛 IllegalArgumentException("Unknown id: ...")，设置的密码界面
+        // 直接崩溃；应用锁的解锁界面被强杀后系统直接放行目标应用（fail-open，锁形同虚设）。
+        // 这里由 SystemUI 接管原厂开关 Settings.Secure.can_use_safe_inputmethod：开启写 0，关闭时条件恢复。
+        add("fix.safeime", "系统增强", "冻结安全输入服务后能输密码", "密码框改用当前输入法，不再因原厂强制切换导致设置崩溃、隐藏应用进不去、应用锁被直接放行；关闭开关时还原原值", "systemui", "", HOT, false, "default", "恢复密码输入");
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");
