@@ -105,11 +105,13 @@ public final class Configuration {
         // 这里仍保留匹配以防只写了半行（只有 flag 没有 .value）。
         // 容忍旧配置里的残留键，否则升级后 parse 抛「存在未知配置字段」
         // → 整个界面只剩错误卡、连「模块设置」都进不去。
+        // 「截屏便签那个位置」（qs.pinlaunch）已下线：它原来是原厂那一格的四选一，
+        // 现在那一格就是动作表里的「截屏便签」，隐藏/换应用/无都由 qs.panel.btnN 表达。
         fields.keySet().removeIf(key -> {
             String name = key.endsWith(".value") ? key.substring(0, key.length() - 6) : key;
             return name.startsWith("font2.") || name.startsWith("fix.google")
                     || name.equals("lock.notifyhide") || name.equals("wave.master")
-                    || name.equals("desktop.font")
+                    || name.equals("desktop.font") || name.equals("qs.pinlaunch")
                     || name.matches("lock\\.ext\\.(wifi|bt|audio|airplane)");
         });
         if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");

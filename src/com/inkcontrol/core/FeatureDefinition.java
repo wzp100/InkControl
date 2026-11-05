@@ -53,7 +53,7 @@ public final class FeatureDefinition {
     public void validate(String value) {
         if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value) || APPS_TOKEN.equals(value)
                 || COUNTDOWNS_TOKEN.equals(value) || PATH_TOKEN.equals(value) || FONT_TOKEN.equals(value)
-                || PANEL_TOKEN.equals(value))
+                || PANEL_TOKEN.equals(value) || PACKAGE_TOKEN.equals(value))
             throw new IllegalArgumentException("不支持的选项：" + title);
         if (values.contains(value)) return;
         // 纯页面项（@panel）没有自己的取值，配置里永远是空串
@@ -63,6 +63,8 @@ public final class FeatureDefinition {
         if (acceptsApps() && appFilter(value) != null) return;
         if (acceptsCountdowns() && countdowns(value) != null) return;
         if ((acceptsPath() || acceptsFont()) && path(value) != null) return;
+        // 单个包名（「截屏便签」那一格换成的应用）：空串表示没指定
+        if (acceptsPackage() && (value.isEmpty() || packageName(value))) return;
         throw new IllegalArgumentException("不支持的选项：" + title);
     }
 
@@ -179,6 +181,10 @@ public final class FeatureDefinition {
             this.shown = shown;
         }
     }
+    /** 目录里的占位值；本身不是合法配置，只表示允许输入单个应用包名。 */
+    public static final String PACKAGE_TOKEN = "@package";
+    public boolean acceptsPackage() { return values.contains(PACKAGE_TOKEN); }
+
     /** 把 yyyy-MM-dd 解析为当天 00:00 的 Calendar；不是真实日期返回 null。 */
     public static Calendar parseDate(String value) {
         if (value == null || !value.matches("\\d{4}-\\d{2}-\\d{2}")) return null;

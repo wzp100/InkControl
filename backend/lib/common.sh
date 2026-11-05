@@ -86,6 +86,12 @@ ic_validate() {
         }
         return 1
       }
+      function pkgone(choices, value) {
+        # 单个应用包名（「截屏便签」那一格换成的应用）
+        if (index("," choices ",", ",@package,")==0) return 0
+        if (value=="") return 1
+        return pkglist(value)
+      }
       function fontpath(value,   n) {
         # 字体目录或字体名：绝对路径/文件名，不含等号、分号、控制字符与 shell 元字符
         if (value=="") return 1
@@ -101,13 +107,15 @@ ic_validate() {
       # 「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、「过渡动画总开关」（motion.master）、
       # 「全刷扫过」（motion.gc_clear）、「体感息屏唤醒」（wave.master）下线；
       # 「字体换肤」（desktop.font）下线，全局「字体」（font.dir）已完全取代它；
+      # 「截屏便签那个位置」（qs.pinlaunch）下线，它原来是原厂那一格的四选一；现在那一格就是
+      # 动作表里的「截屏便签」，隐藏／换应用／无都用 qs.panel.btnN 表达；
       # 「设备状态」四项逐项开关（lock.ext.wifi/bt/audio/airplane）现在是正式功能，已并入 known；
       # 旧配置里可能残留同名行，legacy 里继续放行只写了半行的老数据。
       # 旧配置的 lock.notify.value=ext 也照旧放行（ext 是纯字母，走 fontpath 兜底即通过）；
       # App 侧解析时会把它迁成 lock.ext=1 并在下次保存时重写。
       # 容忍旧配置里的残留键，升级不卡开机
-      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
-       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
+      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !fontpath($2))) bad=1}
+       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
@@ -117,8 +125,10 @@ ic_validate() {
           # 旧配置里都没有，缺省按「关」（总开关）/「显示」（四项，App 侧 defaultOn）处理。
           # qs.extend（控制中心拓展）只在 SystemUI 里生效，旧配置里没有，缺省按「关」处理。
           # navbar.white（三大金刚键漂白）同理，旧配置里没有，缺省按「关」处理。
-          # fix.safeime（冻结安全输入服务后能输密码）是后来新增的，旧配置里没有，缺省按「关」处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/)
+          # fix.safeime（冻结安全输入服务后能输密码）、qs.panel（快捷面板按钮）、qs.panel.close（点完收起面板）、
+          # qs.panel.pinsize（截屏便签对齐尺寸）、qs.panel.btn1–4（四个位置的按钮动作）是后来新增的，
+          # 旧配置里没有，缺省按「关」处理（pinsize 在 App 侧 defaultOn，缺省按开）。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-4]))?$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -132,7 +142,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.2-r19' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.3-r20' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。

@@ -10,7 +10,7 @@
     "abi": "arm64-v8a",
     "firmware_gate": "L1732.6.01.02"
   },
-  "source_version": "0.2.2-r19",
+  "source_version": "0.2.3-r20",
   "enhancements_default_off": 62,
   "recorded_device": {
     "app": "0.1.0-rc10",

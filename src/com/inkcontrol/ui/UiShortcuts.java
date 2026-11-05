@@ -31,15 +31,15 @@ import java.util.List;
  *
  * <p>标签只留两三个字：桌面按格排版，字多了会变成「遮挡息…」。
  */
-final class UiShortcuts {
+public final class UiShortcuts {
     /** 桌面长按最多放几个：海信桌面自己就截到 4 个。 */
     static final int MAX = 4;
     /** 还没配置过时给的四个：遮挡息屏、自定义锁屏、自动刷新、字体。 */
     static final String[] DEFAULTS = {"wave.lock", "lock.style", "refresh.master", "font.dir"};
     /** 快捷方式点击时的 action，保证和其它入口（LAUNCHER）区分开。 */
-    static final String ACTION = "com.inkcontrol.SHORTCUT";
+    public static final String ACTION = "com.inkcontrol.SHORTCUT";
     /** 传功能 id 的 extra。 */
-    static final String EXTRA = "feature";
+    public static final String EXTRA = "feature";
     /**
      * 结构版本。改了「桌面挂几条」这种结构就加一，否则 applied 里记的签名和以前一样，
      * 升级后不会重写，桌面还停在旧的那几项上。

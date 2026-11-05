@@ -7,6 +7,48 @@ import static com.inkcontrol.core.FeatureDefinition.ApplyMode.*;
 
 public final class FeatureCatalog {
     private static final List<FeatureDefinition> FEATURES = new ArrayList<>();
+    /**
+     * 刷新面板底部四个位置可选的动作（取值, 面板上显示的名字）。
+     *
+     * <p>前十个就是控制中心那排磁贴；{@code refresh}／{@code lock}／{@code cover} 是墨控自己的
+     * 三个常用开关（自动刷新、锁屏主题、遮挡息屏），点一下就地开关；{@code quick} 打开墨控的
+     * 快捷设置页；{@code pin} 就是原厂那个「截屏便签」，保留它自己的图标、文字与截屏监听器。
+     */
+    public static final String[][] PANEL_ACTIONS = {
+            {"wifi", "WiFi"}, {"bt", "蓝牙"}, {"ring", "铃声"}, {"airplane", "飞行模式"},
+            {"torch", "手电筒"}, {"rotate", "自动旋转"}, {"page", "整屏翻页"},
+            {"dnd", "免打扰"}, {"saver", "省电模式"}, {"float", "悬浮球"},
+            {"refresh", "自动刷新"}, {"lock", "锁屏主题"}, {"cover", "遮挡息屏"},
+            {"quick", "墨控快捷设置"}, {"pin", "截屏便签"}};
+
+    /** 这个位置不显示按钮（选择框里排在最上面的「无」）。 */
+    public static final String PANEL_NONE = "none";
+
+    /** 四个位置共用同一套动作，只是默认值不同；{@code defaultValue()} 取第一个取值，所以把默认项排到最前。 */
+    private static String panelValues(String first) {
+        StringBuilder out = new StringBuilder();
+        for (String[] action : panelActions(first)) out.append(out.length() == 0 ? "" : ",").append(action[0]);
+        return out.toString();
+    }
+    private static String panelLabels(String first) {
+        StringBuilder out = new StringBuilder();
+        for (String[] action : panelActions(first)) out.append(out.length() == 0 ? "" : ",").append(action[1]);
+        return out.toString();
+    }
+    /**
+     * 某个位置的完整取值表：默认动作排最前（{@code defaultValue()} 取第一个），其余动作随后，
+     * 末尾补上「无」与单个应用包名（{@code @package}，选择框里的 APP）。
+     */
+    private static String[][] panelActions(String first) {
+        String[][] ordered = new String[PANEL_ACTIONS.length + 2][];
+        int at = 0;
+        for (String[] action : PANEL_ACTIONS) if (action[0].equals(first)) ordered[at++] = action;
+        for (String[] action : PANEL_ACTIONS) if (!action[0].equals(first)) ordered[at++] = action;
+        ordered[at++] = new String[]{PANEL_NONE, "无"};
+        ordered[at] = new String[]{FeatureDefinition.PACKAGE_TOKEN, "某个应用"};
+        return ordered;
+    }
+
     static {
         add("display.gpu", "显示", "GPU 显示后端", "底层库变更，完整重启后生效", "backend", "", REBOOT, true, "default", "启用显示后端");
         for (String scope : DisplayAlgorithms.SCOPES) {
@@ -40,32 +82,32 @@ public final class FeatureCatalog {
         add("motion.direction", "动画", "擦除方向", "关闭时自动选择方向", "system", "motion.master", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
         add("motion.spread", "动画", "波形动画速度", "以扫描帧为单位，关闭时使用12帧", "system", "motion.master", HOT, true, "12,1,6,18,24", "12帧,1帧,6帧,18帧,24帧");
         add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
-        add("lock.style", "锁屏", "自定义锁屏", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
-        add("lock.weather", "锁屏", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
+        add("lock.style", "锁屏主题", "锁屏主题", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
+        add("lock.weather", "锁屏主题", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
         // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」或「显示设备状态」。
         // 互斥由界面统一保证（MainActivity.change 里开一个就自动关另一个），
         // 所以配置里正常只会有一个为开；设备状态条的四项由 lock.ext.* 单独控制显示与否。
-        add("lock.notify", "锁屏", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
+        add("lock.notify", "锁屏主题", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
         // 「显示设备状态」：auto 跟随样式（编辑排版/横版用图标，瑞士网格用文字），
         // icon/text 强制一种。默认 auto 保持各样式原有的观感。
-        add("lock.ext", "锁屏", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "auto,icon,text", "跟随样式,图标版,文字版");
+        add("lock.ext", "锁屏主题", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "auto,icon,text", "跟随样式,图标版,文字版");
         // 「显示信息修改」是个纯页面（@panel）：自己没有开关，进去才改下面那四格。
         // 四个开关仍是正式功能（各自写配置、可单独进详情页），只是不再铺在分类列表里。
-        add("lock.ext.edit", "锁屏", "显示信息修改", "选择设备状态里显示哪几项：无线网络、蓝牙、声音模式、飞行模式", "systemui", "lock.ext", HOT, false, "@panel", "修改");
+        add("lock.ext.edit", "锁屏主题", "显示信息修改", "选择设备状态里显示哪几项：无线网络、蓝牙、声音模式、飞行模式", "systemui", "lock.ext", HOT, false, "@panel", "修改");
         // 四项显示开关：默认全开（旧配置里没有这几个键也按显示处理），各自关掉的才记住。
-        add("lock.ext.wifi", "锁屏", "显示无线网络", "锁屏设备状态里显示无线网络开关情况", "systemui", "lock.ext", HOT, false, "default", "显示无线", true);
-        add("lock.ext.bt", "锁屏", "显示蓝牙", "锁屏设备状态里显示蓝牙开关情况", "systemui", "lock.ext", HOT, false, "default", "显示蓝牙", true);
-        add("lock.ext.audio", "锁屏", "显示声音模式", "锁屏设备状态里显示静音 / 有声；只读，不改铃声音量", "systemui", "lock.ext", HOT, false, "default", "显示声音", true);
-        add("lock.ext.airplane", "锁屏", "显示飞行模式", "锁屏设备状态里显示飞行模式开关情况", "systemui", "lock.ext", HOT, false, "default", "显示飞行", true);
-        add("lock.countdown", "锁屏", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
-        add("lock.countdowns", "锁屏", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
-        add("lock.lyric", "锁屏", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
-        add("lock.statusbar", "锁屏", "状态栏歌词", "停止或关闭后恢复通知图标", "systemui", "", HOT, false, "default", "显示歌词");
-        add("lock.first", "锁屏", "锁屏瞬间的刷新方式", "阅读模式曾改善空白，残影需观察", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
-        add("lock.update", "锁屏", "走时与通知的刷新方式", "关闭时沿用系统模式", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
-        add("lock.lyricmode", "锁屏", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
-        add("lock.delay", "锁屏", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
-        add("lock.dither", "锁屏", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
+        add("lock.ext.wifi", "锁屏主题", "显示无线网络", "锁屏设备状态里显示无线网络开关情况", "systemui", "lock.ext", HOT, false, "default", "显示无线", true);
+        add("lock.ext.bt", "锁屏主题", "显示蓝牙", "锁屏设备状态里显示蓝牙开关情况", "systemui", "lock.ext", HOT, false, "default", "显示蓝牙", true);
+        add("lock.ext.audio", "锁屏主题", "显示声音模式", "锁屏设备状态里显示静音 / 有声；只读，不改铃声音量", "systemui", "lock.ext", HOT, false, "default", "显示声音", true);
+        add("lock.ext.airplane", "锁屏主题", "显示飞行模式", "锁屏设备状态里显示飞行模式开关情况", "systemui", "lock.ext", HOT, false, "default", "显示飞行", true);
+        add("lock.countdown", "锁屏主题", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
+        add("lock.countdowns", "锁屏主题", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
+        add("lock.lyric", "锁屏主题", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
+        add("lock.statusbar", "锁屏主题", "状态栏歌词", "停止或关闭后恢复通知图标", "systemui", "", HOT, false, "default", "显示歌词");
+        add("lock.first", "锁屏主题", "锁屏瞬间的刷新方式", "阅读模式曾改善空白，残影需观察", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
+        add("lock.update", "锁屏主题", "走时与通知的刷新方式", "关闭时沿用系统模式", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
+        add("lock.lyricmode", "锁屏主题", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
+        add("lock.delay", "锁屏主题", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
+        add("lock.dither", "锁屏主题", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
         // 「体感息屏唤醒」总开关已下线：遮挡息屏 / 移开唤醒各自就是开关，
         // 两个都关时体感服务不监听传感器。无障碍里的「墨控体感」服务由后端按这两个开关自动增删。
         add("wave.lock", "体感", "遮挡息屏", "近距离传感器被持续遮挡一段时间后锁定并关闭屏幕；开关打开时自动启用「墨控体感」服务", "system", "", HOT, false, "default", "遮挡息屏");
@@ -100,6 +142,19 @@ public final class FeatureCatalog {
         // 直接崩溃；应用锁的解锁界面被强杀后系统直接放行目标应用（fail-open，锁形同虚设）。
         // 这里由 SystemUI 接管原厂开关 Settings.Secure.can_use_safe_inputmethod：开启写 0，关闭时条件恢复。
         add("fix.safeime", "系统增强", "冻结安全输入服务后能输密码", "密码框改用当前输入法，不再因原厂强制切换导致设置崩溃、隐藏应用进不去、应用锁被直接放行；关闭开关时还原原值", "systemui", "", HOT, false, "default", "恢复密码输入");
+        // 同一个面板的按钮区：原厂在这台设备上只会生成「截屏便签」一个按钮（另外三个属于
+        // 老显示模式），空着一大片。这里在每次弹出后按原厂按钮模板补几个自用按钮。
+        add("qs.panel", "快捷面板修改", "快捷面板按钮", "刷新面板底部补上自己的按钮，四个位置的动作在下面选", "systemui", "", HOT, false, "default", "加入按钮");
+        // 四个位置各存一个动作；位置顺序就是按钮顺序，所以「排序」等于把两格的动作对调。
+        add("qs.panel.btn1", "快捷面板修改", "第 1 个按钮", "面板底部从左数第一个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("wifi"), panelLabels("wifi"));
+        add("qs.panel.btn2", "快捷面板修改", "第 2 个按钮", "面板底部从左数第二个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("bt"), panelLabels("bt"));
+        add("qs.panel.btn3", "快捷面板修改", "第 3 个按钮", "面板底部从左数第三个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("quick"), panelLabels("quick"));
+        add("qs.panel.btn4", "快捷面板修改", "第 4 个按钮", "面板底部从左数第四个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("pin"), panelLabels("pin"));
+        // 面板是盖住屏幕下半部分的系统悬浮窗，点完按钮不会自己收起，会一直挡住后面的界面。
+        add("qs.panel.close", "快捷面板修改", "点完收起面板", "点完按钮后自动收起面板，不再挡住界面", "systemui", "qs.panel", HOT, false, "default", "点完收起");
+        // 原厂那个「截屏便签」的图标和文字都比补上来的按钮大一圈（原厂按整块面板的尺寸画，
+        // 补上的四个按 28dp 图标 / 12sp 文字），默认缩到同一档，四个按钮才齐平。
+        add("qs.panel.pinsize", "快捷面板修改", "截屏便签对齐尺寸", "把原厂「截屏便签」的图标和文字缩到和补上的按钮一样大", "systemui", "qs.panel", HOT, false, "default", "统一尺寸", true);
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");

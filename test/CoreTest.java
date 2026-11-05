@@ -166,7 +166,7 @@ public final class CoreTest {
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(config.requested(feature.id) == feature.defaultOn);
-            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN) || value.equals(FeatureDefinition.PANEL_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
+            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN) || value.equals(FeatureDefinition.PANEL_TOKEN) || value.equals(FeatureDefinition.PACKAGE_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
@@ -175,11 +175,54 @@ public final class CoreTest {
         check(safeime.group.equals("系统增强") && safeime.role.equals("systemui")
                 && safeime.mode == FeatureDefinition.ApplyMode.HOT && !safeime.defaultOn
                 && safeime.values.size() == 1 && safeime.values.get(0).equals("default"));
+        // 四个位置各存一个动作，默认顺序 WiFi / 蓝牙 / 墨控快捷设置 / 截屏便签。
+        // 取值＝动作表 + 末尾的「无」和单个应用包名（@package）。
+        String[] slotDefaults = {"wifi", "bt", "quick", "pin"};
+        for (int slot = 1; slot <= 4; slot++) {
+            FeatureDefinition button = FeatureCatalog.get("qs.panel.btn" + slot);
+            check(button.group.equals("快捷面板修改") && button.dependency.equals("qs.panel")
+                    && button.mode == FeatureDefinition.ApplyMode.HOT
+                    && button.values.size() == FeatureCatalog.PANEL_ACTIONS.length + 2
+                    && button.values.get(0).equals(slotDefaults[slot - 1])
+                    && button.defaultValue().equals(slotDefaults[slot - 1])
+                    && button.values.contains(FeatureCatalog.PANEL_NONE)
+                    && button.values.contains(FeatureDefinition.PACKAGE_TOKEN));
+            for (String[] action : FeatureCatalog.PANEL_ACTIONS)
+                check(button.values.contains(action[0]));
+            button.validate("com.tencent.mm");        // 换成某个应用按包名存，走 @package 通道
+            button.validate(FeatureCatalog.PANEL_NONE);
+        }
+        // 面板上还能直接开关墨控自己的三项：自动刷新、锁屏主题、遮挡息屏。
+        for (String[] action : new String[][]{{"refresh", "自动刷新", "refresh.master"},
+                {"lock", "锁屏主题", "lock.style"}, {"cover", "遮挡息屏", "wave.lock"}}) {
+            boolean found = false;
+            for (String[] entry : FeatureCatalog.PANEL_ACTIONS)
+                if (entry[0].equals(action[0])) { found = entry[1].equals(action[1]); break; }
+            check(found && FeatureCatalog.get(action[2]) != null);
+        }
+        // 「快捷面板按钮」同属「快捷面板修改」，面板弹出时由 SystemUI 现加按钮，默认关闭。
+        FeatureDefinition panel = FeatureCatalog.get("qs.panel");
+        check(panel.group.equals("快捷面板修改") && panel.role.equals("systemui")
+                && panel.mode == FeatureDefinition.ApplyMode.HOT && !panel.defaultOn
+                && panel.values.size() == 1 && panel.values.get(0).equals("default"));
+        // 「点完收起面板」挂在「快捷面板按钮」下面：没有按钮就没有可收的面板，默认关闭。
+        FeatureDefinition panelClose = FeatureCatalog.get("qs.panel.close");
+        check(panelClose.group.equals("快捷面板修改") && panelClose.role.equals("systemui")
+                && panelClose.dependency.equals("qs.panel")
+                && panelClose.mode == FeatureDefinition.ApplyMode.HOT && !panelClose.defaultOn
+                && panelClose.values.size() == 1 && panelClose.values.get(0).equals("default"));
+        // 「截屏便签对齐尺寸」默认开：原厂那一格不缩的话会比补上来的四个大一圈。
+        FeatureDefinition pinSize = FeatureCatalog.get("qs.panel.pinsize");
+        check(pinSize.group.equals("快捷面板修改") && pinSize.role.equals("systemui")
+                && pinSize.dependency.equals("qs.panel")
+                && pinSize.mode == FeatureDefinition.ApplyMode.HOT && pinSize.defaultOn
+                && pinSize.values.size() == 1 && pinSize.values.get(0).equals("default"));
         // 已下线功能的旧配置残留键被容忍并丢弃：字体2、Google 图标、隐藏锁屏通知、体感息屏唤醒、字体换肤
         Configuration tolerated = Configuration.parse(config.text()
                 + "font2.pick=1\nfont2.pick.value=x\nfix.google=1\nfix.google.value=default\n"
                 + "lock.notifyhide=1\nlock.notifyhide.value=default\nwave.master=1\nwave.master.value=default\n"
-                + "desktop.font=1\ndesktop.font.value=default\n");
+                + "desktop.font=1\ndesktop.font.value=default\n"
+                + "qs.pinlaunch=1\nqs.pinlaunch.value=hide\n");
         check(tolerated.revision == 0 && !tolerated.requested("motion.lock") && !tolerated.requested("wave.lock"));
         // 旧配置的「拓展显示 = 设备状态」迁到独立的 lock.ext：通知关掉、设备状态打开；
         // 四项显示开关是正式功能，旧配置里的同名行照旧读入（这里是「开」）。

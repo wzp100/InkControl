@@ -35,8 +35,10 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
     def test_all_defaults_disabled(self):
         self.shell('ic_validate "$IC_CONFIG"\n')
         # 四个设备状态显示开关是 defaultOn（配置里没有这个键就按显示处理），
+        # 「截屏便签对齐尺寸」同样是 defaultOn（不缩的话原厂那一格比补上来的按钮大一圈），
         # 所以它们在默认配置里就写 1；其余开关仍必须全部是 0。
-        default_on = {'lock.ext.wifi', 'lock.ext.bt', 'lock.ext.audio', 'lock.ext.airplane'}
+        default_on = {'lock.ext.wifi', 'lock.ext.bt', 'lock.ext.audio', 'lock.ext.airplane',
+                      'qs.panel.pinsize'}
         for line in self.config.read_text().splitlines():
             key,value=line.split('=',1)
             if key not in ('version','revision') and not key.endswith('.value'):

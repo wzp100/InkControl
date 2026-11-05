@@ -87,7 +87,7 @@ final class Guide {
                 {"原厂四模式 · 算法", "display.alg.clear", "display.alg.reading", "display.alg.fast", "display.alg.extreme"},
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
-        cat("锁屏", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
+        cat("锁屏主题", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
                 {"样式", "lock.style", "lock.weather"},
                 {"拓展显示", "lock.notify", "lock.ext", "lock.ext.edit"},
                 {"倒数日", "lock.countdown"},
@@ -113,7 +113,12 @@ final class Guide {
         cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可还原；系统分区文件保留。常驻组件不在此列。", new String[][]{});
         cat("系统增强", "修复原厂服务的几个问题，放开快捷磁贴、导航栏与密码框的限制。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
-                {"安全", "fix.permissions", "fix.safeime"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"}, {"备份", "sys.backup"}});
+                {"安全", "fix.permissions", "fix.safeime"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"},
+                {"备份", "sys.backup"}});
+        cat("快捷面板修改", "从屏幕左下角或右下角上滑唤出的 E-Ink 刷新面板：把底部的按钮换成自己的。", new String[][]{
+                {"按钮", "qs.panel"}},
+                new String[]{"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4",
+                        "qs.panel.close", "qs.panel.pinsize"});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
     }
     private static void cat(String name, String intro, String[][] sections) {
@@ -353,6 +358,20 @@ final class Guide {
                 .before("不开启时：黑底白键。").after("开启后：白底黑键；锁屏与通话界面维持原厂配色。")
                 .cost("只改系统界面自己画的那一条；全屏应用自己隐藏导航栏时不受影响。切换开关立即生效，不用重启系统界面。")
                 .option("default", "白底黑键", "").term("三大金刚键", "系统界面");
+        put("qs.panel").summary("在刷新面板底部补上自己的按钮").what("这台设备的刷新面板底部原厂只有一个「截屏便签」，那片位置一直空着。开启后按下面的顺序摆四个按钮，动作跟控制中心那排磁贴一样（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、免打扰、省电模式、悬浮球），再加上墨控的自动刷新、锁屏主题、遮挡息屏与原厂截屏便签；面板高度不变。")
+                .option("default", "加入按钮", "");
+        put("qs.panel.close").summary("点完按钮就收起面板").what("面板盖住屏幕下半部分，点完不收会一直挡着后面的界面；开启后点完就收，回到刚才那一屏。")
+                .option("default", "点完收起", "");
+        put("qs.panel.pinsize").summary("原厂「截屏便签」缩到和补上的按钮一样大").what("原厂那个按钮按整块面板的尺寸画，图标和文字都比补上来的大一圈；开启后按同样的 28dp 图标、12sp 文字重画，四个按钮看起来齐平。")
+                .option("default", "统一尺寸", "");
+        for (int slot = 1; slot <= 4; slot++) {
+            Entry entry = put("qs.panel.btn" + slot)
+                    .summary("第 " + slot + " 个按钮做什么")
+                    .what("面板底部从左数第 " + slot + " 个按钮的动作。四个位置共用这套动作，换位置就是换顺序。");
+            for (String[] action : com.inkcontrol.core.FeatureCatalog.PANEL_ACTIONS) entry.option(action[0], action[1], "");
+            entry.option(com.inkcontrol.core.FeatureCatalog.PANEL_NONE, "无", "这个位置不显示按钮，后面的往前挪")
+                    .option(com.inkcontrol.core.FeatureDefinition.PACKAGE_TOKEN, "某个应用", "从已安装应用里挑一个，点它直接打开");
+        }
         put("sys.backup").summary("把系统设置存成快照，需要时写回去").what("只备份系统设置本身：息屏时长、锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、显示模式、开发者选项开关。快照存在 /data/adb/inkcontrol/backup 里（清除应用数据也不会丢），恢复出厂或换回原样时逐条写回。")
                 .cost("不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。恢复不会覆盖系统文件，也不会让「设置」打不开——它是逐条写设置项，失败的那条跳过、其它的照写，恢复前还会先给当前状态拍一张，写坏了能退回去。少数临时状态项（下次闹钟、是否有更新）和无障碍服务清单会跳过，那几项由系统和墨控自己维护。");
         put("fix.safeime").summary("冻结安全输入服务后，密码框仍能正常输入").what("原厂在密码输入框里一律强制切到「安全输入服务」，却不检查这个输入法是否还在。冻结它之后，系统服务找不到对应组件就会抛错，设置的密码界面直接崩溃：隐藏应用进不去、想临时删掉密码也做不到；应用锁的解锁界面被系统强制结束后，反而直接放行应用，等于没锁。开启后墨控把原厂自己留的总开关置 0，密码框改用你当前在用的输入法；关闭开关时还原原来的值。")

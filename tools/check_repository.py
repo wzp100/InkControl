@@ -18,6 +18,8 @@ def main():
             errors.append(name+': private input or generated file')
             continue
         full = ROOT/path
+        # 已删掉但还没提交的文件（重构中间态）不在工作区里，跳过；提交后自然从清单里消失。
+        if not full.exists(): continue
         if full.is_symlink(): errors.append(name+': symbolic link not supported'); continue
         if full.stat().st_size > 10*1024*1024: errors.append(name+': unexpected large file')
         if path.suffix.lower() in {'.java','.py','.sh','.md','.json','.xml','.yml','.yaml','.tsv','.txt'}:

@@ -33,6 +33,10 @@ public final class GuideTest {
             }
         }
         check(nested.containsAll(Arrays.asList("lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane")));
+        // 面板长按「自动刷新 / 遮挡息屏」拿 FeatureCatalog 的 group 当分类名跳大功能页。
+        // MainActivity 只放行真实存在的分类；这两个名字一旦改了而没同步 Guide，长按就会静默失效。
+        check(categories.containsKey(FeatureCatalog.get("refresh.master").group));
+        check(categories.containsKey(FeatureCatalog.get("wave.lock").group));
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             Object entry = call(type, "get", feature.id);
             check(!field(entry, "summary").toString().isEmpty());
