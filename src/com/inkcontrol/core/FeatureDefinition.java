@@ -42,18 +42,23 @@ public final class FeatureDefinition {
         if (values.length == 0 || values.length != labels.length) throw new IllegalArgumentException(id);
     }
 
-    /** 首个取值若是占位标记（@ 开头），说明默认值是空串而不是该标记。 */
-    public String defaultValue() { String first = values.get(0); return first.startsWith("@") ? "" : first; }
+    /** 首个取值若是占位标记（@ 开头），默认值就是空串：不内置任何应用名单，由用户自己选。 */
+    public String defaultValue() {
+        String first = values.get(0);
+        return first.startsWith("@") ? "" : first;
+    }
     /** 是否接受按温区自定义的停留曲线（值形如 curve:150,175,...，共 TEMPERATURE_BANDS 段）。 */
     public boolean acceptsCurve() { return values.contains(CURVE_TOKEN); }
     /** 是否接受手动输入的正整数（如触发次数）。 */
     public boolean acceptsNumber() { return values.contains(NUMBER_TOKEN); }
     /** 是否接受逗号分隔的应用包名名单。 */
     public boolean acceptsApps() { return values.contains(APPS_TOKEN); }
+    /** 是否接受纯包名逗号列表（没有白／黑名单模式的那种）。 */
+    public boolean acceptsPackages() { return values.contains(PACKAGES_TOKEN); }
     public void validate(String value) {
         if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value) || APPS_TOKEN.equals(value)
                 || COUNTDOWNS_TOKEN.equals(value) || PATH_TOKEN.equals(value) || FONT_TOKEN.equals(value)
-                || PANEL_TOKEN.equals(value) || PACKAGE_TOKEN.equals(value))
+                || PANEL_TOKEN.equals(value) || PACKAGE_TOKEN.equals(value) || PACKAGES_TOKEN.equals(value))
             throw new IllegalArgumentException("不支持的选项：" + title);
         if (values.contains(value)) return;
         // 纯页面项（@panel）没有自己的取值，配置里永远是空串
@@ -61,6 +66,8 @@ public final class FeatureDefinition {
         if (acceptsCurve() && curve(value) != null) return;
         if (acceptsNumber() && number(value) != null) return;
         if (acceptsApps() && appFilter(value) != null) return;
+        // 「目标阅读器」存的是纯包名列表（如 io.legado.app.release,com.x），复用 apps() 的分段校验。
+        if (acceptsPackages() && apps(value) != null) return;
         if (acceptsCountdowns() && countdowns(value) != null) return;
         if ((acceptsPath() || acceptsFont()) && path(value) != null) return;
         // 单个包名（「截屏便签」那一格换成的应用）：空串表示没指定
@@ -81,6 +88,8 @@ public final class FeatureDefinition {
     }
     /** 目录里的占位值；本身不是合法配置，只表示允许逗号分隔的包名名单。 */
     public static final String APPS_TOKEN = "@apps";
+    /** 目录里的占位值；本身不是合法配置，只表示允许「纯包名逗号列表」（不带黑白名单模式）。 */
+    public static final String PACKAGES_TOKEN = "@packages";
     /** 目录里的占位值；本身不是合法配置，只表示允许最多 COUNTDOWNS_MAX 组「事项;日期;农历;显示」倒数日清单。 */
     public static final String COUNTDOWNS_TOKEN = "@countdowns";
     /** 倒数日最多组数。 */

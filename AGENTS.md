@@ -13,14 +13,18 @@
 - Do not install, mount, flash, reboot or run device-changing tests as part of repository maintenance or CI. Real-device acceptance is a separate explicit task.
 - 默认配置不因仓库整理、语言切换或云构建而改变；历史报告与发布版本不可覆盖。
 - The user authorized public publication after the 2026-10-18 sensitive-data review. Maintain the native GitHub Wiki from docs/wiki; audit full Git history, Actions logs/artifacts and Release assets before expanding public content. Third-party binaries and artwork remain outside MIT; see NOTICE.md. Never put personal access tokens in workflows or Wiki pages.
-- Keep bilingual risk notices in README and Wiki installation guidance; since rc16 Release descriptions/notes (`docs/releases/*.md`) are Chinese-only. Every Release description must still recommend spare/test devices, require an off-device backup reminder, and disclose boot failure, data loss and potentially unrecoverable damage; never promise rollback can rescue the device.
+- Keep bilingual risk notices in README and Wiki installation guidance; since rc16 Release descriptions/notes (`docs/releases/*.md`) are Chinese-only. Every Release description must still recommend spare/test devices, require an off-device backup reminder, and disclose boot failure, data loss and potentially unrecoverable damage; never promise rollback can rescue the device. **Commit messages may be detailed; Release notes and README stay concise.**
+- Keep commit messages and public docs free of host-specific paths, credentials, device identifiers, PINs, raw logs and local acceptance data. Real-device findings belong in a separate explicit task, not in repository rules.
 
-## 锁屏与本机验收经验
+## 翻页动画与 HWC
 
-- 自定义锁屏样式 5–8（编辑排版/瑞士/像素/玻璃）在锁屏时会与原厂 `BottomBarController.getBottomBar()` 画的底部图标条（电量 + 上滑解锁，亮屏锁屏右侧还有静音）重叠。`BottomBarHook` 在 **system_server** 进程 hook 该方法，判定样式键 `Settings.Global.eink_keyguard_style` 处于 **5–8** 区间时直接 `setResult` 跳过原厂 bottom bar（见 `BottomBarHook.java` 第 49 行 `style >= LockStyle.EDITORIAL && style <= LockStyle.GLASS`）。
-- **判定必须用样式范围 5–8，禁止依赖 `LockStyle.custom()` / `RuntimeConfig.enabled("lock.style")`**：`BottomBarHook` 在 system_server 内运行，其 `RuntimeConfig` 是**开机时的配置快照**；用户在 App 端后来开启 `lock.style` 不会重新加载 system_server，导致 `custom()` 误判未启用而把原厂图标条叠上去。样式键 5–8 本身即代表已选用墨控锁屏，是最可靠的信号。（早期版本要求 `status == 1` 且样式 5–8 才跳过，是不完整的——现仅按样式范围判定。）
-- **改 `BottomBarHook` 后必须整机重启**：它活在 system_server，`pkill com.android.systemui` 只重启 SystemUI，不会重载 system_server 模块，修复会“看似无效”。只有整机重启才能让 hook 与 `RuntimeConfig` 快照刷新。
-- “环境未就绪 / 安装未完成 / `sys.inkcontrol.ready=0`”有两类独立成因，Recovery 路径不同：
-  1. **配置校验 `ic_validate`**：`configuration.txt` 中出现 `lib/features.tsv` 未登记的未知 key（如新增功能项没同步生成后端 tsv）。修复＝保持 features.tsv 与所有配置 key 同步（重建并安装同版本后端模块）。
-  2. **模块完整性校验 `post-fs-data.sh:7` 的 `sha256sum -c checksums.sha256`**（本次真实成因）：在设备上直接改 `lib/features.tsv` / `lib/defaults.txt` 后若没重算 `checksums.sha256`，哈希对不上 → 写 `error="模块文件校验失败"`、打 `skip_mount`、模块不挂载、`ready=0`。修复＝重算 `checksums.sha256`（用 `find . -type f ! -path "./system/*" ! -name "*.bak" ! -name "checksums.sha256" -exec sha256sum {} \;`，排除开机 `display.gpu=1` 时动态复制进 `system/` 的 GPU .so 覆盖层、`*.bak` 备份及清单自身）后整机重启；或干净地重建并安装同版本后端模块，让 features.tsv/defaults.txt/checksums 由构建一次性生成。注：沙箱内 `adb push` 整目录可能被拦截，设备上就地重算 `checksums.sha256` 是可行的回退手段。
-- 真机验收时用 `inkctl status` 确认 `ready=1`、HWC 为 patched d1ba（`a95b...`）；不要用旧后端模块搭配新 APK 做锁屏测试。
+- 「翻页动画」是社区作品（作者 nuku），经同意整合进墨控；第三方原生二进制与 HWC 派生库**不进入公开仓库**，云端构建输入需单独维护，权利范围见 `NOTICE.md`。README 与 Release 说明都要写明署名。
+- `pageanim.master` 与 `display.gpu` **互斥**：同一个 `hwcomposer.ums512.so` 只能挂一份，同时开启时翻页动画优先、`libeinkgpu.so` 不挂载。文档必须说明「不能同时启用」且切换要完整重启；`pageanim.master` 是 REBOOT 项。详见 `docs/大功能后端支持清单.md` 与 `docs/releases/0.2.5-r23.md`。
+- 后端模块按开机时的开关选挂 HWC，别在两个开关都打开时假设两套效果叠加；App 里显示「已开启」只代表配置，不代表库已挂载。
+
+## 锁屏与排障要点
+
+- 自定义锁屏样式 5–8 会与原厂 `BottomBarController.getBottomBar()` 的底部图标条重叠。`BottomBarHook` 在 **system_server** 里按 `Settings.Global.eink_keyguard_style` 的 **5–8** 区间直接 `setResult` 跳过原厂绘制；**不要改用 `LockStyle.custom()` / `RuntimeConfig.enabled("lock.style")`**，system_server 持有的是开机配置快照，App 里后来开启不会刷新它。
+- 改 `BottomBarHook` 后必须**整机重启**：重启 SystemUI 不会重载 system_server 的模块与快照。
+- `sys.inkcontrol.ready=0` 有两类独立成因：① `ic_validate` 遇到 `lib/features.tsv` 未登记的 key（新增功能没同步导出）；② `post-fs-data.sh` 的 `checksums.sha256` 校验失败（手工改过模块文件却没重算清单）。两者都应通过**干净重建并同批重装同版本后端模块**解决，让 `features.tsv` / `defaults.txt` / `checksums.sha256` 由构建一次生成。
+- 真机验收用 `inkctl status` 确认 `ready=1` 与当前应挂载的 HWC 哈希；不要拿旧后端模块搭配新 APK 测试。

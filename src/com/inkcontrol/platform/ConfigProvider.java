@@ -19,8 +19,8 @@ import java.util.Map;
 /** 只传配置快照和有身份约束的状态/媒体数据，不暴露配置写入或Root执行。 */
 public final class ConfigProvider extends ContentProvider {
     public static final Uri URI = Uri.parse("content://com.inkcontrol.state");
-    /** 刷新面板里「点一下开关」的三项：自动刷新、锁屏主题、遮挡息屏。 */
-    private static final String[] TOGGLES = {"refresh.master", "lock.style", "wave.lock"};
+    /** 刷新面板里「点一下开关」的几项：自动刷新、锁屏主题、遮挡息屏、翻页动画。 */
+    private static final String[] TOGGLES = {"refresh.master", "lock.style", "wave.lock", "pageanim.master"};
     private AndroidConfigStore store;
     private FeatureService features;
     private final Map<String, Bundle> reports = new HashMap<>();
@@ -143,19 +143,28 @@ public final class ConfigProvider extends ContentProvider {
                 return new Bundle();
             }
             if ("toggle".equals(method)) {
-                // 刷新面板上那三个「点一下开关」：系统界面没有墨控私有目录的写权限，
+                // 刷新面板上「点一下开关」的几项：系统界面没有墨控私有目录的写权限，
                 // 也没法直接让后端应用配置，所以把这件事转给应用进程做。
-                require(systemui);
+                // self() 是兜底路径：应用被强制停止时 provider 拉不起来，由透明页把同一条
+                // 调用从应用自己的进程发过来（见 PanelToggleActivity）。
+                require(systemui || self());
                 String id = limited(input, "feature", 64);
                 if (!Arrays.asList(TOGGLES).contains(id)) throw new IllegalArgumentException("不支持的面板开关");
                 Configuration before = store.load();
-                final boolean enable = !before.enabled(id);
+                // 面板与兜底页都带明确的目标状态；没带的旧调用方仍按「取反」处理。
+                // 显式目标值让失败重试保持幂等，不会把开关又翻回去。
+                final boolean enable = input.containsKey("enabled") ? input.getBoolean("enabled") : !before.enabled(id);
                 final String value = before.value(id);
                 // 写盘 + root 应用要一两秒。这条 call 由系统界面发起，配置一改它就得回来重读，
                 // 同步等会卡住系统界面主线程，所以放后台线程，先回目标状态。
                 new Thread(() -> {
-                    try { features().change(id, enable, value); }
-                    catch (Throwable error) { reportToggleFailure(id, error); }
+                    try {
+                        features().change(id, enable, value);
+                        // 配置是在应用进程里写的，但界面拿的是打开页面那一刻的快照。
+                        // 写盘自带的 /config 通知是给被注入进程重读用的，这里再单独发一条
+                        // 给 App 界面：收到后重读快照并重画，否则开关样式会一直停在旧状态。
+                        changed("panel-toggle");
+                    } catch (Throwable error) { reportToggleFailure(id, error); }
                 }, "inkcontrol-toggle").start();
                 Bundle result = new Bundle();
                 result.putBoolean("enabled", enable);

@@ -35,10 +35,11 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
     def test_all_defaults_disabled(self):
         self.shell('ic_validate "$IC_CONFIG"\n')
         # 四个设备状态显示开关是 defaultOn（配置里没有这个键就按显示处理），
-        # 「截屏便签对齐尺寸」同样是 defaultOn（不缩的话原厂那一格比补上来的按钮大一圈），
+        # 「截屏便签对齐尺寸」同样是 defaultOn（不缩的话原厂那一格比补上来的按钮大一圈）；
+        # 翻页动画的风格／速度／分块数是必选参数，没有开关、恒为开启。
         # 所以它们在默认配置里就写 1；其余开关仍必须全部是 0。
         default_on = {'lock.ext.wifi', 'lock.ext.bt', 'lock.ext.audio', 'lock.ext.airplane',
-                      'qs.panel.pinsize'}
+                      'qs.panel.pinsize', 'pageanim.style', 'pageanim.spacing', 'pageanim.bands'}
         for line in self.config.read_text().splitlines():
             key,value=line.split('=',1)
             if key not in ('version','revision') and not key.endswith('.value'):
@@ -55,6 +56,17 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         original = self.config.read_text()
         for invalid in [original+'evil=1\n',original+'version=1\n',original.replace('revision=0','revision=-1'),original.replace('display.gpu.value=default','display.gpu.value=$(id)'),original.replace('display.gpu=0\n','')]:
             self.config.write_text(invalid,encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_pageanim_readers_accepts_plain_package_list(self):
+        # 「目标阅读器」存纯包名逗号列表，不是白／黑名单三段值；占位符与注入字符都要被拒。
+        original = self.config.read_text()
+        key = 'pageanim.readers.value='
+        self.assertIn(key, original)
+        for good in ('', 'io.legado.app.release,com.example.reader'):
+            self.config.write_text(original.replace(key, 'pageanim.readers.value='+good), encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('$(id)', 'com..a', '@packages', 'com.a;com.b'):
+            self.config.write_text(original.replace(key, 'pageanim.readers.value='+bad), encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_hold_curve_validation(self):
         original=self.config.read_text()

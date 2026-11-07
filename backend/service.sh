@@ -15,6 +15,11 @@ if [ "$(getprop sys.boot_completed)" != 1 ]; then
     exit 1
 fi
 ic_apply_hot || { echo '启动期配置应用失败' > "$IC_STATE/error"; exit 1; }
+# 翻页动画常驻端：读 settings.conf、监听触摸/按键、把翻页事件写进 HWC 注入段。
+# 只在本次开机确实挂了翻页动画 HWC 时拉起；一个实例由它自己的 resident.lock 保证。
+if [ "$(awk -F= '$1=="pageanim.master" {print $2}' "$IC_BOOT")" = 1 ] && [ -f "$MODDIR/payload/hwcomposer.pageanim.so" ]; then
+    "$MODDIR/bin/a5pro-resident" </dev/null >>"$IC_STATE/pageanim/resident.log" 2>&1 &
+fi
 if [ -f "$MODDIR/system/vendor/lib64/hw/libeinkgpu.so" ]; then
     for attempt in $(seq 1 90); do
         pid=$(pidof android.hardware.graphics.composer@2.1-service | awk '{print $1}')
@@ -34,7 +39,7 @@ fi
 next_backup=0
 while [ ! -f "$MODDIR/disable" ] && [ ! -f "$MODDIR/remove" ]; do
     # 复用 Magisk 启动服务；没有额外 Android 常驻服务。始终读取本次启动配置。
-    if [ "$(awk -F= '$1=="display.gpu" {print $2}' "$IC_BOOT")" = 1 ]; then
+    if [ "$(awk -F= '$1=="display.gpu" {print $2}' "$IC_BOOT")" = 1 ] && [ -f "$MODDIR/system/vendor/lib64/hw/libeinkgpu.so" ]; then
         ic_gpu_diagnostics_start 2>/dev/null || :
         pid=$(pidof android.hardware.graphics.composer@2.1-service | awk '{print $1}')
         if [ -n "$pid" ]; then

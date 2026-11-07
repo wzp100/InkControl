@@ -8,7 +8,7 @@ All compilation and build tests run on GitHub-hosted Ubuntu 24.04. Local work is
 
 ## Version policy
 
-Current candidate: `0.2.4-r21`. A successful new version creates `v<version>` and a Release at the exact verified commit. `-rcN` becomes a prerelease without Latest; stable versions become Latest. Cloud success is not device-stability acceptance.
+Current candidate: `0.2.5-r23`. A successful new version creates `v<version>` and a Release at the exact verified commit. `-rcN` becomes a prerelease without Latest; stable versions become Latest. Cloud success is not device-stability acceptance.
 
 Synchronize `AndroidManifest.xml`, `tools/build.py`, `backend/lib/common.sh`, app/module versionCode, notes, and the knowledge index when changing versions. Documentation-only pushes can retain a version. An existing published version is skipped without changing its tag, notes, or assets. Behavioral/resource changes require a new version.
 

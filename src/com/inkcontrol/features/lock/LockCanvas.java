@@ -914,8 +914,10 @@ final class LockCanvas extends View {
             pair("天气", value, BATT_X, 348, WEA_R2);
         }
 
-        // ── 左下：中英格言（整体下沉；中文加粗，英文同电量数据加黑加粗）──
-        float my = 282;
+        // ── 左下：中英格言（整体上移，给英文译文留出下半屏空间；中文加粗，英文同电量数据加黑加粗）──
+        // 画布只有 360 高：原来从 282 起，中文 2 行占 48、空 6、英文 2 行占 28，收尾落在 364
+        // 被底沿裁掉。上提 20 到 262（时间方框底 245，还留 17），英文整段就能落在 344 以内。
+        float my = 262;
         if (data.text != null) {
             font(sSerifBold, 16, 0, INK, true);
             my += paragraph(data.text, LX, my, QW, 1.5f, 2) + 6;

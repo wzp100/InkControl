@@ -92,6 +92,12 @@ ic_validate() {
         if (value=="") return 1
         return pkglist(value)
       }
+      function pkgs(choices, value) {
+        # 纯包名逗号列表（「目标阅读器」），不带白／黑名单模式
+        if (index("," choices ",", ",@packages,")==0) return 0
+        if (value=="") return 1
+        return pkglist(value)
+      }
       function fontpath(value,   n) {
         # 字体目录或字体名：绝对路径/文件名，不含等号、分号、控制字符与 shell 元字符
         if (value=="") return 1
@@ -114,7 +120,7 @@ ic_validate() {
       # 旧配置的 lock.notify.value=ext 也照旧放行（ext 是纯字母，走 fontpath 兜底即通过）；
       # App 侧解析时会把它迁成 lock.ext=1 并在下次保存时重写。
       # 容忍旧配置里的残留键，升级不卡开机
-      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !fontpath($2))) bad=1}
+      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@packages" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !pkgs(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !(index("," choices[key] ",", ",@packages,")==0 && fontpath($2)))) bad=1}
        else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
@@ -128,7 +134,8 @@ ic_validate() {
           # fix.safeime（冻结安全输入服务后能输密码）、qs.panel（快捷面板按钮）、qs.panel.close（点完收起面板）、
           # qs.panel.pinsize（截屏便签对齐尺寸）、qs.panel.btn1–4（四个位置的按钮动作）是后来新增的，
           # 旧配置里没有，缺省按「关」处理（pinsize 在 App 侧 defaultOn，缺省按开）。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-4]))?$/)
+          # 翻页动画是 0.2.5-r23 新加的一整组，旧配置里整组都没有，缺省按「关」处理。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-4]))?$/ || key ~ /^pageanim\./)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -142,14 +149,14 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.4-r21' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.5-r23' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
 # 图标覆盖已下线，gms_settings_icon_fix 不再与本模块争用文件。
 ic_module_conflict() {
     IC_MODULES=${IC_MODULES:-/data/adb/modules}
-    for module in eink_display epd_cfg_guard a_eink_pipeline_opt a_eink_lock_dither a_eink_lock_motion a_eink_lock_motion2 a_eink_lock_motion3 a_eink_lock_motion4 a_eink_reading_verify a_eink_lock_crop; do
+    for module in eink_display epd_cfg_guard a_eink_pipeline_opt a_eink_lock_dither a_eink_lock_motion a_eink_lock_motion2 a_eink_lock_motion3 a_eink_lock_motion4 a_eink_reading_verify a_eink_lock_crop a5pro_epd_probe; do
         [ -d "$IC_MODULES/$module" ] && [ ! -f "$IC_MODULES/$module/disable" ] && [ ! -f "$IC_MODULES/$module/remove" ] && { echo "$module"; return 0; }
     done
     return 1
@@ -409,9 +416,48 @@ ic_prepare_restore() {
     CONFIG_SOURCE=$IC_LIB/config_state.sh
     . "$CONFIG_SOURCE"
 }
+# 翻页动画：把 App 的逐项配置翻译成第三方 native resident 认得的 settings.conf。
+# resident 只认这 8 个键；写不成也不阻断其它热应用，配置下一次翻页自然生效。
+# 目录固定在墨控自己的状态目录，二进制里的三条硬编码路径已在构建时改到这里。
+ic_pageanim_sync() {
+    PA_DIR=$IC_STATE/pageanim
+    mkdir -p "$PA_DIR" || return 0
+    chmod 700 "$PA_DIR"
+    PA_STYLE=0
+    case "$(ic_get pageanim.style.value)" in
+        vertical) PA_STYLE=1 ;; diag) PA_STYLE=2 ;; antidiag) PA_STYLE=3 ;;
+        ring) PA_STYLE=4 ;; center) PA_STYLE=5 ;; *) PA_STYLE=0 ;;
+    esac
+    PA_BANDS=$(ic_get pageanim.bands.value); [ -n "$PA_BANDS" ] || PA_BANDS=12
+    PA_SPACING=$(ic_get pageanim.spacing.value); [ -n "$PA_SPACING" ] || PA_SPACING=12
+    PA_DEBOUNCE=$(ic_get pageanim.debounce.value); [ -n "$PA_DEBOUNCE" ] || PA_DEBOUNCE=250
+    # 只保留包名允许的字符，避免把任意文本写进配置文件。
+    PA_READERS=$(ic_get pageanim.readers.value | tr -cd 'A-Za-z0-9_.,')
+    PA_REVERSE=0; [ "$(ic_get pageanim.reverse)" = 1 ] && PA_REVERSE=1
+    PA_TOUCH=0;   [ "$(ic_get pageanim.touch)" = 1 ]   && PA_TOUCH=1
+    PA_KEYS=0;    [ "$(ic_get pageanim.keys)" = 1 ]    && PA_KEYS=1
+    PA_TMP="$PA_DIR/settings.conf.tmp"
+    {
+        echo "readers=$PA_READERS"
+        echo "bands=$PA_BANDS"
+        echo "spacing=$PA_SPACING"
+        echo "style=$PA_STYLE"
+        echo "reverse=$PA_REVERSE"
+        echo "touch=$PA_TOUCH"
+        echo "keys=$PA_KEYS"
+        echo "debounce=$PA_DEBOUNCE"
+    } > "$PA_TMP" || return 0
+    chmod 600 "$PA_TMP"
+    mv "$PA_TMP" "$PA_DIR/settings.conf" || return 0
+    if ic_enabled pageanim.master; then : > "$PA_DIR/animation.enabled"
+    else rm -f "$PA_DIR/animation.enabled"; fi
+    return 0
+}
+
 ic_apply_hot() {
     ic_properties || return 1
     ic_accessibility || return 1
+    ic_pageanim_sync
     ic_prepare_restore
     cs_prepare_hooks || return 1
     if ic_enabled display.dynamic; then

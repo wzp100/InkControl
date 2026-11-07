@@ -133,10 +133,20 @@ public final class ApplicationServices {
     public String inspect() {
         try {
             String text = root.run("status", "");
-            Bundle reports = context.getContentResolver().call(ConfigProvider.URI, "reports", null, null);
-            status.update(text, reports, configuration().revision);
+            long revision = configuration().revision;
+            status.update(text, reports(), revision);
+            // 应用刚起来时钩子还在重连，「0 个作用域」多半只是回执没到；等两轮再判，
+            // 仍为空才认定没注入，否则会误报「模块未注入」。
+            for (int attempt = 0; attempt < 2 && status.failure.isEmpty() && status.hooked().isEmpty(); attempt++) {
+                try { Thread.sleep(900); } catch (InterruptedException stop) { Thread.currentThread().interrupt(); break; }
+                status.update(text, reports(), revision);
+            }
             return "本机：" + Build.MODEL + " / Android " + Build.VERSION.RELEASE + "\n" + text;
         } catch (Exception error) { status.invalidate(error.getMessage()); return "环境检查未完成：" + error.getMessage() + "\n仍可预览和导出 ZIP。"; }
+    }
+    private Bundle reports() {
+        Bundle value = context.getContentResolver().call(ConfigProvider.URI, "reports", null, null);
+        return value == null ? new Bundle() : value;
     }
     public void exportZip(OutputStream output) throws Exception {
         File directory = root.payload();

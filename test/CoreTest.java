@@ -165,11 +165,31 @@ public final class CoreTest {
         displayAlgorithms();
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
-            check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(config.requested(feature.id) == feature.defaultOn);
-            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN) || value.equals(FeatureDefinition.PANEL_TOKEN) || value.equals(FeatureDefinition.PACKAGE_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
+            check(ids.add(feature.id)); check(!config.enabled(feature.id));
+            // 必选参数没有开关，新配置里也按开启处理
+            check(config.requested(feature.id) == (feature.defaultOn || FeatureCatalog.required(feature.id)));
+            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.PACKAGES_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN) || value.equals(FeatureDefinition.PANEL_TOKEN) || value.equals(FeatureDefinition.PACKAGE_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
+        // 翻页动画的三项必选参数：没有开关，旧配置里写着 0 也按开启读回来，写出去恒为 1。
+        for (String id : new String[]{"pageanim.style", "pageanim.spacing", "pageanim.bands"}) {
+            check(FeatureCatalog.required(id));
+            check(config.requested(id) && config.text().contains(id + "=1\n"));
+            check(config.change(id, false, config.value(id)).requested(id));
+            check(config.change(id, false, config.value(id)).text().contains(id + "=1\n"));
+            Configuration legacy = Configuration.parse(config.text().replace(id + "=1\n", id + "=0\n"));
+            check(legacy.requested(id) && legacy.text().contains(id + "=1\n"));
+        }
+        // 「目标阅读器」是纯包名逗号列表（不是白／黑名单三段值），出厂不内置任何应用。
+        FeatureDefinition readers = FeatureCatalog.get("pageanim.readers");
+        check(readers.acceptsPackages() && readers.defaultValue().isEmpty());
+        readers.validate("io.legado.app.release");
+        readers.validate("io.legado.app.release,com.example.reader");
+        readers.validate("");
+        reject(() -> readers.validate("@packages"));
+        reject(() -> readers.validate("$(id)"));
+        reject(() -> readers.validate("com..a"));
         // 「冻结安全输入服务后能输密码」归在「系统增强」，由 SystemUI 写系统设置，默认关闭。
         FeatureDefinition safeime = FeatureCatalog.get("fix.safeime");
         check(safeime.group.equals("系统增强") && safeime.role.equals("systemui")
@@ -257,7 +277,7 @@ public final class CoreTest {
         check(interval.acceptsNumber() && !interval.acceptsCurve() && FeatureDefinition.number("3") == 3);
         interval.validate("3"); check(Configuration.parse(config.change("refresh.interval", true, "3").text()).value("refresh.interval").equals("3"));
         Configuration legacyPeriod = Configuration.parse(config.change("refresh.period", true, "300").text().replace("refresh.period.value=300", "refresh.period.value=0"));
-        check(!legacyPeriod.requested("refresh.period") && legacyPeriod.value("refresh.period").equals("60"));   // 旧值 0 → 默认档（1 分钟）
+        check(!legacyPeriod.requested("refresh.period") && legacyPeriod.value("refresh.period").equals("300"));   // 旧值 0 → 默认档（5 分钟）
         for (String bad : new String[]{"0", "1000", "abc", "-1", "@number", "", "3.5", " 3", "@curve"}) reject(() -> interval.validate(bad));
         // 倒数日清单：新格式 12 段「事项;日期;农历;显示」×3；兼容旧 6 段「事项;日期」×3
         FeatureDefinition countdowns = FeatureCatalog.get("lock.countdowns");

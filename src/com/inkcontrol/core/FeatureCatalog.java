@@ -1,24 +1,38 @@
 package com.inkcontrol.core;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import static com.inkcontrol.core.FeatureDefinition.ApplyMode.*;
 
 public final class FeatureCatalog {
     private static final List<FeatureDefinition> FEATURES = new ArrayList<>();
     /**
+     * 必选参数：没有开关，配置里恒为开启，界面只能挑一个值。
+     * 翻页动画的风格／速度／分块数少任何一个都拼不出完整的 settings.conf，
+     * 所以它们不像「反转方向」「音量键翻页」那样可以关掉，只能换值。
+     */
+    private static final Set<String> REQUIRED = new HashSet<>(Arrays.asList(
+            "pageanim.style", "pageanim.spacing", "pageanim.bands"));
+    /** 这一项是否没有开关、始终启用。 */
+    public static boolean required(String id) { return REQUIRED.contains(id); }
+    /**
      * 刷新面板底部四个位置可选的动作（取值, 面板上显示的名字）。
      *
-     * <p>前十个就是控制中心那排磁贴；{@code refresh}／{@code lock}／{@code cover} 是墨控自己的
-     * 三个常用开关（自动刷新、锁屏主题、遮挡息屏），点一下就地开关；{@code quick} 打开墨控的
-     * 快捷设置页；{@code pin} 就是原厂那个「截屏便签」，保留它自己的图标、文字与截屏监听器。
+     * <p>前十个就是控制中心那排磁贴；{@code refresh}／{@code lock}／{@code cover}／{@code pageanim}
+     * 是墨控自己的四个开关（自动刷新、锁屏主题、遮挡息屏、翻页动画），点一下就地开关（锁屏主题
+     * 例外，点它直接进设置页）；{@code quick} 打开墨控的快捷设置页；{@code pin} 就是原厂那个
+     * 「截屏便签」，保留它自己的图标、文字与截屏监听器。
      */
     public static final String[][] PANEL_ACTIONS = {
             {"wifi", "WiFi"}, {"bt", "蓝牙"}, {"ring", "铃声"}, {"airplane", "飞行模式"},
             {"torch", "手电筒"}, {"rotate", "自动旋转"}, {"page", "整屏翻页"},
             {"dnd", "免打扰"}, {"saver", "省电模式"}, {"float", "悬浮球"},
             {"refresh", "自动刷新"}, {"lock", "锁屏主题"}, {"cover", "遮挡息屏"},
+            {"pageanim", "翻页动画"},
             {"quick", "墨控快捷设置"}, {"pin", "截屏便签"}};
 
     /** 这个位置不显示按钮（选择框里排在最上面的「无」）。 */
@@ -108,11 +122,27 @@ public final class FeatureCatalog {
         add("lock.lyricmode", "锁屏主题", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
         add("lock.delay", "锁屏主题", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
         add("lock.dither", "锁屏主题", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
+        // 翻页动画：把第三方 HWC 派生库收进同一个后端模块，按总开关切换挂载哪一份显示库。
+        // 它和 libeinkgpu 抢同一个 /vendor 文件，因此总开关是 REBOOT，且不能与 GPU 后端同时生效。
+        add("pageanim.master", "翻页动画", "翻页动画总开关", "挂载翻页动画专用的显示库；与「GPU 显示后端」共用同一个文件，只能二选一，改后完整重启", "backend", "", REBOOT, false, "default", "启用翻页动画");
+        add("pageanim.style", "翻页动画", "翻页风格", "新一页按哪种方式分块、分阶段展开", "backend", "pageanim.master", HOT, false,
+                "horizontal,vertical,diag,antidiag,ring,center", "横向展开,纵向展开,斜向分块,反斜向分块,环绕分块,中心展开");
+        add("pageanim.bands", "翻页动画", "分块数量", "分块越多，展开越细", "backend", "pageanim.master", HOT, false,
+                "12,4,8,16,24,32", "12 块,4 块,8 块,16 块,24 块,32 块");
+        add("pageanim.spacing", "翻页动画", "展开速度", "阶段越多展开越明显，也越慢", "backend", "pageanim.master", HOT, false,
+                "6,8,12,16,24,40", "6 阶段（更快）,8 阶段,12 阶段（均衡）,16 阶段,24 阶段,40 阶段（最明显）");
+        add("pageanim.reverse", "翻页动画", "反转动画方向", "把展开方向掉个头", "backend", "pageanim.master", HOT, false, "default", "反转方向");
+        add("pageanim.touch", "翻页动画", "点击与横向滑动翻页", "点击与左右滑动当作翻页手势", "backend", "pageanim.master", HOT, false, "default", "点击滑动");
+        add("pageanim.keys", "翻页动画", "实体音量键翻页", "音量键当作翻页键", "backend", "pageanim.master", HOT, false, "default", "音量键翻页");
+        add("pageanim.debounce", "翻页动画", "连续操作保护", "翻页连得过快时跳过新动画，翻页本身照常", "backend", "pageanim.master", HOT, false,
+                "100,250,500,1000", "100 毫秒,250 毫秒,500 毫秒,1 秒");
+        add("pageanim.readers", "翻页动画", "目标阅读器", "只对名单里的阅读器生效；不选则动画不触发", "backend", "pageanim.master", HOT, false, "@packages", "选择阅读器");
         // 「体感息屏唤醒」总开关已下线：遮挡息屏 / 移开唤醒各自就是开关，
         // 两个都关时体感服务不监听传感器。无障碍里的「墨控体感」服务由后端按这两个开关自动增删。
         add("wave.lock", "体感", "遮挡息屏", "近距离传感器被持续遮挡一段时间后锁定并关闭屏幕；开关打开时自动启用「墨控体感」服务", "system", "", HOT, false, "default", "遮挡息屏");
         add("wave.wake", "体感", "移开唤醒", "遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏；开关打开时自动启用「墨控体感」服务", "system", "", HOT, false, "default", "移开唤醒");
-        add("wave.coverDelay", "体感", "遮挡延时", "遮挡持续多久才息屏，避免误触", "system", "wave.lock", HOT, false, "1000,500,2000,3000", "1秒,500毫秒,2秒,3秒");
+        // 自定义（@number）排在最后，让首值仍是 1000＝默认 1 秒；界面里把「自定义」提到列表最上面。
+        add("wave.coverDelay", "体感", "遮挡延时", "遮挡持续多久才息屏，避免误触", "system", "wave.lock", HOT, false, "1000,500,2000,3000,@number", "1秒,0.5秒,2秒,3秒,自定义");
         add("desktop.theme", "桌面", "桌面主题", "保留原厂桌面位置与布局", "launcher", "", HOT, false, "glass,paper,ink", "流光玻璃,纸间,墨构");
         add("desktop.icons", "桌面", "图标换肤", "独立恢复原厂图标", "launcher", "desktop.theme", HOT, false, "default", "主题图标");
         add("desktop.wallpaper", "桌面", "壁纸材质", "仅覆盖显示，不改原厂壁纸文件", "launcher", "desktop.theme", HOT, false, "default", "主题材质");
@@ -164,7 +194,8 @@ public final class FeatureCatalog {
         add("refresh.debounce", "自动刷新", "合并间隔", "短时间内连续操作只算一次，避免滑动被重复计数", "system", "refresh.master", HOT, false, "1000,500,2000,0,@number", "1秒,500毫秒,2秒,关闭,自定义");
         add("refresh.delay", "自动刷新", "刷新前延时", "操作停止后再等多久刷新，避免打断连续操作", "system", "refresh.master", HOT, false, "0,300,500,1000", "立即,300毫秒,500毫秒,1000毫秒");
         add("refresh.reading", "自动刷新", "识别阅读界面", "检测到整屏文字时自动刷新，改善翻页残影", "system", "refresh.master", HOT, false, "default", "识别阅读界面");
-        add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "60,300,600,1800,@number", "1分钟,5分钟,10分钟,30分钟,自定义");
+        // 首值就是出厂默认值：周期性刷新默认 5 分钟。预设仍按数值升序显示（见 showOptionDialog）。
+        add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "300,60,600,1800,@number", "5分钟,1分钟,10分钟,30分钟,自定义");
         add("refresh.apps", "自动刷新", "应用黑白名单", "白名单只统计名单内应用，黑名单跳过名单内应用", "system", "", HOT, false, "@apps", "黑白名单");
     }
 

@@ -18,6 +18,8 @@ public final class Configuration {
     }
     /** 配置里没写过这个键时，取功能自己的 defaultOn（「显示设备状态」的四项显示开关默认开）。 */
     public boolean requested(String id) {
+        // 必选参数没有开关：即便配置里残留 0（旧版本／手改），也一律按开启处理。
+        if (FeatureCatalog.required(id)) return true;
         FeatureDefinition definition = FeatureCatalog.get(id);
         Boolean stored = switches.get(id);
         return stored == null ? definition.defaultOn : stored;
@@ -31,7 +33,7 @@ public final class Configuration {
         FeatureCatalog.get(id).validate(value);
         Map<String, Boolean> flags = new LinkedHashMap<>(switches);
         Map<String, String> values = new LinkedHashMap<>(options);
-        flags.put(id, enabled);
+        flags.put(id, FeatureCatalog.required(id) || enabled);
         values.put(id, value);
         return new Configuration(revision + 1, flags, values);
     }
@@ -44,7 +46,7 @@ public final class Configuration {
         Map<String, String> values = new LinkedHashMap<>(options);
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             if (group.equals(feature.group)) {
-                flags.put(feature.id, feature.defaultOn);
+                flags.put(feature.id, FeatureCatalog.required(feature.id) || feature.defaultOn);
                 values.put(feature.id, feature.defaultValue());
             }
         }
@@ -93,7 +95,9 @@ public final class Configuration {
             feature.validate(value);
             // 没写过的键不入表：requested() 会退回功能自己的 defaultOn，
             // 这样旧配置升级后「四项显示开关」默认仍是全开。
-            if (flag != null) flags.put(feature.id, "1".equals(flag));
+            // 必选参数例外：无论读写到什么，都固定按开启存，避免关掉后拼不出完整配置。
+            if (FeatureCatalog.required(feature.id)) flags.put(feature.id, true);
+            else if (flag != null) flags.put(feature.id, "1".equals(flag));
             values.put(feature.id, value);
         }
         if (legacyExt && !hasExtKey) flags.put("lock.ext", true);

@@ -94,6 +94,12 @@ final class Guide {
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
                 {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}},
                 new String[]{"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"});
+        cat("翻页动画", "翻页时把新一页分块、分阶段揭示。", new String[][]{
+                {"总开关", "pageanim.master"},
+                {"翻页风格", "pageanim.style", "pageanim.spacing"},
+                {"画面细分", "pageanim.bands"},
+                {"翻页操作", "pageanim.touch", "pageanim.keys", "pageanim.reverse", "pageanim.debounce"},
+                {"目标阅读器", "pageanim.readers"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
                 {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.gc_clear", "motion.lock", "motion.unlock"},
@@ -105,7 +111,7 @@ final class Guide {
                 {"应用名单", "refresh.apps"}});
         cat("字体", "把系统字体换成目录里的任意 TTF/OTF。", new String[][]{
                 {"字体", "font.dir"}});
-        cat("体感", "实现类似盒盖息屏、翻盖亮屏的功能，调用的是距离传感器，需要无障碍服务支持。", new String[][]{
+        cat("体感", "实现类似合盖息屏、翻盖亮屏的功能，因使用距离传感器，启用会自动打开相关无障碍服务", new String[][]{
                 {"行为", "wave.lock", "wave.coverDelay", "wave.wake"}});
         cat("桌面", "原厂桌面的主题、图标、壁纸与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.wallpaper", "desktop.widget"}});
@@ -113,7 +119,7 @@ final class Guide {
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions", "fix.safeime"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"},
                 {"备份", "sys.backup"}});
-        cat("快捷面板修改", "从屏幕左下角或右下角上滑唤出的 E-Ink 刷新面板：把底部的按钮换成自己的。", new String[][]{
+        cat("快捷面板修改", "把系统的E-Ink刷新面板换成一些自定义功能", new String[][]{
                 {"按钮", "qs.panel"}},
                 new String[]{"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4",
                         "qs.panel.close", "qs.panel.pinsize"});
@@ -130,7 +136,10 @@ final class Guide {
     }
 
     private static final Map<String, Entry> ENTRIES = new LinkedHashMap<>();
-    static Entry get(String id) { Entry e = ENTRIES.get(id); return e == null ? new Entry() : e; }
+    static Entry get(String id) {
+        Entry e = ENTRIES.get(id);
+        return e == null ? new Entry() : e;
+    }
     private static Entry put(String id) { Entry e = new Entry(); ENTRIES.put(id, e); return e; }
 
     /**
@@ -157,14 +166,16 @@ final class Guide {
         Option o = get(f.id).options.get(value);
         if (o != null) return o.name;
         if (com.inkcontrol.core.FeatureDefinition.curve(value) != null) return "自定义曲线";
-        if (com.inkcontrol.core.FeatureDefinition.number(value) != null) return value + numberUnit(f);
+        // 手动输入的值不在预设档位里：按预设的写法显示，末尾标明是自定义，
+        // 紧凑页下拉和详情页按钮都用同一个名字（如「4次(自定义)」）。
+        if (com.inkcontrol.core.FeatureDefinition.number(value) != null) return value + numberUnit(f).trim() + "(自定义)";
         int i = f.values.indexOf(value);
         return i < 0 ? value : f.labels.get(i);
     }
 
-    /** 自定义数值的单位：合并间隔按毫秒，其余（触发次数）按次。 */
+    /** 自定义数值的单位：合并间隔／遮挡延时按毫秒，周期性刷新按分钟，其余按次。 */
     static String numberUnit(com.inkcontrol.core.FeatureDefinition f) {
-        if (f.id.equals("refresh.debounce")) return " 毫秒";
+        if (f.id.equals("refresh.debounce") || f.id.equals("wave.coverDelay")) return " 毫秒";
         if (f.id.equals("refresh.period")) return " 分钟";
         return " 次";
     }
@@ -241,6 +252,46 @@ final class Guide {
                 .cost("只改原本是阅读模式的应用；关闭时逐个恢复原值，你自己单独改过的应用不会被动。需要完整重启。")
                 .visual(Visual.REFRESH_MODES).option("521", "阅读模式 → 极速模式", "").term("刷新方式", "极速模式", "阅读模式", "残影");
 
+        // ── 翻页动画（0.2.5-r23：第三方翻页动画模块并进同一个后端） ──
+        put("pageanim.master").summary("翻页时把新一页分块、分阶段揭示").what("这版把原先独立的翻页动画 Magisk 模块并进墨控后端：开启后挂载它自带的显示库，由常驻端监听翻页手势，让新画面按选定的风格逐块展开。它与墨控的 GPU 显示后端抢同一个 /vendor 文件，只能二选一；切换后必须完整重启，期间墨控的分模式算法、波形动画与「全刷扫过」都不生效。")
+                .before("翻页是一次整帧瞬间替换，画面直接跳变。").after("新一页按方向或分块逐步展开，看得出翻页过程。")
+                .cost("开启期间墨控 GPU 显示后端那一组功能全部停用；关闭后完整重启即恢复。上下滚动仍走原厂刷新，动画只作用于翻页手势与音量键。")
+                .option("default", "启用翻页动画", "");
+        put("pageanim.style").summary("新一页怎么展开").what("横向或纵向整片展开，以及斜向、反斜向、环绕、中心四种分块展开。选完下次翻页生效。")
+                .option("horizontal", "横向展开", "新画面从一侧向另一侧整片推开。")
+                .option("vertical", "纵向展开", "新画面从上往下或从下往上整片推开。")
+                .option("diag", "斜向分块", "沿对角线把画面切成若干条依次揭示。")
+                .option("antidiag", "反斜向分块", "与斜向相反的对角线方向。")
+                .option("ring", "环绕分块", "从四周向中间或从中间向四周逐圈揭示。")
+                .option("center", "中心展开", "以画面中心为起点向两侧展开。");
+        put("pageanim.spacing").summary("展开快慢").what("阶段越少越快、越接近瞬间切换；越多展开越明显，一次翻页也更慢。")
+                .option("6", "6 阶段（更快）", "几乎一闪而过，适合不想拖慢翻页。")
+                .option("8", "8 阶段", "轻微展开感。")
+                .option("12", "12 阶段（均衡）", "原模块默认值，速度与观感比较平衡。")
+                .option("16", "16 阶段", "展开更连贯。")
+                .option("24", "24 阶段", "明显变慢，适合演示。")
+                .option("40", "40 阶段（最明显）", "最慢，仅建议对照效果用。");
+        put("pageanim.bands").summary("新画面切成多少块").what("块数越多，展开的颗粒越细、边界越不明显；分块类风格会自动调整到 4 的倍数。")
+                .option("4", "4 块", "原模块默认，块感最明显。")
+                .option("8", "8 块", "略细。")
+                .option("12", "12 块", "默认，中等。")
+                .option("16", "16 块", "较细。")
+                .option("24", "24 块", "很细。")
+                .option("32", "32 块", "最细，接近连续展开。");
+        put("pageanim.reverse").summary("把展开方向掉个头").what("例如横向展开默认从左到右，开启后改为从右到左；分块类风格按各自的对称方向反转。")
+                .option("default", "反转方向", "");
+        put("pageanim.touch").summary("点击与左右滑动当作翻页").what("由常驻端读取触摸事件：点击屏幕左右侧、或横向滑动时触发翻页动画。上下滚动仍走原厂刷新，不受影响。")
+                .option("default", "点击与横向滑动翻页", "");
+        put("pageanim.keys").summary("音量键当作翻页键").what("按实体音量上/下键时按翻页处理，适合单手翻页。")
+                .option("default", "实体音量键翻页", "");
+        put("pageanim.debounce").summary("连续翻页太快时跳过新动画").what("两次翻页间隔小于这个值时，后一次直接按原厂方式切页，不再叠加动画，避免动画互相打断。")
+                .option("100", "100 毫秒", "几乎不限制。")
+                .option("250", "250 毫秒", "原模块默认值。")
+                .option("500", "500 毫秒", "连续翻页时更稳。")
+                .option("1000", "1 秒", "只给慢速翻页加动画。");
+        put("pageanim.readers").summary("只对选中的阅读器生效").what("只有名单里的应用才触发翻页动画，上下滚动仍走原厂刷新；默认不内置任何应用，自己选。")
+                .option(com.inkcontrol.core.FeatureDefinition.PACKAGES_TOKEN, "阅读器名单", "");
+
         put("motion.master").summary("原厂没有过渡动画；开启后各场景可分别设置").what("原厂为了墨水屏把窗口动画全部关闭，打开应用、返回时画面直接跳变。开启后，可以在下面每个场景选一种专为墨水屏设计的过渡效果。")
                 .before("所有切换都是瞬间跳变，很难看出画面从哪来、到哪去。").after("切换有方向感：从点的地方展开、从一侧推入等。")
                 .cost("关键帧动画每多一张中间画面就多一次刷新；波形动画几乎不增加时间。关闭总开关后所有场景恢复原厂，各场景的选择会保留。")
@@ -283,7 +334,7 @@ final class Guide {
                 .before("点按钮会看到几次灰色水波纹刷新，列表滚到头会回弹几下。").after("可以完全关闭（直接显示结果），或缩短为一半时长。")
                 .option("0", "关闭动画", "直接显示动画结束的样子，刷新最少。").option("0.5", "半速时长", "保留动画，但时长减半。").option("1", "原时长", "与原厂相同。");
 
-        put("lock.style").summary("五套专为墨水屏设计的锁屏").what("替换原厂锁屏画面，显示时间、日期、天气和正在播放的音乐。").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
+        put("lock.style").summary("五套专为墨水屏设计的锁屏").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
                 .option("5", "编辑排版", "杂志式衬线大字，像一页报纸。").option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。")
                 .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "横版构图，横转手机阅读：大号时间加方框，右侧倒数日框，右下电池与通知，左下格言。").option("10", "编辑排版-横-逆", "编辑排版-横 旋转 180°，适合手机反向横转阅读。");
         put("lock.weather").summary("在自定义锁屏上显示天气").what("在锁屏卡片上显示当前天气、温度和图标。原厂锁屏的天气来自桌面时钟/天气小组件，桌面上没放那个小组件时它就没有数据。选择「天气App」后，墨控直接读取系统预装的天气软件（墨迹天气）已经下载的天气，不需要桌面小组件，仍然不额外联网。")
@@ -359,7 +410,7 @@ final class Guide {
                 .before("不开启时：黑底白键。").after("开启后：白底黑键；锁屏与通话界面维持原厂配色。")
                 .cost("只改系统界面自己画的那一条；全屏应用自己隐藏导航栏时不受影响。切换开关立即生效，不用重启系统界面。")
                 .option("default", "白底黑键", "").term("三大金刚键", "系统界面");
-        put("qs.panel").summary("在刷新面板底部补上自己的按钮").what("这台设备的刷新面板底部原厂只有一个「截屏便签」，那片位置一直空着。开启后按下面的顺序摆四个按钮，动作跟控制中心那排磁贴一样（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、免打扰、省电模式、悬浮球），再加上墨控的自动刷新、锁屏主题、遮挡息屏与原厂截屏便签；面板高度不变。")
+        put("qs.panel").summary("在刷新面板底部补上自己的按钮").what("这台设备的刷新面板底部原厂只有一个「截屏便签」，那片位置一直空着。开启后按下面的顺序摆四个按钮，动作跟控制中心那排磁贴一样（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、免打扰、省电模式、悬浮球），再加上墨控的自动刷新、锁屏主题、遮挡息屏、翻页动画与原厂截屏便签；面板高度不变。")
                 .option("default", "加入按钮", "");
         put("qs.panel.close").summary("点完按钮就收起面板").what("面板盖住屏幕下半部分，点完不收会一直挡着后面的界面；开启后点完就收，回到刚才那一屏。")
                 .option("default", "点完收起", "");
@@ -412,15 +463,16 @@ final class Guide {
                 .option(com.inkcontrol.core.FeatureDefinition.APPS_TOKEN, "黑白名单", "");
         put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")
                 .cost("关闭独立开关后不再周期刷新。")
-                .option("60", "1分钟", "默认。").option("300", "5分钟", "").option("600", "10分钟", "").option("1800", "30分钟", "最省电。")
+                .option("300", "5分钟", "默认。").option("60", "1分钟", "").option("600", "10分钟", "").option("1800", "30分钟", "最省电。")
                 .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 之间的分钟数。");
 
         put("wave.lock").summary("遮挡一段时间后息屏").what("近距离传感器被持续遮挡达到「遮挡延时」设定的时间后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。开关打开时墨控会自动启用「墨控体感」无障碍服务，关闭后自动撤掉。").option("default", "遮挡息屏", "").term("无障碍服务", "近距离传感器");
         put("wave.wake").summary("移开遮挡后唤醒").what("遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。开关打开时墨控会自动启用「墨控体感」无障碍服务，关闭后自动撤掉。").option("default", "移开唤醒", "").term("无障碍服务", "近距离传感器");
         put("wave.coverDelay").summary("遮挡持续多久才息屏").what("传感器短暂被碰一下不会立刻息屏，只有持续遮挡超过这个时间才锁定屏幕，避免误触。")
                 .cost("数值越小越灵敏，越大越不容易误触。")
-                .option("1000", "1 秒", "默认，平衡灵敏与误触。").option("500", "500 毫秒", "更灵敏，适合稳定遮挡场景。")
-                .option("2000", "2 秒", "较迟钝，明显减少误触。").option("3000", "3 秒", "最迟钝，仅在明确遮挡时息屏。");
+                .option("1000", "1秒", "默认，平衡灵敏与误触。").option("500", "0.5秒", "更灵敏，适合稳定遮挡场景。")
+                .option("2000", "2秒", "较迟钝，明显减少误触。").option("3000", "3秒", "最迟钝，仅在明确遮挡时息屏。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 毫秒。");
     }
 
     private Guide() {}

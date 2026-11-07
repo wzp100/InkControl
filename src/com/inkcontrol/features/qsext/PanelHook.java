@@ -81,7 +81,8 @@ public class PanelHook implements IXposedHookLoadPackage {
     /** 长按落到大功能分类页：MainActivity 用分类名渲染那一页，而不是某一项的说明页。 */
     private static final String CATEGORY_EXTRA = "category";
     /** 墨控自己的三项开关：点一下就地开关，长按进对应的功能页或大功能分类页。 */
-    private static final String REFRESH = "refresh.master", LOCK = "lock.style", COVER = "wave.lock";
+    private static final String REFRESH = "refresh.master", LOCK = "lock.style", COVER = "wave.lock",
+            PAGEANIM = "pageanim.master";
     /** 「整屏翻页」的原厂设置键（TurnOverPageTile 读写的就是它）。 */
     private static final String TURN_PAGE = "slide_turn_over_page";
     /** 悬浮球（FooView）的显示开关与原厂广播。 */
@@ -338,9 +339,9 @@ public class PanelHook implements IXposedHookLoadPackage {
         String id = feature(action);
         if (id == null) return;
         hidePanel(window);
-        // 「自动刷新」「遮挡息屏」各是一整组开关，长按要落到大功能那一页，别停在总开关 /
-        // 遮挡息屏这一项的说明页。分类名取功能目录的 group，和首页卡片用的是同一份名字。
-        if ("refresh".equals(action) || "cover".equals(action)) {
+        // 「自动刷新」「遮挡息屏」「翻页动画」各是一整组开关，长按要落到大功能那一页，别停在
+        // 总开关 / 遮挡息屏这一项的说明页。分类名取功能目录的 group，和首页卡片用的是同一份名字。
+        if ("refresh".equals(action) || "cover".equals(action) || "pageanim".equals(action)) {
             start(context, new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(id).group));
             return;
         }
@@ -353,6 +354,7 @@ public class PanelHook implements IXposedHookLoadPackage {
         if ("refresh".equals(action)) return REFRESH;
         if ("lock".equals(action)) return LOCK;
         if ("cover".equals(action)) return COVER;
+        if ("pageanim".equals(action)) return PAGEANIM;
         return null;
     }
 
@@ -371,10 +373,23 @@ public class PanelHook implements IXposedHookLoadPackage {
             try {
                 Bundle input = new Bundle();
                 input.putString("feature", id);
+                input.putBoolean("enabled", on);
                 context.getContentResolver().call(STATE, "toggle", null, input);
             } catch (Throwable error) {
-                XposedBridge.log(TAG + "toggle " + id + " failed: " + error);
-                MAIN.post(() -> toast(context, name + "切换失败"));
+                // 墨控被「强制停止」后，这台机器会禁止 SystemUI 通过 provider 把应用进程
+                // 拉起来（Unknown authority / ... it's restricted）。显式 startActivity 不受
+                // 这条限制：启动一个透明页把同一条 toggle 交给应用自己完成，不打断当前界面。
+                XposedBridge.log(TAG + "toggle " + id + " provider unavailable: " + error);
+                Intent fallback = new Intent();
+                fallback.setComponent(new ComponentName("com.inkcontrol", "com.inkcontrol.ui.PanelToggleActivity"));
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                fallback.putExtra("feature", id);
+                fallback.putExtra("enabled", on);
+                try { context.startActivity(fallback); }
+                catch (Throwable second) {
+                    XposedBridge.log(TAG + "toggle " + id + " fallback failed: " + second);
+                    MAIN.post(() -> toast(context, name + "切换失败"));
+                }
             }
         }, "inkcontrol-toggle").start();
     }
@@ -547,6 +562,8 @@ public class PanelHook implements IXposedHookLoadPackage {
         if ("refresh".equals(action)) return "ic_menu_refresh";
         if ("lock".equals(action)) return "ic_lock_24dp";
         if ("cover".equals(action)) return "ic_qs_eyeprotection";
+        // 翻页动画沿用「整屏翻页」那个折角纸页图标：系统界面里没有更贴切的现成资源。
+        if ("pageanim".equals(action)) return "ic_qs_turn_over_page";
         if ("quick".equals(action)) return "ink_launch_pad_settings";
         return "";
     }
