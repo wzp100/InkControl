@@ -64,6 +64,8 @@ public final class MainActivity extends Activity {
     /** 正在提交的单项更改；执行期间按目标值显示，结束后以新快照为准。 */
     private String pendingId = "", pendingValue = "";
     private boolean pendingEnabled;
+    /** 「显示信息修改」在紧凑页里是展开式多选，记着这一行是展开还是收起。 */
+    private boolean lockExtOpen;
     /** 详情页里正在预览、尚未使用的选项；空表示与当前设置相同。 */
     private String preview = "";
     /** 字体页的完整列表、过滤词与渲染控件：搜索框只过滤显示，不重新扫描目录。 */
@@ -338,7 +340,8 @@ public final class MainActivity extends Activity {
             title = category;
             // 「快捷设置」是面板按钮进来的自造页，不在 Guide 分类表里，别在这里取 intro 抛空指针。
             Guide.Category known = Guide.CATEGORIES.get(category);
-            subtitle = known != null ? known.intro : "遮挡息屏、锁屏自定义与自动刷新的常用开关。";
+            subtitle = known != null ? known.intro
+                    : "遮挡息屏、锁屏自定义与自动刷新的常用开关。";
             back = category.equals("实验室") ? "模块设置" : "功能";
         }
         else { title = "墨控"; subtitle = ""; }
@@ -427,26 +430,23 @@ public final class MainActivity extends Activity {
         return isFontNode(only) || only.equals("qs.panel") ? only : null;
     }
 
-    /** 标题下方的单行状态：N 已开启 / 总数，待重启与异常仅在非 0 时出现；异常项可点击跳转。 */
+    /** 标题下方的单行状态：只留「待重启 / 异常」，不再统计开启数量。 */
     private View headerStats() {
         if (snapshot == null) return null;
-        int on = 0, pending = 0, faults = 0, total = 0;
+        int pending = 0, faults = 0;
         String firstFault = "";
         for (FeatureDefinition feature : FeatureCatalog.all()) {
-            // 字体与「显示信息修改」都是页内操作，没有开关，不计入「已开启 / 总数」
             if (isPageNode(feature.id)) continue;
-            total++;
             String status = status(feature.id);
-            if (snapshot.config.requested(feature.id)) on++;
             if (status.equals("待重启")) pending++;
             if (status.startsWith("异常")) {
                 faults++;
                 if (firstFault.isEmpty()) firstFault = feature.id;
             }
         }
+        if (pending == 0 && faults == 0) return null;
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.addView(statInline(String.valueOf(on), "已开启 / " + total));
         if (pending > 0) row.addView(statInline(String.valueOf(pending), "待重启"));
         if (faults > 0) {
             View fault = statInline(String.valueOf(faults), "异常");
@@ -562,7 +562,7 @@ public final class MainActivity extends Activity {
     private void switchTab(String next) {
         if (next.equals(tab)) {
             // 再点一次「功能」回到分类首页；「模块设置」回到它的入口页。
-            // 「字体」「快捷面板修改」这类没有中间分类页的大功能是直落功能页的，
+            // 「字体」「快捷面板修改」这类没有中间分类页的大功能是直接落到功能页的，
             // 此时 category 为空、只有 featureId，所以两者都要算「不在首页」。
             if (next.equals(FEATURES) && (!category.isEmpty() || !featureId.isEmpty())) navigate("", "");
             else if (next.equals(MODULE) && !modulePage.isEmpty()) { modulePage = ""; render(); }
@@ -620,26 +620,19 @@ public final class MainActivity extends Activity {
 
         for (Guide.Category c : orderedCategories()) {
             if (c.name.equals("实验室")) continue;   // 实验室入口移到「模块设置」
-            int total = 0, enabled = 0, bad = 0;
+            // 只保留异常提示；开启数量与总数不再统计、也不再展示。
+            int bad = 0;
             for (String[] section : c.sections) for (int i = 1; i < section.length; i++) {
-                if (isPageNode(section[i])) continue;   // 字体、显示信息修改：页内操作，没有开关
-                total++;
-                if (s.config.requested(section[i])) enabled++;
+                if (isPageNode(section[i])) continue;
                 if (status(section[i]).startsWith("异常")) bad++;
             }
-            // 收在子页里的开关（设备状态那四项）也要算进来，否则「锁屏」的已开启数会少四格
-            for (String id : c.nested) {
-                total++;
-                if (s.config.requested(id)) enabled++;
-                if (status(id).startsWith("异常")) bad++;
-            }
+            for (String id : c.nested) if (status(id).startsWith("异常")) bad++;
             // 单入口分类（字体、快捷面板修改）跳过中间那层只有一个条目的列表，点卡片直接进详情页
             String landing = landingFeature(c);
             View.OnClickListener open = v -> {
                 if (landing != null) navigate("", landing); else navigate(c.name, "");
             };
-            body.addView(spaced(total == 0 ? categoryCard(c, -1, -1, 0, open)
-                    : categoryCard(c, enabled, total, bad, open), 12));
+            body.addView(spaced(categoryCard(c, bad, open), 12));
         }
 
         body.addView(spaced(ink.button("检查当前生效状态", Ink.Kind.PRIMARY, v -> perform("检查生效状态", () -> services.inspect(), false)), 28));
@@ -647,25 +640,16 @@ public final class MainActivity extends Activity {
                 () -> perform("关闭全部增强", () -> { services.disableAll(); return "已提交关闭；请完整重启并检查。"; }, true))), 12));
     }
 
-    /**
-     * 分类入口卡：把「(已开启/总数)」并进标题行右侧，省掉单独一行的统计文字，
-     * 让整张卡更矮；分类简介仍单独一行，异常项数跟在统计后面。
-     */
-    private View categoryCard(Guide.Category c, int enabled, int total, int bad, View.OnClickListener click) {
+    /** 分类入口卡：只有分类名、一行简介和异常提示，不再统计「已开启 / 总数」。 */
+    private View categoryCard(Guide.Category c, int bad, View.OnClickListener click) {
         LinearLayout card = new LinearLayout(this);
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(ink.dp(18), ink.dp(16), ink.dp(14), ink.dp(16));
         card.setBackground(ink.pressable(ink.outline(14), ink.box(Ink.PAPER, Ink.INK, 3, 14)));
         LinearLayout content = column();
-        // 标题行：分类名 + 「| (5/10)已开启」小字并排，不再占用额外的一行高度。
         LinearLayout titleRow = new LinearLayout(this);
         titleRow.setGravity(Gravity.CENTER_VERTICAL);
         titleRow.addView(ink.text(c.name, 20, Ink.BOLD));
-        if (total > 0) {
-            TextView count = ink.text("| (" + enabled + "/" + total + ")已开启", 13, enabled > 0 ? Ink.BOLD : Ink.REGULAR);
-            count.setPadding(ink.dp(10), 0, 0, 0);
-            titleRow.addView(count);
-        }
         if (bad > 0) {
             TextView fault = ink.text(bad + " 项异常", 13, Ink.BOLD);
             fault.setPadding(ink.dp(10), 0, 0, 0);
@@ -808,25 +792,129 @@ public final class MainActivity extends Activity {
 
     private void categoryPage(Guide.Category c) {
         if (SYSAPP_CATEGORY.equals(c.name)) { sysAppPage(); return; }
+        compactCategoryPage(c);
+    }
+
+    /**
+     * 全局大功能页：分区标题（带编号）＋ 下拉／单行开关，说明文字全部收进详情页。
+     * 页内操作、名单编辑、带预览或自定义输入的项留一个「名称 ›」入口，不丢功能。
+     */
+    private void compactCategoryPage(Guide.Category c) {
+        int sectionNo = 0;
         for (String[] section : c.sections) {
-            // 分区小标题：原来 14sp 在墨水屏上几乎和正文一样大，层级看不出来。
-            // 放大到 21sp（页面标题是 26sp）并保持加粗，形成「页标题 > 分区 > 功能名(17sp) > 说明(13sp)」的层级。
-            TextView head = ink.text(section[0], 21, Ink.BOLD);
-            head.setPadding(ink.dp(4), ink.dp(22), 0, ink.dp(10));
+            sectionNo++;
+            TextView head = ink.text(String.format(Locale.ROOT, "%02d %s", sectionNo, section[0]), 20, Ink.BOLD);
+            head.setPadding(ink.dp(4), ink.dp(20), 0, ink.dp(10));
             body.addView(head);
             LinearLayout list = new LinearLayout(this);
             list.setOrientation(LinearLayout.VERTICAL);
             list.setBackground(ink.outline(12));
+            int rows = 0;
             for (int i = 1; i < section.length; i++) {
-                if (i > 1) list.addView(ink.rule(1));
-                list.addView(featureRow(FeatureCatalog.get(section[i])));
+                String id = section[i];
+                FeatureDefinition f = FeatureCatalog.get(id);
+                View row = id.equals("lock.ext.edit") ? lockExtBlock()
+                        : compactSpecial(id) ? entryRow(f)
+                        : realValues(f).size() > 1 ? dropdownRow(f, f.title) : smallToggleRow(id);
+                if (rows++ > 0) list.addView(ink.rule(1));
+                list.addView(row);
             }
             body.addView(list);
         }
-        if (c.name.equals("动画") || c.name.equals("锁屏主题")) body.addView(spaced(paragraph("点进每一项可以看到动画演示或效果图。", 13), 16));
         if (c.name.equals("桌面")) body.addView(spaced(ink.button("还原默认设置", Ink.Kind.SECONDARY,
                 v -> confirm("还原默认设置", "只把桌面主题、图标、字体、壁纸和组件恢复到默认，不改动桌面布局与图标位置。",
                         () -> perform("还原桌面设置", () -> { services.restoreGroup("桌面"); return "已提交还原；请回到桌面确认。"; }, true))), 20));
+    }
+
+    /** 这些项有自己的编辑页／预览／名单，紧凑行放不下，给一个入口即可。 */
+    private static boolean compactSpecial(String id) {
+        FeatureDefinition f = FeatureCatalog.get(id);
+        return isPageNode(id) || id.equals("sys.backup") || id.equals("lock.countdown")
+                || id.equals("lock.style") || id.equals("desktop.theme") || id.equals("desktop.icons")
+                || id.equals("desktop.wallpaper") || id.equals("desktop.widget")
+                || id.equals("qs.panel") || id.equals("refresh.apps") || id.equals("experiment.cache")
+                || f.acceptsPanel() || f.acceptsApps()
+                || f.acceptsPath() || f.acceptsFont() || f.acceptsCountdowns() || f.acceptsPackage()
+                || DisplayAlgorithms.algorithmFeature(id);
+    }
+
+    /** 「名称 ›」入口行：点进原详情页，右侧顺带显示当前值。 */
+    private View entryRow(FeatureDefinition f) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ink.dp(14), ink.dp(11), ink.dp(12), ink.dp(11));
+        row.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
+                ink.box(Ink.PAPER, Ink.INK, 2, 12)));
+        row.addView(ink.text(f.title, 16, Ink.MEDIUM), new LinearLayout.LayoutParams(0, -2, 1));
+        if (realValues(f).size() > 1)
+            row.addView(withMargin(ink.text(Guide.optionName(f, snapshot.config.value(f.id)), 13, Ink.REGULAR), 6));
+        row.addView(withMargin(ink.text("›", 24, Ink.REGULAR), 8));
+        row.setOnClickListener(v -> openFeature(f.id));
+        return row;
+    }
+
+    /**
+     * 「显示信息修改」：点标题就地展开四项，每项前面一个方框，勾一项存一项。
+     * 收起时右侧显示「2 / 4」，跟下拉行一样只占一行，不占版面。
+     */
+    private View lockExtBlock() {
+        LinearLayout block = new LinearLayout(this);
+        block.setOrientation(LinearLayout.VERTICAL);
+        int on = 0;
+        for (String id : EXT_ITEMS) if (snapshot.config.requested(id)) on++;
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.setPadding(ink.dp(14), ink.dp(13), ink.dp(12), ink.dp(13));
+        head.addView(ink.text("显示信息修改", 17, Ink.MEDIUM), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(ink.text(on + " / " + EXT_ITEMS.length + (lockExtOpen ? " ▴" : " ▾"), 13, Ink.REGULAR));
+        head.setContentDescription(ink.t("显示信息修改，已选 " + on + " 项" + (lockExtOpen ? "，已展开" : "，点开可勾选")));
+        head.setOnClickListener(v -> { lockExtOpen = !lockExtOpen; render(); });
+        block.addView(head);
+        if (!lockExtOpen) return block;
+        for (String id : EXT_ITEMS) {
+            block.addView(ink.rule(1));
+            block.addView(lockExtItem(FeatureCatalog.get(id)));
+        }
+        block.addView(ink.rule(1));
+        // 逐项说明与「图标版 / 文字版」还在原来那一页，留个入口，别把那条路堵死。
+        TextView more = ink.text("显示方式与说明 ›", 14, Ink.MEDIUM);
+        more.setPadding(ink.dp(26), ink.dp(12), ink.dp(12), ink.dp(12));
+        more.setOnClickListener(v -> openFeature("lock.ext.edit"));
+        block.addView(more);
+        return block;
+    }
+
+    /** 展开后的一行：方框 + 名称，点一下勾选／取消并立即保存。 */
+    private View lockExtItem(FeatureDefinition f) {
+        boolean on = snapshot.config.requested(f.id);
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ink.dp(26), ink.dp(11), ink.dp(12), ink.dp(11));
+        row.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
+                ink.box(Ink.PAPER, Ink.INK, 1.5f, 0)));
+        row.addView(checkBox(on));
+        row.addView(ink.text(f.title, 16, on ? Ink.MEDIUM : Ink.REGULAR), new LinearLayout.LayoutParams(0, -2, 1));
+        row.setContentDescription(ink.t(f.title + (on ? "，已勾选" : "，未勾选")));
+        row.setOnClickListener(v -> {
+            boolean next = !on;
+            String value = snapshot.config.value(f.id);
+            if (!begin(f.id, next, value)) return;
+            perform((next ? "勾选「" : "取消「") + f.title + "」", () -> {
+                change(f.id, next, value);
+                return "已保存「" + f.title + "」：" + (next ? "显示" : "不显示");
+            }, false);
+        });
+        return row;
+    }
+
+    /** 自绘方框：系统 CheckBox 在灰度墨水屏上靠不住，实心就代表已勾选。 */
+    private View checkBox(boolean checked) {
+        View box = new View(this);
+        box.setBackground(checked ? ink.box(Ink.INK, Ink.INK, 2, 3) : ink.box(Ink.PAPER, Ink.INK, 2, 3));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ink.dp(18), ink.dp(18));
+        params.setMargins(0, 0, ink.dp(14), 0);
+        box.setLayoutParams(params);
+        return box;
     }
 
     /**
@@ -847,6 +935,66 @@ public final class MainActivity extends Activity {
         }
         body.addView(spaced(list, 18));
         body.addView(spaced(paragraph("遮挡息屏关闭屏幕后要按电源键唤醒；锁屏主题与自动刷新在锁屏、系统界面里生效。", 13), 12));
+    }
+
+    /** 一行「标签 + 当前值 ▾」：点右侧出单选列表，点标签进原详情页（自定义值、预览都在那里）。 */
+    private View dropdownRow(FeatureDefinition f, String label) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ink.dp(14), ink.dp(13), ink.dp(12), ink.dp(13));
+        TextView title = ink.text(label, 17, Ink.MEDIUM);
+        title.setOnClickListener(v -> openFeature(f.id));
+        row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        String value = snapshot.config.value(f.id);
+        row.addView(ink.chip(Guide.optionName(f, value) + " ▾", false, v -> showOptionDialog(f, label)));
+        return row;
+    }
+
+    /**
+     * 单选列表：当前选中的那一项上下各压一条 2dp 粗线「双下划线包裹」，
+     * 不靠勾选图标或高亮底色（墨水屏上灰度不可靠）。选完即保存，不用预览＋使用两步。
+     */
+    private void showOptionDialog(FeatureDefinition f, String label) {
+        List<String> values = realValues(f);
+        String current = snapshot.config.value(f.id);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(0, ink.dp(6), 0, ink.dp(6));
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(ink.t(label)).setView(list).create();
+        for (String value : values) {
+            boolean selected = value.equals(current);
+            if (selected) list.addView(optionMark());
+            TextView item = ink.text(Guide.optionName(f, value), 17, selected ? Ink.BOLD : Ink.REGULAR);
+            item.setPadding(ink.dp(22), ink.dp(11), ink.dp(22), ink.dp(11));
+            item.setMinHeight(ink.dp(44));
+            item.setGravity(Gravity.CENTER_VERTICAL);
+            item.setOnClickListener(v -> { dialog.dismiss(); use(f, value); });
+            list.addView(item);
+            if (selected) list.addView(optionMark());
+        }
+        dialog.show();
+    }
+
+    /** 选中项上下的那条粗线：2dp 实线，颜色与正文一致。 */
+    private View optionMark() {
+        View line = new View(this);
+        line.setBackgroundColor(Ink.INK);
+        line.setLayoutParams(new LinearLayout.LayoutParams(-1, ink.dp(2)));
+        return line;
+    }
+
+    /** 紧凑开关行：只留名字和 Switch，点名字仍可进原详情页。 */
+    private View smallToggleRow(String id) {
+        FeatureDefinition f = FeatureCatalog.get(id);
+        boolean requested = snapshot.config.requested(id);
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ink.dp(14), ink.dp(10), ink.dp(12), ink.dp(10));
+        TextView title = ink.text(f.title, 16, Ink.MEDIUM);
+        title.setOnClickListener(v -> openFeature(id));
+        row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(toggle(f, requested, requested));
+        return row;
     }
 
     private View featureRow(FeatureDefinition feature) { return featureRow(feature, true); }
@@ -874,7 +1022,7 @@ public final class MainActivity extends Activity {
             int shown = 0;
             for (String id : EXT_ITEMS) if (snapshot.config.enabled(id)) shown++;
             String layout = Guide.optionName(FeatureCatalog.get("lock.ext"), snapshot.config.value("lock.ext"));
-            String meta = shown == 0 ? "四项都不显示" : shown + " / " + EXT_ITEMS.length + " 项 · " + layout;
+            String meta = shown == 0 ? "四项都不显示" : layout;
             return navCard(feature.title, Guide.get(feature.id).summary, meta, shown > 0,
                     feature.title + "，选择显示哪几项", v -> openFeature(feature.id), false);
         }
@@ -917,7 +1065,8 @@ public final class MainActivity extends Activity {
         if (child && shown && links && !s.config.enabled(feature.dependency))
             content.addView(spaced(ink.text("需先开启「" + FeatureCatalog.get(feature.dependency).title + "」", 13, Ink.MEDIUM), 5));
         String value = valueSummary(feature, pending ? pendingValue : s.config.value(feature.id), shown);
-        content.addView(spaced(ink.text(glyph(status) + " " + status + (value.isEmpty() ? "" : " · " + value), 13, strong ? Ink.BOLD : Ink.REGULAR), 7));
+        String state = glyph(status) + " " + status + (value.isEmpty() ? "" : " · " + value);
+        content.addView(spaced(ink.text(state, 13, strong ? Ink.BOLD : Ink.REGULAR), 7));
         row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
 
         CompoundButton toggle = toggle(feature, shown, requested);
@@ -1037,8 +1186,8 @@ public final class MainActivity extends Activity {
             countdownEditor(FeatureCatalog.get("lock.countdowns"), stored);
         }
         // 2c. 字体页自己处理全部内容（目录 / 列表 / 选择器 / 恢复 / 刷新），这里不再插编辑器
-        // 3. 说明
-        if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
+        // 3. 说明：直接给正文，不再套「它做什么」这种没有信息量的小标题
+        if (!g.what.isEmpty()) body.addView(spaced(paragraph(g.what, 15), 20));
         // 4. 演示 / 示意图
         // 锁屏样式的效果大图例外：那一页真正的「选项」是带缩略图的样式列表，
         // 大图放在列表上面会先占一屏、滚过它才看得到能点的项。按用户要求挪到列表之后（见 5b）。
@@ -1097,7 +1246,7 @@ public final class MainActivity extends Activity {
         if (!s.config.enabled("lock.ext")) dependencyHint(state, "lock.ext", "「显示设备状态」没开时这四项都不显示，开关照常保存。");
         body.addView(card(state));
 
-        if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
+        if (!g.what.isEmpty()) body.addView(spaced(paragraph(g.what, 15), 20));
 
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
@@ -1688,6 +1837,7 @@ public final class MainActivity extends Activity {
         return card;
     }
 
+    /** 应用选择器：列出可启动应用，支持搜索与多选，保存为逗号分隔的包名。 */
     /** 应用选择器：列出可启动应用，支持搜索与多选，保存为逗号分隔的包名。 */
     private void appPickerDialog(FeatureDefinition f, boolean requested, String current) {
         LinkedHashMap<String, String> apps = launcherApps();

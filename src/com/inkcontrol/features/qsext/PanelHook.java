@@ -316,6 +316,9 @@ public class PanelHook implements IXposedHookLoadPackage {
             return;
         }
         if (feature(action) != null) {
+            // 锁屏主题不是「点一下就好」的开关：和长按一样直接进「锁屏自定义」那一页挑样式，
+            // 免得在面板上误触就把整套锁屏关掉。另两项（自动刷新、遮挡息屏）仍就地开关。
+            if ("lock".equals(action)) { longPress(context, window, action); return; }
             toggle(context, window, action);
             return;
         }

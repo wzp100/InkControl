@@ -103,14 +103,12 @@ final class Guide {
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
                 {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
                 {"应用名单", "refresh.apps"}});
-        cat("字体", "把系统字体换成目录里的任意 TTF/OTF，点「应用」立刻全局生效，不用重启。", new String[][]{
+        cat("字体", "把系统字体换成目录里的任意 TTF/OTF。", new String[][]{
                 {"字体", "font.dir"}});
         cat("体感", "实现类似盒盖息屏、翻盖亮屏的功能，调用的是距离传感器，需要无障碍服务支持。", new String[][]{
                 {"行为", "wave.lock", "wave.coverDelay", "wave.wake"}});
         cat("桌面", "原厂桌面的主题、图标、壁纸与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.wallpaper", "desktop.widget"}});
-        // 这一页是独立界面（不走功能开关列表），sections 留空；渲染由 MainActivity 特判。
-        cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可还原；系统分区文件保留。常驻组件不在此列。", new String[][]{});
         cat("系统增强", "修复原厂服务的几个问题，放开快捷磁贴、导航栏与密码框的限制。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions", "fix.safeime"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"},
@@ -119,6 +117,9 @@ final class Guide {
                 {"按钮", "qs.panel"}},
                 new String[]{"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4",
                         "qs.panel.close", "qs.panel.pinsize"});
+        // 独立界面（不走功能开关列表），sections 留空；渲染由 MainActivity 特判。
+        // 放默认顺序最后：首页里它是唯一会动系统应用的入口，不该夹在常用分类中间。
+        cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可还原；系统分区文件保留。常驻组件不在此列。", new String[][]{});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
     }
     private static void cat(String name, String intro, String[][] sections) {

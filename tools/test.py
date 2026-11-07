@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jdk', default=os.environ.get('JAVA_HOME'))
+    parser.add_argument('--fast', action='store_true',
+                        help='只跑 Java 侧检查与目录导出，跳过 unittest discover（Windows 上约 5 分钟）')
     args = parser.parse_args()
     if not args.jdk: raise ValueError('请设置 JAVA_HOME 或 --jdk')
     out = ROOT/'out'/('tests-'+datetime.now().strftime('%Y%m%d-%H%M%S'))
@@ -36,7 +38,10 @@ def main():
         *[p for p in sorted((ROOT/'test').rglob('*.java')) if 'runtime' not in p.parts and 'android' not in p.parts])
     for test in ('CoreTest','GeometryTest','com.inkcontrol.features.fix.PolicyTrackerTest','com.inkcontrol.features.fix.HookIntegrationTest','com.inkcontrol.platform.RuntimeStatusTest','GuideTest','TextCatalogTest'): run(java, '-cp', host, test)
     run(java, '-cp', host, 'CatalogExport', schema)
-    run(sys.executable, '-m', 'unittest', 'discover', '-s', 'test', '-p', 'test_*.py', '-v')
-    print('全部电脑端测试通过：'+str(out/'results.json'))
+    # 慢的是 Python 的 test_gpu_diagnostics：每例都起 6 个 bash 替身进程并等 12–30s 超时，
+    # Windows 上整套近 5 分钟。日常改前端/文案用 --fast 只跑 Java 侧，发版前再跑全量。
+    if not args.fast:
+        run(sys.executable, '-m', 'unittest', 'discover', '-s', 'test', '-p', 'test_*.py', '-v')
+    print(('快速检查' if args.fast else '全部电脑端测试') + '通过：'+str(out/'results.json'))
 
 if __name__ == '__main__': main()
