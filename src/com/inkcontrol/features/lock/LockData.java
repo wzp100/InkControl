@@ -250,6 +250,10 @@ final class LockData {
 
     /** 原版格言（含用户自定义格言），和原版锁屏每次出图取一次的行为一致 */
     private static String motto(Context c, Object controller) {
+        // 应用里点过「换一条格言」时先用那一条：原厂 setMotto 读的是它自己记的序号，
+        // 不一定立刻反映上来，这里兜 10 分钟，够用户锁一次屏看到。
+        String pending = Hook.pendingMotto();
+        if (pending != null) return pending;
         try {
             Object helper = Reflect.get(Reflect.get(controller, "mVMUtil"), "mMottoHelper");
             if (helper != null) {

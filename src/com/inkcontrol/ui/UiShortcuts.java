@@ -14,6 +14,7 @@ import android.util.Log;
 
 import com.inkcontrol.core.FeatureCatalog;
 import com.inkcontrol.core.FeatureDefinition;
+import com.inkcontrol.features.lock.MottoCommand;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +24,7 @@ import java.util.List;
 /**
  * 长按桌面图标弹出的快捷方式。
  *
- * <p>纯界面偏好：不进功能配置、不参与后端校验，因此和「大功能排序」一样放在 SharedPreferences 里。
+ * <p>纯界面偏好：不进功能配置、不参与后端校验，因此和「功能列表排序」一样放在 SharedPreferences 里。
  * 存的是功能 id 的有序列表（逗号连接），空表示还没配置过，按 {@link #DEFAULTS} 处理。
  *
  * <p>每一项注册成一条独立的动态快捷方式（{@code setDynamicShortcuts}），桌面长按后直接列出来，
@@ -36,6 +37,11 @@ public final class UiShortcuts {
     static final int MAX = 4;
     /** 还没配置过时给的四个：遮挡息屏、自定义锁屏、自动刷新、字体。 */
     static final String[] DEFAULTS = {"wave.lock", "lock.style", "refresh.master", "font.dir"};
+    /**
+     * 「刷新格言」不是功能页，是一个就地动作：点快捷方式就让原厂格言往前跳一条。
+     * 它没有 {@code FeatureDefinition}，凡是要查功能目录的地方都得先判这个 id。
+     */
+    static final String MOTTO = "motto.refresh";
     /** 快捷方式点击时的 action，保证和其它入口（LAUNCHER）区分开。 */
     public static final String ACTION = "com.inkcontrol.SHORTCUT";
     /** 传功能 id 的 extra。 */
@@ -44,7 +50,7 @@ public final class UiShortcuts {
      * 结构版本。改了「桌面挂几条」这种结构就加一，否则 applied 里记的签名和以前一样，
      * 升级后不会重写，桌面还停在旧的那几项上。
      */
-    private static final String ENTRY_REVISION = "3";
+    private static final String ENTRY_REVISION = "4";
     private static final String TAG = "InkControl-Shortcut";
 
     /**
@@ -97,6 +103,7 @@ public final class UiShortcuts {
 
     /** 某个功能能不能当快捷方式：必须是一个真实的功能项（不是纯页面）。 */
     static boolean valid(String id) {
+        if (MOTTO.equals(id)) return true;
         try {
             FeatureDefinition definition = FeatureCatalog.get(Guide.destination(id));
             return !definition.acceptsPanel();
@@ -132,21 +139,31 @@ public final class UiShortcuts {
         List<ShortcutInfo> infos = new ArrayList<>(ids.size());
         for (int index = 0; index < ids.size(); index++) {
             String id = ids.get(index);
-            FeatureDefinition feature;
-            try { feature = FeatureCatalog.get(Guide.destination(id)); }
-            catch (RuntimeException unknown) { continue; }
-            String name = shortName(feature);
+            // 「刷新格言」不是功能页，没有 FeatureDefinition：标签和长标签在这里定死。
+            boolean motto = MOTTO.equals(id);
+            FeatureDefinition feature = null;
+            if (!motto) {
+                try { feature = FeatureCatalog.get(Guide.destination(id)); }
+                catch (RuntimeException unknown) { continue; }
+            }
+            String name = motto ? "格言" : shortName(feature);
+            // 「刷新格言」是就地动作，不落任何页面：戳透明的 MottoActivity 发完广播就结束，
+            // 不会像以前那样把墨控主界面一起拉起来。
+            // ShortcutInfo 要求 intent 必须带 action（`setIntent` 会直接抛 IllegalArgumentException），
+            // 所以透明页那条也套上对外 action，顺带让 dumpsys shortcut 里能一眼认出来。
+            Intent intent = motto ? new Intent(MottoCommand.ACTION).setClass(context, MottoActivity.class)
+                    : new Intent(ACTION)
+                    .setClass(context, MainActivity.class)
+                    .putExtra(EXTRA, id)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             infos.add(new ShortcutInfo.Builder(context, "feature:" + id)
                     .setShortLabel(name)
-                    .setLongLabel(feature.title)
+                    .setLongLabel(motto ? "刷新锁屏格言" : feature.title)
                     // 桌面按 rank 排序，但这套桌面是倒着排的（实测 rank 0 落到最下面），
                     // 所以把序号反过来给，界面里看到的顺序才和配置顺序一致。
                     .setRank(MAX - 1 - index)
                     .setIcon(Icon.createWithBitmap(bitmap(name)))
-                    .setIntent(new Intent(ACTION)
-                            .setClass(context, MainActivity.class)
-                            .putExtra(EXTRA, id)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP))
+                    .setIntent(intent)
                     .build());
         }
         if (infos.isEmpty()) return false;

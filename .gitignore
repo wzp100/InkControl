@@ -1,6 +1,5 @@
 /out/
 /results/
-/inputs/
 /signing/
 /private-inputs/
 /.ci-secrets/
@@ -35,3 +34,8 @@ local.properties
 /docs/20*.md
 /docs/evidence/
 /docs/local-history/
+
+# inputs/ 是构建输入（原厂与社区派生的 HWC / 常驻二进制），允许入库；
+# 权利仍归原权利人，见 NOTICE.md。
+!/inputs/
+!/inputs/**

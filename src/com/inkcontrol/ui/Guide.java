@@ -87,7 +87,7 @@ final class Guide {
                 {"原厂四模式 · 算法", "display.alg.clear", "display.alg.reading", "display.alg.fast", "display.alg.extreme"},
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
-        cat("锁屏主题", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
+        cat("锁屏显示", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词与格言相关设置。", new String[][]{
                 {"样式", "lock.style", "lock.weather"},
                 {"拓展显示", "lock.notify", "lock.ext", "lock.ext.edit"},
                 {"倒数日", "lock.countdown"},
@@ -98,7 +98,7 @@ final class Guide {
                 {"总开关", "pageanim.master"},
                 {"翻页风格", "pageanim.style", "pageanim.spacing"},
                 {"画面细分", "pageanim.bands"},
-                {"翻页操作", "pageanim.touch", "pageanim.keys", "pageanim.reverse", "pageanim.debounce"},
+                {"翻页操作", "pageanim.touch", "pageanim.keys", "pageanim.vkey", "pageanim.reverse", "pageanim.debounce"},
                 {"目标阅读器", "pageanim.readers"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
@@ -280,12 +280,14 @@ final class Guide {
                 .option("16", "16 块", "较细。")
                 .option("24", "24 块", "很细。")
                 .option("32", "32 块", "最细，接近连续展开。");
-        put("pageanim.reverse").summary("把展开方向掉个头").what("例如横向展开默认从左到右，开启后改为从右到左；分块类风格按各自的对称方向反转。")
+        put("pageanim.reverse").summary("把展开方向掉个头").what("翻页方向默认跟手势走：左滑或点右半屏＝翻下一页，右滑或点左半屏＝翻上一页。开启这一项会把自动判断的结果反过来。")
                 .option("default", "反转方向", "");
-        put("pageanim.touch").summary("点击与左右滑动当作翻页").what("由常驻端读取触摸事件：点击屏幕左右侧、或横向滑动时触发翻页动画。只在独立库模式（未开 GPU 显示后端）生效；融合模式下没有常驻端读触摸，触发范围由「目标阅读器」名单决定。")
+        put("pageanim.touch").summary("点击与左右滑动当作翻页").what("由常驻端读取触摸事件：点击屏幕左右侧、或横向滑动时触发翻页动画。独立库模式下由它决定是否翻页；融合模式不需要它触发（触发范围看「目标阅读器」名单），但滑动与点边的方向判断照旧生效。")
                 .option("default", "点击与横向滑动翻页", "");
         put("pageanim.keys").summary("音量键当作翻页键").what("按实体音量上/下键时按翻页处理，适合单手翻页。只在独立库模式生效，融合模式不使用这一项。")
                 .option("default", "实体音量键翻页", "");
+        put("pageanim.vkey").summary("音量键翻页按习惯定方向").what("音量键没有「点在哪一边」的信息，方向只能按习惯给：音量+＝上一页、音量-＝下一页。关闭后按键翻页沿用上一次点击或滑动的方向——比如刚在右侧点过，按音量+ 时动画也从右往左，和习惯相反。")
+                .option("default", "遵从翻页直觉", "");
         put("pageanim.debounce").summary("连续翻页太快时跳过新动画").what("两次翻页间隔小于这个值时，后一次直接按原厂方式切页，不再叠加动画，避免动画互相打断。只在独立库模式生效。")
                 .option("100", "100 毫秒", "几乎不限制。")
                 .option("250", "250 毫秒", "原模块默认值。")
@@ -432,7 +434,8 @@ final class Guide {
                 .before("不开启时：黑底白键。").after("开启后：白底黑键；锁屏与通话界面维持原厂配色。")
                 .cost("只改系统界面自己画的那一条；全屏应用自己隐藏导航栏时不受影响。切换开关立即生效，不用重启系统界面。")
                 .option("default", "白底黑键", "").term("三大金刚键", "系统界面");
-        put("qs.panel").summary("在刷新面板底部补上自己的按钮").what("这台设备的刷新面板底部原厂只有一个「截屏便签」，那片位置一直空着。开启后按下面的顺序摆四个按钮，动作跟控制中心那排磁贴一样（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、免打扰、省电模式、悬浮球），再加上墨控的自动刷新、锁屏主题、遮挡息屏、翻页动画与原厂截屏便签；面板高度不变。")
+        // 说明文字按需求整段去掉：这一页自身就是编辑器，按钮顺序与两个开关一眼能看懂。
+        put("qs.panel").summary("在刷新面板底部补上自己的按钮").what("")
                 .option("default", "加入按钮", "");
         put("qs.panel.close").summary("点完按钮就收起面板").what("面板盖住屏幕下半部分，点完不收会一直挡着后面的界面；开启后点完就收，回到刚才那一屏。")
                 .option("default", "点完收起", "");
@@ -441,7 +444,10 @@ final class Guide {
         for (int slot = 1; slot <= 4; slot++) {
             Entry entry = put("qs.panel.btn" + slot)
                     .summary("第 " + slot + " 个按钮做什么")
-                    .what("面板底部从左数第 " + slot + " 个按钮的动作。四个位置共用这套动作，换位置就是换顺序。");
+                    .what("面板底部从左数第 " + slot + " 个按钮的动作。四个位置共用这套动作，换位置就是换顺序。"
+                            + "墨控自己的几项（自动刷新、遮挡息屏、翻页动画、全刷扫过）点一下就地开关，长按跳到对应的设置页；"
+                            + "锁屏主题点一下等同于长按，直接去挑样式，免得误触把整套锁屏关掉；"
+                            + "刷新格言点一下就让锁屏格言换下一条，长按跳到「锁屏显示」页。");
             for (String[] action : com.inkcontrol.core.FeatureCatalog.PANEL_ACTIONS) entry.option(action[0], action[1], "");
             entry.option(com.inkcontrol.core.FeatureCatalog.PANEL_NONE, "无", "这个位置不显示按钮，后面的往前挪")
                     .option(com.inkcontrol.core.FeatureDefinition.PACKAGE_TOKEN, "某个应用", "从已安装应用里挑一个，点它直接打开");

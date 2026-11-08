@@ -12,9 +12,16 @@ final class UiCategoryOrder {
     private static SharedPreferences preferences(Context context) {
         return context.createDeviceProtectedStorageContext().getSharedPreferences("ui-category-order", Context.MODE_PRIVATE);
     }
-    /** 保存的顺序；空串表示默认顺序。 */
+    /** 保存的顺序；空串表示默认顺序。旧版本存过「锁屏主题」，读的时候顺手换成新名字。 */
     static String saved(Context context) {
-        return preferences(context).getString("order", "");
+        String value = preferences(context).getString("order", "");
+        // 分类改过名（锁屏主题 → 锁屏显示）：不换掉的话这一项会被当成未知分类丢掉，
+        // 用户的排序就白存了。
+        if (value.contains("锁屏主题")) {
+            value = value.replace("锁屏主题", "锁屏显示");
+            save(context, value);
+        }
+        return value;
     }
     static void save(Context context, String value) {
         preferences(context).edit().putString("order", value).commit();

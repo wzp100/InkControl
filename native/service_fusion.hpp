@@ -23,7 +23,10 @@
 //   debug.inkcontrol.fusion.observe  1 时每 64 帧采样打印 ctl 字段
 //   debug.inkcontrol.fusion.plan     1 时逐帧打印条带相位
 //   debug.inkcontrol.fusion.bands    4..32，默认 4
-//   debug.inkcontrol.fusion.reverse  1 = 从下往上揭示
+//   debug.inkcontrol.fusion.reverse  1 = 反向揭示（横向展开时从右向左，纵向展开时从下向上）
+//   debug.inkcontrol.fusion.flip     "1 <uptime_ms>"：system_server 判定这次是「翻下一页」
+//                                    （左滑/点右半屏），与 reverse 异或后决定方向；
+//                                    4 秒后自动过期（按正向处理）
 //   debug.inkcontrol.fusion.spacing  展开速度，映射成额外的错峰帧数（bandTail）
 #ifndef INKCONTROL_SERVICE_FUSION_HPP
 #define INKCONTROL_SERVICE_FUSION_HPP
@@ -33,6 +36,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <time.h>
 #include <sys/system_properties.h>
 
 namespace einkfusion {
@@ -57,6 +61,13 @@ template<class T> inline T field(void* p, int off) {
     T v{};
     std::memcpy(&v, static_cast<const unsigned char*>(p) + off, sizeof(T));
     return v;
+}
+/** CLOCK_MONOTONIC 毫秒，与 system_server 的 SystemClock.uptimeMillis 同源。 */
+inline unsigned long long uptimeMs() {
+    struct timespec ts{};
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return static_cast<unsigned long long>(ts.tv_sec) * 1000ull
+        + static_cast<unsigned long long>(ts.tv_nsec / 1000000);
 }
 
 struct Frame {
@@ -142,7 +153,7 @@ inline bool probe(void* entry, void* ctl, uintptr_t base) {
 
 struct Drive {
     bool enabled = false;
-    uint32_t direction = 1;   // 1 = 上→下，2 = 下→上
+    uint32_t direction = 1;   // 1 = 沿 coord 正向（横向展开＝从左向右），2 = 反向（从右向左）
     uint32_t frames = 2;      // 兼容 validWave 的 bandFrames < activeFrames 约束
     uint32_t rows = 48;       // 每带行数：720 / pageanim.bands
     uint32_t tail = 0;        // 为错峰额外延长的总帧数（总帧数 = active + tail + 1）
@@ -161,7 +172,15 @@ inline Drive drive(int activeFrames, void* ctl) {
     if (activeFrames <= 1) return d;
     char reverse[PROP_VALUE_MAX] = {};
     __system_property_get("debug.inkcontrol.fusion.reverse", reverse);
-    d.direction = reverse[0] == '1' ? 2u : 1u;
+    // 手势方向：system_server 在抬手时写 "1 <uptime_ms>" 表示「翻上一页」。
+    // 过期（>4 秒）就按正向处理，避免翻页菜单、滚动之类的手势沿用旧方向。
+    char flip[PROP_VALUE_MAX] = {};
+    __system_property_get("debug.inkcontrol.fusion.flip", flip);
+    int flipValue = 0;
+    unsigned long long flipAt = 0;
+    bool flipped = std::sscanf(flip, "%d %llu", &flipValue, &flipAt) == 2 && flipValue == 1
+        && uptimeMs() - flipAt < 4000ull && uptimeMs() >= flipAt;
+    d.direction = ((reverse[0] == '1') != flipped) ? 2u : 1u;
     // 每条带一旦启动必须一直驱动到波形结束：着色器在 !drive 时直接输出 templ
     // （控制模板里的旧像素），bandFrames 太短会让末帧残留大量未驱动区域。
     // 刷新键的面板级 clear ghosting 不产生新合成帧，会把这个中间态重刷定格成黑屏。

@@ -80,9 +80,11 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static final String QUICK_EXTRA = "quick";
     /** 长按落到大功能分类页：MainActivity 用分类名渲染那一页，而不是某一项的说明页。 */
     private static final String CATEGORY_EXTRA = "category";
+    /** 落到某个大功能页之后还要滚到哪一项（面板长按「全刷扫过」用）。 */
+    private static final String FOCUS_EXTRA = "focus";
     /** 墨控自己的三项开关：点一下就地开关，长按进对应的功能页或大功能分类页。 */
     private static final String REFRESH = "refresh.master", LOCK = "lock.style", COVER = "wave.lock",
-            PAGEANIM = "pageanim.master";
+            PAGEANIM = "pageanim.master", GCSWEEP = "motion.gc_clear";
     /** 「整屏翻页」的原厂设置键（TurnOverPageTile 读写的就是它）。 */
     private static final String TURN_PAGE = "slide_turn_over_page";
     /** 悬浮球（FooView）的显示开关与原厂广播。 */
@@ -336,25 +338,36 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static void longPress(Context context, Object window, String action) {
         if ("wifi".equals(action)) { hidePanel(window); openSettings(context, Settings.ACTION_WIFI_SETTINGS); return; }
         if ("bt".equals(action)) { hidePanel(window); openSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS); return; }
+        // 刷新格言没有对应功能项，长按直接落到「锁屏显示」那一页（格言徽标就在那儿）。
+        if ("motto".equals(action)) {
+            hidePanel(window);
+            start(context, new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(LOCK).group));
+            return;
+        }
         String id = feature(action);
         if (id == null) return;
         hidePanel(window);
-        // 「自动刷新」「遮挡息屏」「翻页动画」各是一整组开关，长按要落到大功能那一页，别停在
+        // 「自动刷新」「遮挡息屏」「翻页动画」「全刷扫过」各是一整组开关，长按要落到大功能那一页，别停在
         // 总开关 / 遮挡息屏这一项的说明页。分类名取功能目录的 group，和首页卡片用的是同一份名字。
-        if ("refresh".equals(action) || "cover".equals(action) || "pageanim".equals(action)) {
-            start(context, new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(id).group));
+        if ("refresh".equals(action) || "cover".equals(action) || "pageanim".equals(action)
+                || "gcsweep".equals(action)) {
+            // 全刷扫过是「动画」里的一个小节：多带一个 focus，落到那一页后滚到它所在的分组。
+            Intent intent = new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(id).group);
+            if ("gcsweep".equals(action)) intent.putExtra(FOCUS_EXTRA, GCSWEEP);
+            start(context, intent);
             return;
         }
         // 锁屏主题的详情就是样式选择器，仍走桌面快捷方式那条通道直达那一页。
         start(context, new Intent(UiShortcuts.ACTION).putExtra(UiShortcuts.EXTRA, id));
     }
 
-    /** 墨控自己的三项开关对应的功能 id；不是这三项返回 null。 */
+    /** 墨控自己的开关对应的功能 id；不是这几项返回 null。 */
     private static String feature(String action) {
         if ("refresh".equals(action)) return REFRESH;
         if ("lock".equals(action)) return LOCK;
         if ("cover".equals(action)) return COVER;
         if ("pageanim".equals(action)) return PAGEANIM;
+        if ("gcsweep".equals(action)) return GCSWEEP;
         return null;
     }
 
@@ -397,6 +410,13 @@ public class PanelHook implements IXposedHookLoadPackage {
     /** 各动作都照原厂磁贴的同一套调用做：同一个进程、同样的权限，行为与下拉面板一致。 */
     private static String run(Context context, String action) {
         try {
+            // 刷新格言不是开关：让原厂格言往前跳一条。接收方就在本进程（SystemUI 的锁屏 Hook），
+            // 它会自己提示换到了哪一条，这里不再重复提示。
+            if ("motto".equals(action)) {
+                context.sendBroadcast(new Intent(com.inkcontrol.features.lock.Hook.ACTION_MOTTO_NEXT)
+                        .setPackage("com.android.systemui"));
+                return null;
+            }
             if ("wifi".equals(action)) return toggleWifi(context);
             if ("bt".equals(action)) return toggleBluetooth(context);
             if ("ring".equals(action)) return toggleRing(context);
@@ -564,6 +584,10 @@ public class PanelHook implements IXposedHookLoadPackage {
         if ("cover".equals(action)) return "ic_qs_eyeprotection";
         // 翻页动画沿用「整屏翻页」那个折角纸页图标：系统界面里没有更贴切的现成资源。
         if ("pageanim".equals(action)) return "ic_qs_turn_over_page";
+        // 全刷扫过是「整屏闪一下去残影」，和自动刷新共用刷新图标。
+        if ("gcsweep".equals(action)) return "ic_menu_refresh";
+        // 刷新格言也是「换一下再看」，沿用同一个刷新图标。
+        if ("motto".equals(action)) return "ic_menu_refresh";
         if ("quick".equals(action)) return "ink_launch_pad_settings";
         return "";
     }
