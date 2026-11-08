@@ -398,6 +398,15 @@ public final class CoreTest {
         Integrity.verifySha256(new java.io.ByteArrayInputStream(new byte[]{97,98,99}), sha); checks++;
         reject(() -> Integrity.verifySha256(new java.io.ByteArrayInputStream(new byte[]{97,98,100}), sha));
         reject(() -> Integrity.verifySha256(new java.io.ByteArrayInputStream(new byte[0]), "invalid"));
+        // 「检测更新」按版本号比大小，不是比字符串：线上停在旧版时不能报成新版本。
+        check(Versions.compare("0.2.6-r26", "0.2.5-r23") > 0);
+        check(Versions.compare("0.2.5-r23", "0.2.6-r26") < 0);
+        check(Versions.compare("0.2.6-r26", "v0.2.6-r26") == 0);
+        check(Versions.compare("0.2.6", "0.2.6-r0") == 0);
+        check(Versions.compare("0.3.0-r1", "0.2.9-r99") > 0);
+        check(Versions.compare("1.0.0-r26", "0.99.99-r999") > 0);
+        check(Versions.compare("0.2.6-r27", "0.2.6-r26") > 0);
+        check(Versions.compare("", "0.0.0") == 0);
         System.out.println("core checks passed: " + checks);
     }
 }

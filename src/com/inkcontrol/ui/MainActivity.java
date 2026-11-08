@@ -62,11 +62,13 @@ public final class MainActivity extends Activity {
     private static final String README_URL = REPO + "/blob/main/README.md";
     private static final String LATEST_API = "https://api.github.com/repos/liuqianhe/InkControl/releases/latest";
     private static final String AUTHOR_URL = "https://github.com/liuqianhe";
-    private static final String CONTRIBUTORS = REPO + "/graphs/contributors";
     private static final String UPSTREAM_REPO = "https://github.com/wzp100/InkControl";
-    private static final String UPSTREAM_AUTHOR = "https://github.com/wzp100";
     private static final String COMMUNITY_NUKU = "http://www.coolapk.com/u/21150263";
     private static final String REFRESH_REFERENCE = "https://github.com/ChenXu178/Hisense-E-Ink-auto-refresh";
+    /** 上面那个项目的分支，墨控的自动刷新按它改。 */
+    private static final String REFRESH_FORK = "https://github.com/liuqianhe/Hisense-E-Ink-auto-refreshs";
+    /** 体感（遮挡息屏 / 移开唤醒）参考的 wave-up。 */
+    private static final String WAVEUP_REFERENCE = "https://gitlab.com/juanitobananas/wave-up";
     /**
      * 三个作用域一个回执都没有＝框架根本没把墨控注入任何进程。这时功能页只会顶着一句
      * 「等待运行确认」，看起来像功能写坏了，所以要在状态旁边直说原因。
@@ -2735,18 +2737,18 @@ public final class MainActivity extends Activity {
         body.addView(spaced(card(column(paragraph(
                 "海信 A5 Pro 经典版（HLTE203T / Android 10）的墨水屏增强模块。全部增强默认关闭，按需开启。", 14))), 12));
 
-        // 作者、来源、上游与参考项目合成一张卡；nuku 不再单列「社区」，
-        // README 由上面的「文档」按钮直达，不再重复放一条「项目说明」。
+        // 作者、上游与参考项目分开两张卡：作者卡只留自述与来源，
+        // 参考项目单独一张，免得和「谁做的」混在一起。
+        // 「版本发布」不再放这里：最下面的「查看更新」里已有「打开发布页」。
         body.addView(aboutSection("作者与来源",
                 linkRow("liuqianhe", "作者 / 维护者 · GitHub 主页", AUTHOR_URL),
-                linkRow("贡献者", "查看本仓库的全部贡献者", CONTRIBUTORS),
-                linkRow("项目仓库", "源码与文档", REPO),
-                linkRow("版本发布", "下载签名 APK 与后端模块", RELEASES),
-                linkRow("问题反馈", "提交问题与建议", REPO + "/issues"),
-                linkRow("wzp100", "上游项目原作者 · GitHub 主页", UPSTREAM_AUTHOR),
-                linkRow("wzp100/InkControl", "上游仓库，本项目的起点", UPSTREAM_REPO),
-                linkRow("nuku", "翻页动画作者 · 酷安主页；社区作品经同意整合", COMMUNITY_NUKU),
-                linkRow("Hisense-E-Ink-auto-refresh", "自动刷新能力的参考项目", REFRESH_REFERENCE)));
+                linkRow("wzp100/InkControl", "上游仓库", UPSTREAM_REPO),
+                linkRow("nuku", "翻页动画作者 · 酷安主页", COMMUNITY_NUKU)));
+
+        body.addView(aboutSection("参考项目",
+                linkRow("ChenXu178/Hisense-E-Ink-auto-refresh", "自动刷新能力的参考项目", REFRESH_REFERENCE),
+                linkRow("liuqianhe/Hisense-E-Ink-auto-refreshs", "该项目的分支", REFRESH_FORK),
+                linkRow("wave-up", "体感相关的参考项目", WAVEUP_REFERENCE)));
 
         LinearLayout update = column(ink.text("查看更新", 16, Ink.BOLD));
         update.addView(spaced(paragraph("当前版本 v" + BuildInfo.VERSION
@@ -2801,11 +2803,16 @@ public final class MainActivity extends Activity {
                     String page = release.optString("html_url", RELEASES);
                     String latest = tag.startsWith("v") ? tag.substring(1) : tag;
                     if (latest.isEmpty()) throw new java.io.IOException("发布页没有版本标签");
-                    if (latest.equals(BuildInfo.VERSION)) {
+                    // 只按版本号比大小：线上可能还停在旧版本（本机是提前构建的），
+                    // 单纯判断「相等/不等」会把旧发布报成新版本。
+                    int newer = com.inkcontrol.core.Versions.compare(latest, BuildInfo.VERSION);
+                    if (newer == 0) {
                         result = "已是最新版本 v" + BuildInfo.VERSION;
-                    } else {
+                    } else if (newer > 0) {
                         result = "发现新版本 v" + latest + "（当前 v" + BuildInfo.VERSION + "），点这里打开发布页";
                         link = page;
+                    } else {
+                        result = "本机 v" + BuildInfo.VERSION + " 比线上发布的 v" + latest + " 更新（未发布或本地构建）";
                     }
                 } finally { connection.disconnect(); }
             } catch (Exception failure) {
