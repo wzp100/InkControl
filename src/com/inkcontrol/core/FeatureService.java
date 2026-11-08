@@ -60,6 +60,8 @@ public final class FeatureService {
         return wanted ? "等待运行确认" : evidence != null && evidence.enabled ? "等待停用确认" : "关闭";
     }
     public static boolean needsWaveBackend(String id, String value) {
+        // 「无」等于原厂瞬间切换，不需要 GPU 波形管线，也不该因 GPU 关闭被判「依赖未满足」。
+        if ("none".equals(value)) return false;
         return id.startsWith("motion.") && (id.equals("motion.lock") || id.equals("motion.unlock")
                 || id.equals("motion.gc_clear") || value.equals("ink") || value.equals("dots") || value.equals("scan") || value.equals("blind"));
     }

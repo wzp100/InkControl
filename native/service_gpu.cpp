@@ -355,16 +355,26 @@ static int hookUpdate(void*entry,void*ctl){
                 if(!blank)request.gpuLut=gpuLutFor(request.liveLut,request.activeFrames);
                 // 新滚动流水线也接入起跑帧图。只延长普通全屏 PairY4 波形，
                 // reset/blank/模式过渡和区域叠加仍保留原厂时序。
-                bool lockReading=readingBitmap&&(readingRequested&255)==3&&(mode==2||mode==5)&&
+                // 熄屏送图（锁屏画面）走位图路径：只认「位图标志 + 清晰/均衡模式 + 整屏布局」。
+                // 早先这里还要求 readingRequested&255==3，但该值随原厂输入模式变化（实测 102=0x66），
+                // 门控一直不成立 → 锁屏/唤醒的请求永远消费不到，波形被全刷扫过抢走。
+                bool lockReading=readingBitmap&&(mode==2||mode==5)&&
                     (request.layout==einkwave::IndexLayout::PairY4||request.layout==einkwave::IndexLayout::PixelY8Edge);
                 motionPoll();
-                if(motionReq.pending&&motionReq.target>0)LOG("LOCK_MOTION_GATE mode=%u layout=%u bitmap=%d captured_bitmap=%d request=%x phase=%u target=%d",mode,unsigned(request.layout),load<uint8_t>(base+0x234209),readingBitmap,readingRequested,unsigned(segment.phase),motionReq.target);
+                if(motionReq.pending&&motionReq.target>0)LOG("LOCK_MOTION_GATE mode=%u layout=%u bitmap=%d captured_bitmap=%d request=%x phase=%u target=%d overlay=%d active=%d",mode,unsigned(request.layout),load<uint8_t>(base+0x234209),readingBitmap,readingRequested,unsigned(segment.phase),motionReq.target,segment.regionOverlay?1:0,request.activeFrames);
+                // 唤醒（target=2）在均衡模式下走 PixelY8Edge 整屏波形，不是 PairY4，
+                // 以前因此永远进不了动画分支；只在「确实有一个唤醒请求排队」时放行，避免扩大到普通局部刷新。
+                bool wakeRequest=motionReq.pending&&motionReq.target==2;
                 if(segment.phase==einktransition::Phase::Normal&&!segment.regionOverlay&&
-                   ((request.layout==einkwave::IndexLayout::PairY4&&(mode==2||mode==8))||lockReading)){
-                    motionDecide(ctl,mode==2,lockReading);
+                   ((request.layout==einkwave::IndexLayout::PairY4&&(mode==2||mode==8))||lockReading||
+                    (wakeRequest&&mode==5&&request.layout==einkwave::IndexLayout::PixelY8Edge))){
+                    motionDecide(ctl,mode==2,lockReading,readingBitmap);
                     if(motionMax>0){request.cpuStartMap=smapHost.data();request.startMapBytes=smapHost.size();
                         request.maxDelay=uint32_t(motionMax);request.totalFrames+=uint32_t(motionMax);}
-                }else motionMax=0;
+                }else{
+                    if(motionReq.pending&&motionReq.target>0)LOG("LOCK_MOTION_SKIP target=%d mode=%u layout=%u phase=%u overlay=%d blank=%u",motionReq.target,mode,unsigned(request.layout),unsigned(segment.phase),segment.regionOverlay?1:0,unsigned(blank));
+                    motionMax=0;
+                }
                 // 融合：翻页动画的分阶段揭示改由 GPU 波形层原生 bandDirection 驱动。
                 // motionMax>0 表示这一帧已经被「动画」里的某个过渡接管（全刷扫过 / 擦除 /
                 // 扫描线 / 百叶窗）。两者都靠波形时序表达，叠加会互相覆盖：分带的几何

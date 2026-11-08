@@ -68,17 +68,18 @@ final class HwcBridge {
     }
 
     /**
-     * 全刷扫过方向。auto 沿用原厂习惯「从左向右」，与「擦除方向」互不影响 ——
-     * 早先这条策略只写 spread，方向在 native 侧被写死 ltr，所以调「擦除方向」对它无效。
+     * 全刷扫过方向。auto 交给 native 按形状决定：横向从左向右、纵向从上向下。
+     * 与「动画擦除方向」互不影响 —— 早先这条策略只写 spread，方向在 native 侧被写死 ltr。
      */
     static String gcsweepDir(String dir) {
-        return dir == null || dir.isEmpty() || "auto".equals(dir) ? "ltr" : dir;
+        return dir == null || dir.isEmpty() ? "auto" : dir;
     }
 
     static void configure(Config c) {
         if (Config.GCSWEEP.equals(c.styleFor(Config.GC_CLEAR))) {
             if (originalGc == null) originalGc = get(PROP_GC);
-            writtenGc = "gcsweep " + c.spread + " " + gcsweepDir(c.gcDir);
+            // 格式 "gcsweep <spread> <dir> <style>"；旧的两段格式仍按 ltr + 线性扫过解析。
+            writtenGc = "gcsweep " + c.gcSpread + " " + gcsweepDir(c.gcDir) + " " + c.gcStyle;
             if (!set(PROP_GC, writtenGc)) com.inkcontrol.platform.RuntimeConfig.fail("全刷动画配置未写入");
         } else if (originalGc != null) {
             if (writtenGc.equals(get(PROP_GC))) set(PROP_GC, originalGc);

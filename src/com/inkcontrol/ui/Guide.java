@@ -102,8 +102,9 @@ final class Guide {
                 {"目标阅读器", "pageanim.readers"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
-                {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.gc_clear", "motion.lock", "motion.unlock"},
-                {"动画节奏", "motion.steps", "motion.hold", "motion.spread", "motion.origin", "motion.direction", "motion.gc_direction"},
+                {"全刷扫过", "motion.gc_clear", "motion.gc_style", "motion.gc_direction", "motion.gc_speed"},
+                {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.lock", "motion.unlock"},
+                {"动画节奏", "motion.steps", "motion.hold", "motion.spread", "motion.origin", "motion.direction"},
                 {"其他", "motion.dim", "motion.scale"}});
         cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
@@ -182,6 +183,7 @@ final class Guide {
 
     private static final String SCENE_COMMON = "选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端，并关闭「改用原厂显示算法」。";
     private static void styles(Entry e, boolean transitions, boolean lock) {
+        e.option("none", "无", "保持原厂：不加任何过渡，画面直接切换，也不额外刷新。");
         if (transitions) {
             e.option("kiris", "方形展开", "新画面从你点的位置以方块形状分几步扩开。关键帧动画，不需要 GPU 后端。");
             e.option("kwipe", "关键帧擦除", "新画面像翻页一样，从一侧分几步推过来。关键帧动画，不需要 GPU 后端。");
@@ -300,12 +302,21 @@ final class Guide {
                 {"in_app_back", "在应用里返回上一页。"}, {"dialog", "对话框、弹出菜单出现和收起时。"}, {"lock", "按电源键锁屏时。"}, {"unlock", "唤醒屏幕时。"}};
         for (String[] scene : scenes) {
             Entry e = put("motion." + scene[0]).summary(scene[1].replace("。", "") + "的过渡效果").what(scene[1] + SCENE_COMMON).visual(Visual.MOTION_SCENE)
-                    .cost("关闭此场景即恢复原厂的瞬间切换。");
+                    .cost("选「无」或关闭此场景，都恢复原厂的瞬间切换。");
             styles(e, !scene[0].equals("lock") && !scene[0].equals("unlock"), true);
         }
         put("motion.gc_clear").summary("去残影全刷不再整屏同时闪黑").what("系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端，并关闭「改用原厂显示算法」。")
-                .before("整屏同时变黑再变回，比较刺眼。").after("黑色光带扫过一屏，过程柔和，去残影效果相同。扫过方向在“全刷扫过方向”里单独设置。")
+                .before("整屏同时变黑再变回，比较刺眼。").after("黑色光带扫过一屏，过程柔和，去残影效果相同。形状、方向与快慢分别在“全刷扫过风格”“全刷扫过方向”“全刷扫过速度”里设置。")
                 .visual(Visual.MOTION_SCENE).option("gcsweep", "全刷扫过", "黑色光带从一侧扫过屏幕。").term("清晰全刷", "残影", "波形动画");
+        put("motion.gc_style").summary("全刷扫过的光带是什么形状").what("按翻页动画那套分块展开的思路，让整屏刷新按不同形状依次开始：横向一条带、纵向一条带、斜向分块、反斜向分块、从中心向外的一圈圈，或者从中心平滑扩开。")
+                .cost("只改变“谁先开始刷新”，波形与去残影效果不变；斜向、环绕、中心展开不使用“全刷扫过方向”。")
+                .option("horizontal", "横向展开", "光带左右扫过，最接近原厂整屏刷新。")
+                .option("vertical", "纵向展开", "光带上下扫过。")
+                .option("diag", "斜向分块", "从左上角向右下角斜着铺开，像翻页动画的斜向分块。")
+                .option("antidiag", "反斜向分块", "从右上角向左下角斜着铺开。")
+                .option("ring", "环绕分块", "从屏幕中心向外一圈圈扩散，分成 12 圈。")
+                .option("center", "中心展开", "从屏幕中心均匀扩开，没有分圈痕迹。")
+                .term("清晰全刷", "波形动画");
         put("motion.dim").summary("弹窗时背后不再变成满屏颗粒").what("弹出对话框时，系统会把背后的画面调暗。墨水屏显示不了半透明灰，变暗层会被转成满屏颗粒点，弹出和关闭时都要整屏重刷。开启后背后保持原样。")
                 .before("每次弹窗，整屏先变成颗粒灰，关闭时再整屏刷回来。").after("只刷新对话框区域，背后不动，更快也更干净。")
                 .option("default", "移除背景变暗", "").term("抖动");
@@ -322,17 +333,25 @@ final class Guide {
                 .option("@curve", "自定义曲线", "在温度曲线编辑器中逐温区调整。")
                 .visual(Visual.HOLD_CURVE).term("关键帧", "温度自适应", "扫描帧");
         put("motion.spread").summary("波形动画的快慢：最早和最晚开始刷新的像素相差多久").what("波形动画让屏幕上不同位置的像素错开一点时间开始刷新。这一项决定错开的总幅度：数值越大，动画越慢、过程越明显；越小越接近瞬间切换。")
-                .cost("不开启时为 12 帧。").visual(Visual.MOTION_SPREAD)
+                .cost("不开启时为 12 帧。全刷扫过有自己的“全刷扫过速度”，不受这一项影响。").visual(Visual.MOTION_SPREAD)
                 .option("1", "1 帧（约 0.01 秒）", "几乎看不出动画。").option("6", "6 帧（约 0.07 秒）", "轻快。").option("12", "12 帧（约 0.14 秒）", "默认，过程清楚又不拖沓。")
                 .option("18", "18 帧（约 0.21 秒）", "舒缓。").option("24", "24 帧（约 0.28 秒）", "最慢，动画感最强。").term("波形动画", "扫描帧");
         put("motion.origin").summary("展开类动画从哪里开始").what("方形展开和墨迹晕开从屏幕的哪个位置开始扩散。").cost("不开启时从触摸位置开始。").visual(Visual.MOTION_ORIGIN)
                 .option("touch", "触摸位置", "从你刚点的图标或按钮处展开，最直观。").option("center", "屏幕中心", "总是从正中间展开，更整齐。");
-        put("motion.direction").summary("擦除、扫描线、百叶窗从哪一侧开始").what("关键帧擦除、扫描线和百叶窗从屏幕的哪一侧开始。").cost("不开启时为自动。").visual(Visual.MOTION_DIRECTION)
+        put("motion.direction").summary("动画擦除方向：从哪一侧开始").what("关键帧擦除、扫描线和百叶窗从屏幕的哪一侧开始；只影响这三类动画，全刷扫过另有自己的方向与风格。").cost("不开启时为自动。").visual(Visual.MOTION_DIRECTION)
                 .option("auto", "自动", "打开和前进从右往左推、关闭和后退从左往右；扫描线从上往下。符合“前进/后退”的直觉。")
                 .option("ltr", "从左向右", "").option("rtl", "从右向左", "").option("ttb", "从上向下", "").option("btt", "从下向上", "");
-        put("motion.gc_direction").summary("全刷扫过从哪一侧开始").what("系统做“清晰全刷”去残影时，那道黑色光带从屏幕的哪一侧开始扫。").cost("只在“全刷扫过”启用时生效，与上面的“擦除方向”互不影响；不开启时按原厂习惯从左向右。").visual(Visual.MOTION_DIRECTION)
+        put("motion.gc_direction").summary("全刷扫过从哪一侧开始").what("系统做“清晰全刷”去残影时，那道黑色光带从屏幕的哪一侧开始扫。").cost("只在“全刷扫过”启用时生效，与“动画擦除方向”互不影响；不开启时横向从左向右、纵向从上向下。").visual(Visual.MOTION_DIRECTION)
                 .option("auto", "自动", "沿用原厂习惯：从左向右扫过。")
                 .option("ltr", "从左向右", "").option("rtl", "从右向左", "").option("ttb", "从上向下", "").option("btt", "从下向上", "");
+        put("motion.gc_speed").summary("全刷扫过这道光带走多快").what("光带扫完整屏时，屏幕上不同位置的像素错开多久开始刷新。帧数越少，光带越宽、走得越快，1 帧几乎等于整屏同时刷新（也就是原厂的整屏闪黑）；帧数越多，光带越窄、过程越明显，但整段会稍微变长。")
+                .cost("只在“全刷扫过”启用时生效，与上面的“波形动画速度”互不影响；不开启时跟随“波形动画速度”。整段仍是原厂一次清晰全刷，去残影效果不变。")
+                .option("1", "极快（1 帧）", "几乎整屏同时刷新，和原厂全刷一样快，只留一点扫过的痕迹。")
+                .option("4", "快（4 帧）", "光带很宽，扫得很快。")
+                .option("8", "适中（8 帧）", "光带宽度与速度都比较均衡。")
+                .option("12", "原厂节奏（12 帧）", "与之前跟随波形动画速度时相同。")
+                .option("18", "慢（18 帧）", "光带最窄，过程最清楚，整段略长。")
+                .term("清晰全刷", "扫描帧");
         put("motion.scale").summary("应用自己的小动画：水波纹、回弹、页面内切换").what("应用内部也有很多小动画，例如按钮水波纹、列表回弹、标签页切换。原厂固定为正常速度，在墨水屏上它们会变成一串拖影和多余刷新。")
                 .before("点按钮会看到几次灰色水波纹刷新，列表滚到头会回弹几下。").after("可以完全关闭（直接显示结果），或缩短为一半时长。")
                 .option("0", "关闭动画", "直接显示动画结束的样子，刷新最少。").option("0.5", "半速时长", "保留动画，但时长减半。").option("1", "原时长", "与原厂相同。");

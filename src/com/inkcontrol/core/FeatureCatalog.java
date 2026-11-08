@@ -84,17 +84,27 @@ public final class FeatureCatalog {
         String[] scenes = {"app_open", "app_close", "in_app_forward", "in_app_back", "dialog", "gc_clear", "lock", "unlock"};
         String[] names = {"打开应用", "返回桌面", "应用内前进", "应用内后退", "对话框与菜单", "全刷扫过", "进入锁屏", "唤醒过渡"};
         for (int i = 0; i < scenes.length; i++) {
-            String values = i == 5 ? "gcsweep" : i >= 6 ? "scan,ink,dots,blind" : "kiris,kwipe,ink,dots,scan,blind";
-            String labels = i == 5 ? "全刷扫过" : i >= 6 ? "扫描线,墨迹晕开,网点长大,百叶窗" : "方形展开,关键帧擦除,墨迹晕开,网点长大,扫描线,百叶窗";
+            // 「无」排在首位：默认取值就是它，等同于保持原厂的瞬间切换，
+            // 因此各场景既能选效果，也能明确回到原厂（旧版这里是开关）。
+            String values = i == 5 ? "gcsweep" : i >= 6 ? "none,scan,ink,dots,blind" : "none,kiris,kwipe,ink,dots,scan,blind";
+            String labels = i == 5 ? "全刷扫过" : i >= 6 ? "无,扫描线,墨迹晕开,网点长大,百叶窗" : "无,方形展开,关键帧擦除,墨迹晕开,网点长大,扫描线,百叶窗";
             // 总开关与全刷扫过不再标「实验」，其余场景保留
-            add("motion." + scenes[i], "动画", names[i], "关闭此场景即恢复系统过渡", "system", "motion.master", HOT, i != 5, values, labels);
+            add("motion." + scenes[i], "动画", names[i], "选「无」保持原厂瞬间切换；关闭此场景同样恢复原厂", "system", "motion.master", HOT, i != 5, values, labels);
         }
         add("motion.dim", "动画", "去掉对话框背景变暗", "独立于动画总开关", "system", "", HOT, false, "default", "移除变暗");
         add("motion.steps", "动画", "关键帧数", "关闭此选项时使用两步", "system", "motion.master", HOT, false, "2,3,4", "两步,三步,四步");
         add("motion.hold", "动画", "关键帧停留", "关闭时随温度自动计算", "system", "motion.master", HOT, false, "0,60,100,200,300,500,1000,@curve", "温度自适应,60ms,100ms,200ms,300ms,500ms,1000ms,自定义曲线");
         add("motion.origin", "动画", "展开起点", "关闭时使用触摸位置", "system", "motion.master", HOT, false, "touch,center", "触摸位置,屏幕中心");
-        add("motion.direction", "动画", "擦除方向", "关闭时自动选择方向", "system", "motion.master", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
-        add("motion.gc_direction", "动画", "全刷扫过方向", "全刷扫过从哪一侧开始；自动＝从左向右", "system", "motion.gc_clear", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
+        add("motion.direction", "动画", "动画擦除方向", "关键帧擦除、扫描线、百叶窗从哪一侧开始；关闭时自动选择", "system", "motion.master", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
+        add("motion.gc_direction", "动画", "全刷扫过方向", "全刷扫过从哪一侧开始；自动＝横向从左向右、纵向从上向下", "system", "motion.gc_clear", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
+        // 全刷扫过自己的形状：按翻页动画那套「分块展开」的写法给全刷也用一遍。
+        // 只改延迟图（谁先开始刷新），不改波形本身，所以去残影效果不变。
+        add("motion.gc_style", "动画", "全刷扫过风格", "光带扫过的形状；斜向与环绕按屏幕几何均匀展开，不使用方向设置", "system", "motion.gc_clear", HOT, false,
+                "horizontal,vertical,diag,antidiag,ring,center", "横向展开,纵向展开,斜向分块,反斜向分块,环绕分块,中心展开");
+        // 全刷扫过自己的速度：光带扫过整屏用多少帧。帧数越少扫得越快、越接近整屏同时刷新；
+        // 与「波形动画速度」分开，改别的动画快慢不会连带影响去残影这一步。
+        // 依赖挂在总开关上（和「波形动画速度」一致），全刷扫过没开时也能先设好档位。
+        add("motion.gc_speed", "动画", "全刷扫过速度", "光带扫过整屏的时长；帧数越少越快，1 帧几乎整屏同时刷新", "system", "motion.master", HOT, false, "1,4,8,12,18", "极快（1 帧）,快（4 帧）,适中（8 帧）,原厂节奏（12 帧）,慢（18 帧）");
         add("motion.spread", "动画", "波形动画速度", "以扫描帧为单位，关闭时使用12帧", "system", "motion.master", HOT, true, "12,1,6,18,24", "12帧,1帧,6帧,18帧,24帧");
         add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
         add("lock.style", "锁屏主题", "锁屏主题", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");

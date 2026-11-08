@@ -33,7 +33,9 @@ static int motionSavedTotal=0;
 static void*motionCtl=nullptr;
 static std::vector<uint8_t> smapHost;   // drive layout: row r = portrait x (0..719), column c = portrait y (0..1439)
 
-struct MotionReq{unsigned long long seq=0,deadline=0;char style[16]={};char dir[8]={};int spread=0,minPercent=12,target=0;float ox=0,oy=0;bool pending=false;};
+struct MotionReq{unsigned long long seq=0,deadline=0;char style[16]={};char dir[8]={};int spread=0,minPercent=12,target=0;float ox=0,oy=0;bool pending=false;
+    /** 全刷扫过的形状（horizontal/vertical/diag/antidiag/ring/center）；空＝旧格式，按 dir 线性扫过。 */
+    char variant[16]={};};
 static MotionReq motionReq;
 static const prop_info*motionProp=nullptr;
 static uint32_t motionSerial=0;
@@ -115,7 +117,22 @@ static int buildMotionMap(const MotionReq&q){
             int cx=px>>3,cy=py>>3;
             s=(dots[(py&7)*8+(px&7)]*0.8f+float((cx*13+cy*7)%5)/5.f*0.2f)*sp;
         }else if(kind==2){
-            if(dir=="btt")s=float(PH-1-py)/PH*sp;
+            // 全刷扫过的形状：只改「谁先开始刷新」的延迟图，波形与去残影效果不变。
+            // 斜向 / 环绕 / 中心展开按屏幕几何计算，方向设置对它们没有意义。
+            const std::string v=q.variant;
+            if(style=="gcsweep"&&!v.empty()){
+                float fx=float(px)/float(PW-1),fy=float(py)/float(PH-1);
+                if(v=="vertical") s=(dir=="btt"?1.f-fy:fy)*sp;
+                else if(v=="diag") s=(fx+fy)*0.5f*sp;
+                else if(v=="antidiag") s=((1.f-fx)+fy)*0.5f*sp;
+                else if(v=="ring"||v=="center"){
+                    float maxD=0.5f*std::hypot(float(PW),float(PH));
+                    float d=std::hypot(float(px)-float(PW)/2.f,float(py)-float(PH)/2.f)/maxD;
+                    if(v=="ring") d=(std::floor(d*12.f)+0.5f)/12.f;   // 12 圈分块
+                    s=std::min(1.f,d)*sp;
+                }else s=(dir=="rtl"?1.f-fx:fx)*sp;                    // horizontal 及其它
+            }
+            else if(dir=="btt")s=float(PH-1-py)/PH*sp;
             else if(dir=="ltr")s=float(px)/PW*sp;
             else if(dir=="rtl")s=float(PW-1-px)/PW*sp;
             else s=float(py)/PH*sp;
@@ -134,32 +151,39 @@ static int buildMotionMap(const MotionReq&q){
 }
 
 // Frame 0 of an eligible GPU A2 wave, before renderWave: decide whether this wave animates.
-static void motionDecide(void*ctl,bool gc=false,bool reading=false){
+// bitmap=true 表示这一波来自「熄屏位图送图」路径：锁屏请求（target=1）只认它，
+// 唤醒请求（target=2）只认普通亮屏波形。以前只靠 reading 猜，锁屏与唤醒会互相顶掉。
+static void motionDecide(void*ctl,bool gc=false,bool reading=false,bool bitmap=false){
     motionMax=0;
     motionPoll();
     unsigned long long ms=now()/1000000ULL;
     if(motionReq.pending&&ms>motionReq.deadline){motionReq.pending=false;LOG("MOTION_EXPIRED seq=%llu",motionReq.seq);}
     // 大面积应用切换会被原厂提升为 GC16。请求优先于默认全刷策略，
     // 因而不再因实际波形从 A2 变成 GC16 而丢掉整段动画。
-    bool targetMatches=reading?motionReq.target==1:motionReq.target!=1;
+    bool targetMatches=motionReq.target==1?bitmap:!bitmap;
     // bitmap 没走亮屏 front compare，frontDiff 为 unknown；仅显式首次送图请求绕过这一阈值。
     bool requested=motionReq.pending&&targetMatches&&(reading||motionReq.target==2||(frontDiff!=UINT32_MAX&&
         frontDiff>=720u*1440u*uint32_t(motionReq.minPercent)/100u));
     if(gc&&!requested){
         char policy[PROP_VALUE_MAX]={};__system_property_get("debug.eink.motion.gc",policy);
-        int spread=0;char rawDir[8]={};
-        // 新格式 "gcsweep <spread> <dir>"；旧格式只有 spread，方向按原厂习惯取 ltr。
-        if(std::sscanf(policy,"gcsweep %d %7s",&spread,rawDir)<1||spread<1||spread>MOTION_MAX_FRAMES)return;
+        int spread=0;char rawDir[8]={},rawVariant[16]={};
+        // 格式 "gcsweep <spread> <dir> <style>"；旧的两段格式（只有 spread）仍按 ltr 线性扫过解析。
+        if(std::sscanf(policy,"gcsweep %d %7s %15s",&spread,rawDir,rawVariant)<1||spread<1||spread>MOTION_MAX_FRAMES)return;
         const char*dir="ltr";
-        if(rawDir[0]&&(!std::strcmp(rawDir,"rtl")||!std::strcmp(rawDir,"ttb")||!std::strcmp(rawDir,"btt")))dir=rawDir;
+        if(rawDir[0]){
+            if(!std::strcmp(rawDir,"auto")||!std::strcmp(rawDir,"rtl")||!std::strcmp(rawDir,"ttb")||!std::strcmp(rawDir,"btt"))dir=rawDir;
+        }
         MotionReq sweep;std::strcpy(sweep.style,"gcsweep");std::strncpy(sweep.dir,dir,sizeof(sweep.dir)-1);sweep.spread=spread;
+        std::strncpy(sweep.variant,rawVariant,sizeof(sweep.variant)-1);
         motionMax=buildMotionMap(sweep);
-        LOG("MOTION_GC wave=%llu max=%d active=%d",(unsigned long long)waveId,motionMax,field<int>(ctl,0x160));
+        LOG("MOTION_GC wave=%llu max=%d active=%d spread=%d dir=%s style=%s",(unsigned long long)waveId,motionMax,field<int>(ctl,0x160),spread,dir,sweep.variant);
         return;
     }
     if(!requested)return;
     int active=field<int>(ctl,0x160);
-    if(!gc&&!reading&&active>MOTION_MAX_ACTIVE){motionReq.pending=false;LOG("MOTION_SKIP_COLD seq=%llu active=%d",motionReq.seq,active);return;}
+    // 冷屏保护：普通应用切换遇到超长 A2 就不加动画。锁屏/唤醒是显式请求（有 2 秒时限），
+    // 且亮屏那一下本来就是满帧全刷（实测 38 帧），不能被这条挡掉。
+    if(!gc&&!reading&&motionReq.target==0&&active>MOTION_MAX_ACTIVE){motionReq.pending=false;LOG("MOTION_SKIP_COLD seq=%llu active=%d",motionReq.seq,active);return;}
     uint64_t t0=now();
     motionMax=buildMotionMap(motionReq);
     motionReq.pending=false;

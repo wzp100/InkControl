@@ -1607,9 +1607,10 @@ public final class MainActivity extends Activity {
     }
 
     private MotionDemo demo(String scene, String style, int steps, String origin, String direction, int spread) {
-        // 全刷扫过用自己的方向，别让「擦除方向」的取值带进预览。
-        if ("gc_clear".equals(scene)) direction = gcDirection();
+        // 全刷扫过用自己的方向、速度与形状，别让「动画擦除方向 / 波形动画速度」的取值带进预览。
+        if ("gc_clear".equals(scene)) { direction = gcDirection(); spread = gcSpread(); }
         MotionDemo demo = new MotionDemo(this, ink, false).configure(scene, style, steps, origin, direction, spread);
+        if ("gc_clear".equals(scene)) demo.variant(gcStyle());
         mainDemo = demo;
         return demo;
     }
@@ -1676,12 +1677,18 @@ public final class MainActivity extends Activity {
     /** 场景取哪个方向：全刷扫过用独立设置，其余共用「擦除方向」。 */
     private String sceneDirection(String id) { return "motion.gc_clear".equals(id) ? gcDirection() : direction(); }
     private int spread() { return snapshot.config.enabled("motion.spread") ? Integer.parseInt(snapshot.config.value("motion.spread")) : 12; }
+    /** 全刷扫过自己的速度；没单独设置时跟随「波形动画速度」。 */
+    private int gcSpread() { return snapshot.config.enabled("motion.gc_speed") ? Integer.parseInt(snapshot.config.value("motion.gc_speed")) : spread(); }
+    /** 全刷扫过自己的形状；没单独设置时为横向展开。 */
+    private String gcStyle() { return snapshot.config.enabled("motion.gc_style") ? snapshot.config.value("motion.gc_style") : "horizontal"; }
     private String timing(String style) {
         if (style.equals("kiris") || style.equals("kwipe")) {
             int hold = currentHold();
             return "按当前设置，实际约 " + seconds((steps() - 1) * hold + 117) + " 秒（" + (steps() - 1) + " 张中间画面，每张停留 " + hold + " 毫秒）。";
         }
-        if (style.equals("gcsweep")) return "与原厂全刷用时相同，约 0.9 秒。";
+        if (style.equals("gcsweep"))
+            return "光带扫过的快慢由「全刷扫过速度」决定；整段仍是一次原厂清晰全刷（约 0.9 秒），去残影效果不变。";
+        if (style.equals("none") || style.equals("instant") || style.equals("gc16")) return "保持原厂：画面直接切换，不额外增加刷新。";
         return "按当前设置，实际约 " + seconds(spread() * 11.65 + 117) + " 秒，仍在一次刷新内完成。";
     }
     private static String seconds(double ms) { return String.format(Locale.ROOT, "%.2f", ms / 1000.0); }
