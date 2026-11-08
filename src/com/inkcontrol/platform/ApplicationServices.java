@@ -59,6 +59,11 @@ public final class ApplicationServices {
         features.change(id, enabled, value);
         inspect();
     }
+    /** 批量改取值（面板换顺序）：一次落盘 + 一次应用，别按格逐个来。 */
+    public void changeAll(java.util.LinkedHashMap<String, String> values) throws Exception {
+        features.changeAll(values);
+        inspect();
+    }
     /** 把字体写进系统槽位并立刻全局激活（独立路径 + persist.sys.font* + 微扰 font_scale + 重启 SystemUI）；不需要重启系统框架。 */
     public String applyFont(String source) throws Exception { return root.applyFont(source); }
     /** 恢复原厂字体并立刻全局激活。 */

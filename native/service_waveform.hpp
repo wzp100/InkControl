@@ -210,6 +210,8 @@ uint rows=bandRows>0u?bandRows:48u,steps=719u/rows+1u;
 // pageanim.style：0 横向 / 1 纵向 / 2 斜向 / 3 反斜向 / 4 环绕 / 5 中心。
 // 把二维坐标折成一维「揭示次序」，再交给下面的逐带延迟；行坐标 0..719，
 // 列坐标 0..359（每 4 个像素一组），统一折到 0..719 区间。
+// 注意轴：row（y-5）是屏幕的横向轴（720 宽，2 像素一组），x 是纵向轴（1440 高，
+// 4 像素一组）。所以 0 横向＝竖条从左向右推，1 纵向＝横条从上向下推。
 uint coord=row;
 if(bandStyle==1u)coord=x*2u;
 else if(bandStyle==2u)coord=(row+x*2u)/2u;

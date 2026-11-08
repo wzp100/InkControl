@@ -78,17 +78,18 @@ adb shell input swipe 647 1395 647 1395 120
 
 1. 只在 `com.android.systemui` 作用域安装一次（`sInstalled`），hook `InkPopWindow.showPopWindow` 的 `afterHookedMethod`，异常一律写 `XposedBridge.log`，不让 SystemUI 崩。
 2. 从 `mButtonsParent` / `mContext` 取容器与上下文，按资源名取 `ink_screen_button_item` 布局；把原厂「截屏便签」按钮摘下来复用（它可能被排到别的位次）。
-3. 按 `qs.panel.btn1` … `qs.panel.btn4` 的取值摆四个位置，四格都标 `two`，与原厂单行同排；`InkButtonsParent` 按每行个数平分宽度，面板高度不变。
-4. 动作表见 `FeatureCatalog.PANEL_ACTIONS`：控制中心那套（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、免打扰、省电模式、悬浮球）、墨控自己的开关（自动刷新 / 锁屏主题 / 遮挡息屏 / 翻页动画）、「墨控快捷设置」、原厂「截屏便签」、任意应用包名、以及 `PANEL_NONE`（这一格不显示）。取值非法时退回该位置的默认值。
-5. 长按是「跳去设置」：WiFi / 蓝牙跳系统设置页；墨控的几项用 `quick=1` 或 `category=<分类名>` extra 落到对应页。跳转前一律收起面板。
-6. `qs.panel.close` 控制点完是否收起；`qs.panel.pinsize` 把原厂「截屏便签」的 28dp 图标 / 12sp 文字与补上的按钮对齐。总开关 `qs.panel` 关闭时完全走原厂，不摘按钮、不换顺序、不缩尺寸。
+3. 按 `qs.panel.btn1` … `qs.panel.btn4` 的取值摆四个位置，四格都标 `two`，与原厂单行同排；`InkButtonsParent` 按每行个数平分宽度，面板高度不变。App 里换位是**拖把手**：按住左侧三条横线上下拖，松手后把四格动作整体搬一次（只写真的动了的那几格）。
+4. 动作表见 `FeatureCatalog.PANEL_ACTIONS`：控制中心那套（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、免打扰、省电模式、悬浮球）、墨控自己的开关（自动刷新 / 锁屏主题 / 遮挡息屏 / 翻页动画 / 全刷扫过）、就地动作「刷新格言」、「墨控快捷设置」、原厂「截屏便签」、任意应用包名、以及 `PANEL_NONE`（这一格不显示）。取值非法时退回该位置的默认值。
+5. 长按是「跳去设置」：WiFi / 蓝牙跳系统设置页；墨控的几项用 `quick=1` 或 `category=<分类名>` extra 落到对应页，全刷扫过再带 `focus=motion.gc_clear` 让「动画」页直接滚到 `02 全刷扫过`，刷新格言落到「锁屏显示」页。跳转前一律收起面板。
+6. 「刷新格言」不是开关，也不是功能项：点一下由 `run()` 直接发 `com.inkcontrol.action.LOCK_MOTTO_NEXT` 给本进程（SystemUI）的锁屏 Hook，由它反射原厂 `MottoHelper.getNextMotto()` 换下一条并提示。桌面快捷方式里的同名项走同一条广播。
+7. `qs.panel.close` 控制点完是否收起；`qs.panel.pinsize` 把原厂「截屏便签」的 28dp 图标 / 12sp 文字与补上的按钮对齐。总开关 `qs.panel` 关闭时完全走原厂，不摘按钮、不换顺序、不缩尺寸。
 
 配置键一览：`qs.panel`、`qs.panel.btn1` … `btn4`、`qs.panel.close`、`qs.panel.pinsize`。新增/修改这类键需按仓库「增删功能键」规范同步 `FeatureCatalog`、`Guide`、`common.sh` 的 `ic_validate`、`CoreTest` 等处。
 
 ## 五、面板开关与 App 状态同步
 
 - `ConfigProvider` 跑在独立进程 `:state`，`toggle` 在那里写盘；App 主进程的 `snapshot` 不会自己变。
-- `toggle` 成功后发 `changed("panel-toggle")`；`MainActivity` 用精确 URI 的 `ContentObserver` 收到后重跑 `inspect()` + `snapshot()`，比对有变化才 `render()`。四条开关 `refresh.master` / `lock.style` / `wave.lock` / `pageanim.master` 共用这条链路。
+- `toggle` 成功后发 `changed("panel-toggle")`；`MainActivity` 用精确 URI 的 `ContentObserver` 收到后重跑 `inspect()` + `snapshot()`，比对有变化才 `render()`。五条开关 `refresh.master` / `lock.style` / `wave.lock` / `pageanim.master` / `motion.gc_clear` 共用这条链路，白名单在 `ConfigProvider.TOGGLES`。
 - 不要用 `save()` 自带的 `/config` 通知刷界面，那是给注入进程的。
 - **App 被强制停止后面板开关会失败**：厂商进程管控禁止 SystemUI 拉起被 force-stop 包的 provider（`Unknown authority com.inkcontrol.state`）。`PanelHook.toggle` 的 catch 里改为显式 `startActivity` 拉起透明的 `PanelToggleActivity`（`noHistory` / `excludeFromRecents`），由应用进程转交 `ConfigProvider.toggle` 后立刻 finish；带上显式的 `enabled` 保证重试幂等。写配置仍必须由墨控进程完成，但拉起的是无界面空壳，UI 同步不要求 App 常驻。
 

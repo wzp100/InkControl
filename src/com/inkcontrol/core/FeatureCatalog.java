@@ -32,7 +32,7 @@ public final class FeatureCatalog {
             {"torch", "手电筒"}, {"rotate", "自动旋转"}, {"page", "整屏翻页"},
             {"dnd", "免打扰"}, {"saver", "省电模式"}, {"float", "悬浮球"},
             {"refresh", "自动刷新"}, {"lock", "锁屏主题"}, {"cover", "遮挡息屏"},
-            {"pageanim", "翻页动画"},
+            {"pageanim", "翻页动画"}, {"gcsweep", "全刷扫过"}, {"motto", "刷新格言"},
             {"quick", "墨控快捷设置"}, {"pin", "截屏便签"}};
 
     /** 这个位置不显示按钮（选择框里排在最上面的「无」）。 */
@@ -107,32 +107,32 @@ public final class FeatureCatalog {
         add("motion.gc_speed", "动画", "全刷扫过速度", "光带扫过整屏的时长；帧数越少越快，1 帧几乎整屏同时刷新", "system", "motion.master", HOT, false, "1,4,8,12,18", "极快（1 帧）,快（4 帧）,适中（8 帧）,原厂节奏（12 帧）,慢（18 帧）");
         add("motion.spread", "动画", "波形动画速度", "以扫描帧为单位，关闭时使用12帧", "system", "motion.master", HOT, true, "12,1,6,18,24", "12帧,1帧,6帧,18帧,24帧");
         add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
-        add("lock.style", "锁屏主题", "锁屏主题", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
-        add("lock.weather", "锁屏主题", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
+        add("lock.style", "锁屏显示", "锁屏主题", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
+        add("lock.weather", "锁屏显示", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
         // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」或「显示设备状态」。
         // 互斥由界面统一保证（MainActivity.change 里开一个就自动关另一个），
         // 所以配置里正常只会有一个为开；设备状态条的四项由 lock.ext.* 单独控制显示与否。
-        add("lock.notify", "锁屏主题", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
+        add("lock.notify", "锁屏显示", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
         // 「显示设备状态」：auto 跟随样式（编辑排版/横版用图标，瑞士网格用文字），
         // icon/text 强制一种。默认 auto 保持各样式原有的观感。
-        add("lock.ext", "锁屏主题", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "auto,icon,text", "跟随样式,图标版,文字版");
+        add("lock.ext", "锁屏显示", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "auto,icon,text", "跟随样式,图标版,文字版");
         // 「显示信息修改」是个纯页面（@panel）：自己没有开关，进去才改下面那四格。
         // 四个开关仍是正式功能（各自写配置、可单独进详情页），只是不再铺在分类列表里。
-        add("lock.ext.edit", "锁屏主题", "显示信息修改", "选择设备状态里显示哪几项：无线网络、蓝牙、声音模式、飞行模式", "systemui", "lock.ext", HOT, false, "@panel", "修改");
+        add("lock.ext.edit", "锁屏显示", "显示信息修改", "选择设备状态里显示哪几项：无线网络、蓝牙、声音模式、飞行模式", "systemui", "lock.ext", HOT, false, "@panel", "修改");
         // 四项显示开关：默认全开（旧配置里没有这几个键也按显示处理），各自关掉的才记住。
-        add("lock.ext.wifi", "锁屏主题", "显示无线网络", "锁屏设备状态里显示无线网络开关情况", "systemui", "lock.ext", HOT, false, "default", "显示无线", true);
-        add("lock.ext.bt", "锁屏主题", "显示蓝牙", "锁屏设备状态里显示蓝牙开关情况", "systemui", "lock.ext", HOT, false, "default", "显示蓝牙", true);
-        add("lock.ext.audio", "锁屏主题", "显示声音模式", "锁屏设备状态里显示静音 / 有声；只读，不改铃声音量", "systemui", "lock.ext", HOT, false, "default", "显示声音", true);
-        add("lock.ext.airplane", "锁屏主题", "显示飞行模式", "锁屏设备状态里显示飞行模式开关情况", "systemui", "lock.ext", HOT, false, "default", "显示飞行", true);
-        add("lock.countdown", "锁屏主题", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
-        add("lock.countdowns", "锁屏主题", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
-        add("lock.lyric", "锁屏主题", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
-        add("lock.statusbar", "锁屏主题", "状态栏歌词", "停止或关闭后恢复通知图标", "systemui", "", HOT, false, "default", "显示歌词");
-        add("lock.first", "锁屏主题", "锁屏瞬间的刷新方式", "阅读模式曾改善空白，残影需观察", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
-        add("lock.update", "锁屏主题", "走时与通知的刷新方式", "关闭时沿用系统模式", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
-        add("lock.lyricmode", "锁屏主题", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
-        add("lock.delay", "锁屏主题", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
-        add("lock.dither", "锁屏主题", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
+        add("lock.ext.wifi", "锁屏显示", "显示无线网络", "锁屏设备状态里显示无线网络开关情况", "systemui", "lock.ext", HOT, false, "default", "显示无线", true);
+        add("lock.ext.bt", "锁屏显示", "显示蓝牙", "锁屏设备状态里显示蓝牙开关情况", "systemui", "lock.ext", HOT, false, "default", "显示蓝牙", true);
+        add("lock.ext.audio", "锁屏显示", "显示声音模式", "锁屏设备状态里显示静音 / 有声；只读，不改铃声音量", "systemui", "lock.ext", HOT, false, "default", "显示声音", true);
+        add("lock.ext.airplane", "锁屏显示", "显示飞行模式", "锁屏设备状态里显示飞行模式开关情况", "systemui", "lock.ext", HOT, false, "default", "显示飞行", true);
+        add("lock.countdown", "锁屏显示", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
+        add("lock.countdowns", "锁屏显示", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
+        add("lock.lyric", "锁屏显示", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
+        add("lock.statusbar", "锁屏显示", "状态栏歌词", "停止或关闭后恢复通知图标", "systemui", "", HOT, false, "default", "显示歌词");
+        add("lock.first", "锁屏显示", "锁屏瞬间的刷新方式", "阅读模式曾改善空白，残影需观察", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
+        add("lock.update", "锁屏显示", "走时与通知的刷新方式", "关闭时沿用系统模式", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
+        add("lock.lyricmode", "锁屏显示", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
+        add("lock.delay", "锁屏显示", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
+        add("lock.dither", "锁屏显示", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
         // 翻页动画：GPU 后端开启时不切换 HWC，配置实时下发给 libeinkgpu 的分带波形分支，
         // 两个开关可同时启用、不用重启，分带揭示与 GPU 波形在同一条流水线上生效。
         // 只有 GPU 后端关闭时才挂第三方专用 HWC，那种模式仍是 REBOOT、与其它显示功能互斥。
@@ -146,6 +146,9 @@ public final class FeatureCatalog {
         add("pageanim.reverse", "翻页动画", "反转动画方向", "把展开方向掉个头", "backend", "pageanim.master", HOT, false, "default", "反转方向");
         add("pageanim.touch", "翻页动画", "点击与横向滑动翻页", "点击与左右滑动当作翻页手势", "backend", "pageanim.master", HOT, false, "default", "点击滑动");
         add("pageanim.keys", "翻页动画", "实体音量键翻页", "音量键当作翻页键", "backend", "pageanim.master", HOT, false, "default", "音量键翻页");
+        // 音量键没有「点在哪一边」的信息，融合分带只能沿用上一次点击/滑动的方向，
+        // 表现为「上次点右边，按音量+ 也从右往左」。这一项按习惯覆盖方向，默认开着。
+        add("pageanim.vkey", "翻页动画", "音量键遵从翻页直觉", "音量+＝上一页、音量-＝下一页，不沿用上一次点击的方向", "backend", "pageanim.master", HOT, false, "default", "遵从翻页直觉", true);
         add("pageanim.debounce", "翻页动画", "连续操作保护", "翻页连得过快时跳过新动画，翻页本身照常", "backend", "pageanim.master", HOT, false,
                 "100,250,500,1000", "100 毫秒,250 毫秒,500 毫秒,1 秒");
         add("pageanim.readers", "翻页动画", "目标阅读器", "只对名单里的阅读器生效；不选则动画不触发", "backend", "pageanim.master", HOT, false, "@packages", "选择阅读器");

@@ -16,7 +16,7 @@
 | 实际显示算法路由 | `native/service_algorithm_policy.hpp`、`service_gpu.cpp` |
 | 配置是否真的生效 | 当前进程 PID + starttime、版本、修订号、boot_id 及运行回执 |
 | 发布包来自哪份代码 | Release 中 `build-manifest.json`、SHA256SUMS、run ID 和 commit |
-| 翻页动画与 GPU 后端能否同时启用 | [大功能后端支持清单](../大功能后端支持清单.md) 第五节与对应发布说明 |
+| 翻页动画与 GPU 后端能否同时启用 | [功能列表后端支持清单](../功能列表后端支持清单.md) 第五节与对应发布说明 |
 | 某个实验是否通过 | 原始证据及最新有范围说明的报告；旧总结只做线索 |
 
 代码路径以下均相对 `src/com/inkcontrol/`；完整文件映射见[架构](architecture.md)。

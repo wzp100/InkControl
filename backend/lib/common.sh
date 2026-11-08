@@ -210,7 +210,7 @@ ic_properties() {
         # 分带揭示由 GPU 波形层驱动。着色器里 !drive 的区域输出中性驱动字节而不是
         # 控制模板原像素，面板级 forceClearGhosting 定格任何中间帧都不会刷出黑屏；
         # 逐带延迟被压在波形前半段，末帧所有带都走完 LUT 并收敛。
-        # 详见 docs/翻页动画4块原型预研.md 第十节。
+        # 详见 docs/翻页动画融合实现.md 第四、五节。
         setprop debug.inkcontrol.fusion.drive 1 || return 1
         setprop debug.inkcontrol.fusion.armed 1 || return 1
         # 白名单闸门：默认不允许，由 system_server 侧在每次前台切换时按

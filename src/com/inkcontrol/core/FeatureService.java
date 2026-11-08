@@ -24,6 +24,20 @@ public final class FeatureService {
         store.save(after);
         executor.apply(before, after);
     }
+    /**
+     * 一次改多组取值（拖动换顺序用）：只落盘一次、只跑一次应用。
+     * 逐条 {@link #change} 时每格都要重新应用一遍，四格排一次要等十几秒。
+     */
+    public synchronized void changeAll(java.util.LinkedHashMap<String, String> values) throws Exception {
+        if (values.isEmpty()) return;
+        Configuration before = store.load(), after = before;
+        for (java.util.Map.Entry<String, String> entry : values.entrySet()) {
+            FeatureCatalog.get(entry.getKey()).validate(entry.getValue());
+            after = after.change(entry.getKey(), true, entry.getValue());
+        }
+        store.save(after);
+        executor.apply(before, after);
+    }
     public synchronized void disableAll() throws Exception {
         Configuration before = store.load(), after = before.disableAll();
         store.save(after);

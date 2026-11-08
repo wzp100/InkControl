@@ -212,9 +212,10 @@ public final class CoreTest {
             button.validate("com.tencent.mm");        // 换成某个应用按包名存，走 @package 通道
             button.validate(FeatureCatalog.PANEL_NONE);
         }
-        // 面板上还能直接开关墨控自己的三项：自动刷新、锁屏主题、遮挡息屏。
+        // 面板上还能直接开关墨控自己的几项：自动刷新、锁屏主题、遮挡息屏、全刷扫过。
         for (String[] action : new String[][]{{"refresh", "自动刷新", "refresh.master"},
-                {"lock", "锁屏主题", "lock.style"}, {"cover", "遮挡息屏", "wave.lock"}}) {
+                {"lock", "锁屏主题", "lock.style"}, {"cover", "遮挡息屏", "wave.lock"},
+                {"gcsweep", "全刷扫过", "motion.gc_clear"}}) {
             boolean found = false;
             for (String[] entry : FeatureCatalog.PANEL_ACTIONS)
                 if (entry[0].equals(action[0])) { found = entry[1].equals(action[1]); break; }

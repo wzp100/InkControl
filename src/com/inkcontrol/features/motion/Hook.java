@@ -13,6 +13,7 @@ import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
 import android.graphics.Rect;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
@@ -54,6 +55,8 @@ public class Hook implements IXposedHookLoadPackage {
     private static final int NEXT_TRANSIT_TYPE_CUSTOM = 1;
     /** 点击后多久之内的过渡，用点击位置当展开起点 */
     private static final long TOUCH_VALID_MS = 3000;
+    /** 融合分带的翻页方向：0 = 正向，1 = 反向（配合时间戳，过期按正向处理）。 */
+    static final String PROP_FLIP = "debug.inkcontrol.fusion.flip";
 
     private static boolean sHooked;
     static volatile Config sCfg = new Config();
@@ -65,6 +68,14 @@ public class Hook implements IXposedHookLoadPackage {
     private static volatile float sBatteryC = 30f;
     private static volatile float sTouchX = -1, sTouchY = -1;
     private static volatile long sTouchTime;
+    /** 按下点，用来判断这一次手势是「翻下一页」还是「翻上一页」；与展开起点分开记。 */
+    private static volatile float sDownX = -1, sDownY = -1;
+    private static volatile long sDownTime;
+    /** 水平位移超过它才算滑动翻页，低于 TAP_SLOP 算点击；两者之间（含竖向拖动）不改变方向。 */
+    private static final float SWIPE_MIN = 48f, TAP_SLOP = 24f;
+    /** 最近一次写进 fusion.flip 的值，-1 表示还没写过。 */
+    private static int sFlip = -1;
+    private static long sFlipTime;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -170,6 +181,7 @@ public class Hook implements IXposedHookLoadPackage {
             Log.e(TAG, "hook applyAnimationLocked failed", t);
         }
         LockTransitions.install(cl);
+        hookVolumeKeys(cl);
         Log.i(TAG, "hooks installed");
     }
 
@@ -264,10 +276,18 @@ public class Hook implements IXposedHookLoadPackage {
                     case "onPointerEvent":
                         if (args != null && args.length > 0 && args[0] instanceof MotionEvent) {
                             MotionEvent e = (MotionEvent) args[0];
-                            if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                            int action = e.getActionMasked();
+                            if (action == MotionEvent.ACTION_DOWN) {
                                 sTouchX = e.getRawX();
                                 sTouchY = e.getRawY();
                                 sTouchTime = SystemClock.uptimeMillis();
+                                sDownX = sTouchX;
+                                sDownY = sTouchY;
+                                sDownTime = sTouchTime;
+                            } else if (action == MotionEvent.ACTION_UP) {
+                                detectPageTurn(e.getRawX(), e.getRawY());
+                            } else if (action == MotionEvent.ACTION_CANCEL) {
+                                sDownX = sDownY = -1;
                             }
                         }
                         return null;
@@ -284,6 +304,103 @@ public class Hook implements IXposedHookLoadPackage {
         });
         Method reg = wms.getClass().getMethod("registerPointerEventListener", itf, int.class);
         reg.invoke(wms, proxy, 0);
+    }
+
+    /**
+     * 抬手时判断这一次是「翻下一页」还是「翻上一页」，把方向写给融合分带。
+     *
+     * <p>老的独立翻页动画库自己拦输入，所以滑动/点边会朝对应方向展开；融合没有常驻端，
+     * 只能在 system_server 里从同一条指针事件流里取方向：左滑/点右侧＝下一页（反向），
+     * 右滑/点左侧＝上一页（正向）。竖向拖动与中间区域不写，保留上一次的值（由 native 侧过期）。
+     *
+     * <p>方向的定义取自实测：分带坐标的 row 轴是屏幕横向轴，正向（direction=1）是
+     * 从左向右推，反向（direction=2）是从右向左推。翻下一页（左滑、点右半屏）时新页
+     * 从右往左盖过来才对得上老库的观感，所以「翻下一页」写反向；翻上一页才写正向。
+     */
+    private static void detectPageTurn(float upX, float upY) {
+        if (sDownX < 0) return;
+        float dx = upX - sDownX, dy = upY - sDownY;
+        long held = SystemClock.uptimeMillis() - sDownTime;
+        sDownX = sDownY = -1;
+        if (held > 1200) return;
+        int flip;
+        if (Math.abs(dx) >= SWIPE_MIN && Math.abs(dx) >= Math.abs(dy) * 2f) {
+            flip = dx > 0 ? 0 : 1;                       // 手往右＝翻上一页＝正向
+        } else if (Math.abs(dx) <= TAP_SLOP && Math.abs(dy) <= TAP_SLOP) {
+            flip = upX >= screenWidth() / 2f ? 1 : 0;    // 点右半屏＝翻下一页＝反向
+        } else return;
+        writeFlip(flip);
+    }
+
+    /**
+     * 实体音量键翻页的方向。
+     *
+     * <p>音量键没有「点在哪一边」的信息，融合分带只能沿用上一次写进去的 flip，表现出来就是
+     * 「上次在右侧点过，按音量+ 时动画也从右往左」。这里在按键分发前按习惯重写一次：
+     * 音量+＝上一页（正向），音量-＝下一页（反向），正好和「点左半屏／右滑＝上一页」一致。
+     *
+     * <p>「音量键遵从翻页直觉」关掉就不覆盖，回到跟手势走的老行为（用户可能是想那样用）。
+     * 两个入口都挂上：音量键在有些机型按队列阶段处理、有些在分发阶段，重复写同一个值会被去重。
+     */
+    private static void hookVolumeKeys(ClassLoader cl) {
+        for (String method : new String[]{"interceptKeyBeforeQueueing", "interceptKeyBeforeDispatching"}) {
+            try {
+                XposedBridge.hookAllMethods(XposedHelpers.findClass("com.android.server.policy.PhoneWindowManager", cl),
+                        method, new XC_MethodHook() {
+                            @Override
+                            protected void beforeHookedMethod(MethodHookParam param) {
+                                for (Object arg : param.args) {
+                                    if (arg instanceof KeyEvent) {
+                                        try {
+                                            onVolumeKey((KeyEvent) arg);
+                                        } catch (Throwable t) {
+                                            Log.e(TAG, "volume key handling failed", t);
+                                        }
+                                        return;
+                                    }
+                                }
+                            }
+                        });
+            } catch (Throwable t) {
+                Log.e(TAG, "hook " + method + " failed", t);
+            }
+        }
+    }
+
+    private static void onVolumeKey(KeyEvent event) {
+        if (event.getAction() != KeyEvent.ACTION_DOWN || event.getRepeatCount() > 0) return;
+        int flip;
+        if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) flip = 0;
+        else if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) flip = 1;
+        else return;
+        try {
+            if (!RuntimeConfig.enabled("pageanim.vkey") || !RuntimeConfig.enabled("pageanim.master")) return;
+        } catch (Throwable unknown) {
+            // 配置还没就绪（开机早期）：这一下不改方向，等下一次按键
+            return;
+        }
+        writeFlip(flip);
+        if (sCfg.debug) Log.i(TAG, "volume " + (flip == 0 ? "up -> 上一页" : "down -> 下一页"));
+    }
+
+    /** 把翻页方向写给融合分带：0 = 正向（从左向右推），1 = 反向（从右向左推）。 */
+    private static void writeFlip(int flip) {
+        if (flip == sFlip && SystemClock.uptimeMillis() - sFlipTime < 1000) return;
+        sFlip = flip;
+        sFlipTime = SystemClock.uptimeMillis();
+        try {
+            // 值里带时间戳：native 侧 4 秒后按「正向」处理，避免翻页菜单、滚动等
+            // 不改变方向的手势沿用上一次的反向。
+            Class.forName("android.os.SystemProperties").getMethod("set", String.class, String.class)
+                    .invoke(null, PROP_FLIP, flip + " " + sFlipTime);
+        } catch (Throwable t) { Log.e(TAG, "fusion flip property failed", t); }
+    }
+
+    private static int screenWidth() {
+        try {
+            int width = sContext.getResources().getDisplayMetrics().widthPixels;
+            return width > 0 ? width : 720;
+        } catch (Throwable t) { return 720; }
     }
 
     // ---------------------------------------------------------------- 过渡动画

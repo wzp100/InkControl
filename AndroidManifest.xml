@@ -10,6 +10,12 @@
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
         <activity android:name="com.inkcontrol.ui.PanelToggleActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <!-- 「刷新格言」的无界面入口：桌面快捷方式与 am start 都走它，不会打开墨控主界面。 -->
+        <activity android:name="com.inkcontrol.ui.MottoActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <!-- 外部广播入口：am broadcast -a com.inkcontrol.action.REFRESH_MOTTO -->
+        <receiver android:name="com.inkcontrol.features.lock.MottoReceiver" android:exported="true">
+            <intent-filter><action android:name="com.inkcontrol.action.REFRESH_MOTTO"/></intent-filter>
+        </receiver>
         <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" android:process=":state" />
         <service android:name="com.inkcontrol.features.refresh.RefreshService" android:exported="true" android:label="@string/accessibility_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":refresh">
             <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>

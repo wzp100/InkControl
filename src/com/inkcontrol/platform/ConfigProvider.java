@@ -19,8 +19,9 @@ import java.util.Map;
 /** 只传配置快照和有身份约束的状态/媒体数据，不暴露配置写入或Root执行。 */
 public final class ConfigProvider extends ContentProvider {
     public static final Uri URI = Uri.parse("content://com.inkcontrol.state");
-    /** 刷新面板里「点一下开关」的几项：自动刷新、锁屏主题、遮挡息屏、翻页动画。 */
-    private static final String[] TOGGLES = {"refresh.master", "lock.style", "wave.lock", "pageanim.master"};
+    /** 刷新面板里「点一下开关」的几项：自动刷新、锁屏主题、遮挡息屏、翻页动画、全刷扫过。 */
+    private static final String[] TOGGLES = {"refresh.master", "lock.style", "wave.lock", "pageanim.master",
+            "motion.gc_clear"};
     private AndroidConfigStore store;
     private FeatureService features;
     private final Map<String, Bundle> reports = new HashMap<>();
