@@ -19,7 +19,7 @@
 ## 翻页动画与 HWC
 
 - 「翻页动画」是社区作品（作者 nuku），经同意整合进墨控；第三方原生二进制与 HWC 派生库**不进入公开仓库**，云端构建输入需单独维护，权利范围见 `NOTICE.md`。README 与 Release 说明都要写明署名。
-- `pageanim.master` 与 `display.gpu` **互斥**：同一个 `hwcomposer.ums512.so` 只能挂一份，同时开启时翻页动画优先、`libeinkgpu.so` 不挂载。文档必须说明「不能同时启用」且切换要完整重启；`pageanim.master` 是 REBOOT 项。详见 `docs/大功能后端支持清单.md` 与 `docs/releases/0.2.5-r23.md`。
+- `pageanim.master` 与 `display.gpu` **互斥**：同一个 `hwcomposer.ums512.so` 只能挂一份，同时开启时翻页动画优先、`libeinkgpu.so` 不挂载。文档必须说明「不能同时启用」且切换要完整重启；`pageanim.master` 是 REBOOT 项。详见 `docs/大功能后端支持清单.md` 与 `docs/releases/0.2.6-r26.md`。
 - 后端模块按开机时的开关选挂 HWC，别在两个开关都打开时假设两套效果叠加；App 里显示「已开启」只代表配置，不代表库已挂载。
 
 ## 锁屏与排障要点

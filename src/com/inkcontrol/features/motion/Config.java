@@ -33,6 +33,8 @@ public final class Config {
     public String origin = "touch";
     /** 擦除方向：auto = 前进/打开从右侧开始，后退/关闭从左侧开始 */
     public String wipeDir = "auto";
+    /** 全刷扫过方向：auto = 沿用原厂习惯「从左向右」。与「擦除方向」分开，避免互相牵制。 */
+    public String gcDir = "auto";
     /** 去掉对话框背后的变暗层（和动画总开关无关） */
     public boolean noDim = false;
     /**
@@ -88,6 +90,7 @@ public final class Config {
         result.holdMs = result.holdCurve == null ? Integer.parseInt(hold) : 0;
         result.origin = config.enabled("motion.origin") ? config.value("motion.origin") : "touch";
         result.wipeDir = config.enabled("motion.direction") ? config.value("motion.direction") : "auto";
+        result.gcDir = config.enabled("motion.gc_direction") ? config.value("motion.gc_direction") : "auto";
         result.spread = config.enabled("motion.spread") ? Integer.parseInt(config.value("motion.spread")) : 12;
         result.appAnimScale = config.enabled("motion.scale") ? Float.parseFloat(config.value("motion.scale")) : -1;
         result.debug = false;

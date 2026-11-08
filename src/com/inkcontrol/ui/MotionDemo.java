@@ -117,7 +117,10 @@ final class MotionDemo extends View {
 
     private float[] startMap() {
         float[] s = new float[W * H];
-        String dir = "auto".equals(direction) || "gcsweep".equals(style) ? ("gcsweep".equals(style) ? "ltr" : "ttb") : direction;
+        // 全刷扫过走自己的方向配置；其它样式在 auto 时按「从上向下」演示。
+        String dir = "gcsweep".equals(style)
+                ? ("auto".equals(direction) ? "ltr" : direction)
+                : ("auto".equals(direction) ? "ttb" : direction);
         float maxD = 0;
         for (float[] c : new float[][]{{0, 0}, {W, 0}, {0, H}, {W, H}}) maxD = Math.max(maxD, (float) Math.hypot(c[0] - tapX, c[1] - tapY));
         float[] noise = "ink".equals(style) ? inkNoise() : null;

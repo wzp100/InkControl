@@ -16,7 +16,7 @@ static Pool pools[2];
 static std::condition_variable poolCv;
 static int activePool=-1,producerPool=-1;
 static GLuint mixBuffer,lutBuffer,templateBuffer,smapBuffer,program;
-struct WaveUniforms{GLint frameNumber=-1;GLint neutral=-1;GLint motion=-1;GLint activeFrames=-1;GLint indexLayout=-1;GLint bandDirection=-1;GLint bandFrames=-1;GLint maskRegion=-1;GLint overlay12=-1;GLint twoRegions=-1;GLint activeRect=-1;GLint secondRect=-1;};
+struct WaveUniforms{GLint frameNumber=-1;GLint neutral=-1;GLint motion=-1;GLint activeFrames=-1;GLint indexLayout=-1;GLint bandDirection=-1;GLint bandFrames=-1;GLint bandRows=-1;GLint bandTail=-1;GLint bandStyle=-1;GLint maskRegion=-1;GLint overlay12=-1;GLint twoRegions=-1;GLint activeRect=-1;GLint secondRect=-1;};
 static WaveUniforms waveUniforms;
 
 static EGLDisplay gpuDisplay=EGL_NO_DISPLAY;
@@ -51,7 +51,7 @@ static void setupGpu(int drm){
     const char*fragment=einkwave::FrameShader;
     GLuint vs=compile(GL_VERTEX_SHADER,vertex),fs=compile(GL_FRAGMENT_SHADER,fragment);program=glCreateProgram();glAttachShader(program,vs);glAttachShader(program,fs);glLinkProgram(program);
     GLint ok=0;glGetProgramiv(program,GL_LINK_STATUS,&ok);require(ok,"link frame shader");glDeleteShader(vs);glDeleteShader(fs);
-    waveUniforms.frameNumber=glGetUniformLocation(program,"frameNumber");waveUniforms.neutral=glGetUniformLocation(program,"neutral");waveUniforms.motion=glGetUniformLocation(program,"motion");waveUniforms.activeFrames=glGetUniformLocation(program,"activeFrames");waveUniforms.indexLayout=glGetUniformLocation(program,"indexLayout");waveUniforms.bandDirection=glGetUniformLocation(program,"bandDirection");waveUniforms.bandFrames=glGetUniformLocation(program,"bandFrames");waveUniforms.maskRegion=glGetUniformLocation(program,"maskRegion");waveUniforms.overlay12=glGetUniformLocation(program,"overlay12");waveUniforms.twoRegions=glGetUniformLocation(program,"twoRegions");waveUniforms.activeRect=glGetUniformLocation(program,"activeRect");waveUniforms.secondRect=glGetUniformLocation(program,"secondRect");
+    waveUniforms.frameNumber=glGetUniformLocation(program,"frameNumber");waveUniforms.neutral=glGetUniformLocation(program,"neutral");waveUniforms.motion=glGetUniformLocation(program,"motion");waveUniforms.activeFrames=glGetUniformLocation(program,"activeFrames");waveUniforms.indexLayout=glGetUniformLocation(program,"indexLayout");waveUniforms.bandDirection=glGetUniformLocation(program,"bandDirection");waveUniforms.bandFrames=glGetUniformLocation(program,"bandFrames");waveUniforms.bandRows=glGetUniformLocation(program,"bandRows");waveUniforms.bandTail=glGetUniformLocation(program,"bandTail");waveUniforms.bandStyle=glGetUniformLocation(program,"bandStyle");waveUniforms.maskRegion=glGetUniformLocation(program,"maskRegion");waveUniforms.overlay12=glGetUniformLocation(program,"overlay12");waveUniforms.twoRegions=glGetUniformLocation(program,"twoRegions");waveUniforms.activeRect=glGetUniformLocation(program,"activeRect");waveUniforms.secondRect=glGetUniformLocation(program,"secondRect");
     glGenBuffers(1,&mixBuffer);glGenBuffers(1,&lutBuffer);glGenBuffers(1,&templateBuffer);glGenBuffers(1,&smapBuffer);
     // The frame shader declares SMap even when motion is off; with nothing bound at
     // binding 3 the Mali driver dropped the draw (every live-waveform byte mismatched).
@@ -95,6 +95,9 @@ static void renderWave(void*params){
     glUniform1ui((cacheUniforms?waveUniforms.indexLayout:glGetUniformLocation(program,"indexLayout")),0);
     glUniform1ui((cacheUniforms?waveUniforms.bandDirection:glGetUniformLocation(program,"bandDirection")),0);
     glUniform1ui((cacheUniforms?waveUniforms.bandFrames:glGetUniformLocation(program,"bandFrames")),0);
+    glUniform1ui((cacheUniforms?waveUniforms.bandRows:glGetUniformLocation(program,"bandRows")),48);
+    glUniform1ui((cacheUniforms?waveUniforms.bandTail:glGetUniformLocation(program,"bandTail")),0);
+    glUniform1ui((cacheUniforms?waveUniforms.bandStyle:glGetUniformLocation(program,"bandStyle")),0);
     glUniform1i((cacheUniforms?waveUniforms.maskRegion:glGetUniformLocation(program,"maskRegion")),0);
     glUniform1i((cacheUniforms?waveUniforms.overlay12:glGetUniformLocation(program,"overlay12")),0);
     glUniform1i((cacheUniforms?waveUniforms.twoRegions:glGetUniformLocation(program,"twoRegions")),0);
@@ -301,6 +304,9 @@ static void waveFence(){
         glUniform1ui((cacheUniforms?waveUniforms.indexLayout:glGetUniformLocation(program,"indexLayout")),uint32_t(r.layout));
         glUniform1ui((cacheUniforms?waveUniforms.bandDirection:glGetUniformLocation(program,"bandDirection")),r.bandDirection);
         glUniform1ui((cacheUniforms?waveUniforms.bandFrames:glGetUniformLocation(program,"bandFrames")),r.bandFrames);
+        glUniform1ui((cacheUniforms?waveUniforms.bandRows:glGetUniformLocation(program,"bandRows")),r.bandRows);
+        glUniform1ui((cacheUniforms?waveUniforms.bandTail:glGetUniformLocation(program,"bandTail")),r.bandTail);
+        glUniform1ui((cacheUniforms?waveUniforms.bandStyle:glGetUniformLocation(program,"bandStyle")),r.bandStyle);
         glUniform1i((cacheUniforms?waveUniforms.maskRegion:glGetUniformLocation(program,"maskRegion")),r.maskRegion);
         glUniform1i((cacheUniforms?waveUniforms.overlay12:glGetUniformLocation(program,"overlay12")),r.overlay12);
         glUniform1i((cacheUniforms?waveUniforms.twoRegions:glGetUniformLocation(program,"twoRegions")),r.twoRegions);

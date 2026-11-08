@@ -103,7 +103,7 @@ final class Guide {
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
                 {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.gc_clear", "motion.lock", "motion.unlock"},
-                {"动画节奏", "motion.steps", "motion.hold", "motion.spread", "motion.origin", "motion.direction"},
+                {"动画节奏", "motion.steps", "motion.hold", "motion.spread", "motion.origin", "motion.direction", "motion.gc_direction"},
                 {"其他", "motion.dim", "motion.scale"}});
         cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
@@ -253,9 +253,9 @@ final class Guide {
                 .visual(Visual.REFRESH_MODES).option("521", "阅读模式 → 极速模式", "").term("刷新方式", "极速模式", "阅读模式", "残影");
 
         // ── 翻页动画（0.2.5-r23：第三方翻页动画模块并进同一个后端） ──
-        put("pageanim.master").summary("翻页时把新一页分块、分阶段揭示").what("这版把原先独立的翻页动画 Magisk 模块并进墨控后端：开启后挂载它自带的显示库，由常驻端监听翻页手势，让新画面按选定的风格逐块展开。它与墨控的 GPU 显示后端抢同一个 /vendor 文件，只能二选一；切换后必须完整重启，期间墨控的分模式算法、波形动画与「全刷扫过」都不生效。")
+        put("pageanim.master").summary("翻页时把新一页分块、分阶段揭示").what("开启 GPU 显示后端时，翻页动画由墨控自己的波形层实现：整屏刷新按选定的风格逐带揭示，与分模式算法、波形动画同时生效，开关与参数实时生效不用重启。融合模式下没有常驻端读触摸，触发范围改由「目标阅读器」名单决定：只有名单里的应用在前台时才播放。未开 GPU 后端时才改挂第三方专用显示库，那一种模式会与 GPU 后端二选一、需要完整重启。")
                 .before("翻页是一次整帧瞬间替换，画面直接跳变。").after("新一页按方向或分块逐步展开，看得出翻页过程。")
-                .cost("开启期间墨控 GPU 显示后端那一组功能全部停用；关闭后完整重启即恢复。上下滚动仍走原厂刷新，动画只作用于翻页手势与音量键。")
+                .cost("融合模式下不额外停用其它功能，但同一应用内的整屏刷新（含滚动与弹窗）也会一起播放；独立库模式下有常驻端读触摸，能区分翻页手势与上下滚动。")
                 .option("default", "启用翻页动画", "");
         put("pageanim.style").summary("新一页怎么展开").what("横向或纵向整片展开，以及斜向、反斜向、环绕、中心四种分块展开。选完下次翻页生效。")
                 .option("horizontal", "横向展开", "新画面从一侧向另一侧整片推开。")
@@ -280,16 +280,16 @@ final class Guide {
                 .option("32", "32 块", "最细，接近连续展开。");
         put("pageanim.reverse").summary("把展开方向掉个头").what("例如横向展开默认从左到右，开启后改为从右到左；分块类风格按各自的对称方向反转。")
                 .option("default", "反转方向", "");
-        put("pageanim.touch").summary("点击与左右滑动当作翻页").what("由常驻端读取触摸事件：点击屏幕左右侧、或横向滑动时触发翻页动画。上下滚动仍走原厂刷新，不受影响。")
+        put("pageanim.touch").summary("点击与左右滑动当作翻页").what("由常驻端读取触摸事件：点击屏幕左右侧、或横向滑动时触发翻页动画。只在独立库模式（未开 GPU 显示后端）生效；融合模式下没有常驻端读触摸，触发范围由「目标阅读器」名单决定。")
                 .option("default", "点击与横向滑动翻页", "");
-        put("pageanim.keys").summary("音量键当作翻页键").what("按实体音量上/下键时按翻页处理，适合单手翻页。")
+        put("pageanim.keys").summary("音量键当作翻页键").what("按实体音量上/下键时按翻页处理，适合单手翻页。只在独立库模式生效，融合模式不使用这一项。")
                 .option("default", "实体音量键翻页", "");
-        put("pageanim.debounce").summary("连续翻页太快时跳过新动画").what("两次翻页间隔小于这个值时，后一次直接按原厂方式切页，不再叠加动画，避免动画互相打断。")
+        put("pageanim.debounce").summary("连续翻页太快时跳过新动画").what("两次翻页间隔小于这个值时，后一次直接按原厂方式切页，不再叠加动画，避免动画互相打断。只在独立库模式生效。")
                 .option("100", "100 毫秒", "几乎不限制。")
                 .option("250", "250 毫秒", "原模块默认值。")
                 .option("500", "500 毫秒", "连续翻页时更稳。")
                 .option("1000", "1 秒", "只给慢速翻页加动画。");
-        put("pageanim.readers").summary("只对选中的阅读器生效").what("只有名单里的应用才触发翻页动画，上下滚动仍走原厂刷新；默认不内置任何应用，自己选。")
+        put("pageanim.readers").summary("只对选中的阅读器生效").what("只有名单里的应用才触发翻页动画；默认不内置任何应用，自己选。融合模式下这是唯一的触发条件：不在名单里的应用（含墨控自己）不会播放，名单留空则完全不触发。")
                 .option(com.inkcontrol.core.FeatureDefinition.PACKAGES_TOKEN, "阅读器名单", "");
 
         put("motion.master").summary("原厂没有过渡动画；开启后各场景可分别设置").what("原厂为了墨水屏把窗口动画全部关闭，打开应用、返回时画面直接跳变。开启后，可以在下面每个场景选一种专为墨水屏设计的过渡效果。")
@@ -304,7 +304,7 @@ final class Guide {
             styles(e, !scene[0].equals("lock") && !scene[0].equals("unlock"), true);
         }
         put("motion.gc_clear").summary("去残影全刷不再整屏同时闪黑").what("系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端，并关闭「改用原厂显示算法」。")
-                .before("整屏同时变黑再变回，比较刺眼。").after("黑色光带从左扫到右，过程柔和，去残影效果相同。")
+                .before("整屏同时变黑再变回，比较刺眼。").after("黑色光带扫过一屏，过程柔和，去残影效果相同。扫过方向在“全刷扫过方向”里单独设置。")
                 .visual(Visual.MOTION_SCENE).option("gcsweep", "全刷扫过", "黑色光带从一侧扫过屏幕。").term("清晰全刷", "残影", "波形动画");
         put("motion.dim").summary("弹窗时背后不再变成满屏颗粒").what("弹出对话框时，系统会把背后的画面调暗。墨水屏显示不了半透明灰，变暗层会被转成满屏颗粒点，弹出和关闭时都要整屏重刷。开启后背后保持原样。")
                 .before("每次弹窗，整屏先变成颗粒灰，关闭时再整屏刷回来。").after("只刷新对话框区域，背后不动，更快也更干净。")
@@ -329,6 +329,9 @@ final class Guide {
                 .option("touch", "触摸位置", "从你刚点的图标或按钮处展开，最直观。").option("center", "屏幕中心", "总是从正中间展开，更整齐。");
         put("motion.direction").summary("擦除、扫描线、百叶窗从哪一侧开始").what("关键帧擦除、扫描线和百叶窗从屏幕的哪一侧开始。").cost("不开启时为自动。").visual(Visual.MOTION_DIRECTION)
                 .option("auto", "自动", "打开和前进从右往左推、关闭和后退从左往右；扫描线从上往下。符合“前进/后退”的直觉。")
+                .option("ltr", "从左向右", "").option("rtl", "从右向左", "").option("ttb", "从上向下", "").option("btt", "从下向上", "");
+        put("motion.gc_direction").summary("全刷扫过从哪一侧开始").what("系统做“清晰全刷”去残影时，那道黑色光带从屏幕的哪一侧开始扫。").cost("只在“全刷扫过”启用时生效，与上面的“擦除方向”互不影响；不开启时按原厂习惯从左向右。").visual(Visual.MOTION_DIRECTION)
+                .option("auto", "自动", "沿用原厂习惯：从左向右扫过。")
                 .option("ltr", "从左向右", "").option("rtl", "从右向左", "").option("ttb", "从上向下", "").option("btt", "从下向上", "");
         put("motion.scale").summary("应用自己的小动画：水波纹、回弹、页面内切换").what("应用内部也有很多小动画，例如按钮水波纹、列表回弹、标签页切换。原厂固定为正常速度，在墨水屏上它们会变成一串拖影和多余刷新。")
                 .before("点按钮会看到几次灰色水波纹刷新，列表滚到头会回弹几下。").after("可以完全关闭（直接显示结果），或缩短为一半时长。")

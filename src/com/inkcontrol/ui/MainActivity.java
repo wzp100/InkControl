@@ -6,6 +6,7 @@ import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -23,9 +24,12 @@ import com.inkcontrol.features.motion.Geometry;
 import com.inkcontrol.platform.ApplicationServices;
 import com.inkcontrol.platform.BuildInfo;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.json.JSONObject;
 
 /**
  * 纯原生界面，不接触系统设置、Root 或进程内 Hook 状态。
@@ -34,7 +38,7 @@ import java.util.concurrent.Executors;
  */
 public final class MainActivity extends Activity {
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor();
-    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "大功能排序", SHORTCUTS = "桌面快捷方式", TERMS = "__terms";
+    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "大功能排序", SHORTCUTS = "桌面快捷方式", ABOUT = "关于", TERMS = "__terms";
     /** 启动时直接打开「模块设置」下某一页用的 extra。 */
     private static final String MODULE_EXTRA = "module";
     /** E-Ink 刷新面板的「墨控快捷设置」按钮：带 quick=1 进来，直接落到只含三个常用开关的一页。 */
@@ -44,7 +48,7 @@ public final class MainActivity extends Activity {
     /** 「快捷设置」页不是 Guide 里的分类（首页不列），只是借分类位渲染一个独立页面。 */
     private static final String QUICK = "快捷设置";
     /** 「模块设置」下这些是页面而不是普通选项，进程重建时要保留当前页。 */
-    private static final List<String> MODULE_PAGES = Arrays.asList(INSTALL, DIAGNOSE, ORDER, SHORTCUTS);
+    private static final List<String> MODULE_PAGES = Arrays.asList(INSTALL, DIAGNOSE, ORDER, SHORTCUTS, ABOUT);
     private static final String[] TABS = {FEATURES, MODULE};
     private static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL};
     private static final int EXPORT_REQUEST = 100;
@@ -52,6 +56,17 @@ public final class MainActivity extends Activity {
     private static final int FONT_DIR_REQUEST = 102;
     /** 海信主题字体目录：字体包没有扩展名，靠文件头识别 TTF/OTF。 */
     private static final String FONT_DIR_DEFAULT = "/storage/emulated/0/.hmcttheme/com.hmct.theme/";
+    /** 「关于」页里的外链；只跳转浏览器，不在应用里做自动更新或下载。 */
+    private static final String REPO = "https://github.com/liuqianhe/InkControl";
+    private static final String RELEASES = REPO + "/releases";
+    private static final String README_URL = REPO + "/blob/main/README.md";
+    private static final String LATEST_API = "https://api.github.com/repos/liuqianhe/InkControl/releases/latest";
+    private static final String AUTHOR_URL = "https://github.com/liuqianhe";
+    private static final String CONTRIBUTORS = REPO + "/graphs/contributors";
+    private static final String UPSTREAM_REPO = "https://github.com/wzp100/InkControl";
+    private static final String UPSTREAM_AUTHOR = "https://github.com/wzp100";
+    private static final String COMMUNITY_NUKU = "http://www.coolapk.com/u/21150263";
+    private static final String REFRESH_REFERENCE = "https://github.com/ChenXu178/Hisense-E-Ink-auto-refresh";
     /**
      * 三个作用域一个回执都没有＝框架根本没把墨控注入任何进程。这时功能页只会顶着一句
      * 「等待运行确认」，看起来像功能写坏了，所以要在状态旁边直说原因。
@@ -73,6 +88,10 @@ public final class MainActivity extends Activity {
     private boolean lockExtOpen;
     /** 面板开关由 SystemUI 转到应用进程写盘，界面快照不会自己变；靠这条观察者重读。 */
     private android.database.ContentObserver panelObserver;
+    /** 「关于」页检测更新的结果：留在字段里，页面重建（旋转）后仍看得到上一次结论。 */
+    private String aboutUpdateText = "", aboutUpdateUrl = "";
+    private boolean checkingUpdate;
+    private TextView aboutUpdateView;
     /** 详情页里正在预览、尚未使用的选项；空表示与当前设置相同。 */
     private String preview = "";
     /** 字体页的完整列表、过滤词与渲染控件：搜索框只过滤显示，不重新扫描目录。 */
@@ -290,7 +309,7 @@ public final class MainActivity extends Activity {
 
     private void render() {
         if (scroll != null) scrollPositions.put(pageKey(), scroll.getScrollY());
-        mainDemo = null; visualView = null;
+        mainDemo = null; visualView = null; aboutUpdateView = null;
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Ink.PAPER);
@@ -332,6 +351,7 @@ public final class MainActivity extends Activity {
                 else if (modulePage.equals(DIAGNOSE)) diagnostics();
                 else if (modulePage.equals(ORDER)) categoryOrderPage();
                 else if (modulePage.equals(SHORTCUTS)) shortcutPage();
+                else if (modulePage.equals(ABOUT)) aboutPage();
                 else moduleSettings();
             } else if (!loadError.isEmpty()) {
                 body.addView(spaced(paragraph("出错了先从这里处理：进「诊断」查看详情，或在「安装」重新导出 Magisk 模块 ZIP。", 14), 12));
@@ -373,7 +393,9 @@ public final class MainActivity extends Activity {
         boolean isHome = tab.equals(FEATURES) && category.isEmpty() && featureId.isEmpty();
         // 直落功能页的分类会跳过分类页，此时 category 为空，仍算子页
         boolean sub = tab.equals(FEATURES) && !isHome;
-        if (sub && category.equals(TERMS)) { title = "名词解释"; subtitle = "界面里出现的专业词是什么意思。"; back = "模块设置"; }
+        boolean about = tab.equals(MODULE) && modulePage.equals(ABOUT);
+        if (about) { title = "关于"; subtitle = "版本、作者、来源与更新。"; back = "模块设置"; }
+        else if (sub && category.equals(TERMS)) { title = "名词解释"; subtitle = "界面里出现的专业词是什么意思。"; back = "模块设置"; }
         else if (sub && !featureId.isEmpty()) {
             FeatureDefinition f = FeatureCatalog.get(featureId);
             title = f.title; subtitle = Guide.get(f.id).summary.isEmpty() ? f.description : Guide.get(f.id).summary;
@@ -411,7 +433,7 @@ public final class MainActivity extends Activity {
             brand.addView(version);
             titles.addView(brand);
         } else {
-            titles.addView(ink.text(title, sub ? 26 : 30, Ink.BOLD));
+            titles.addView(ink.text(title, sub || about ? 26 : 30, Ink.BOLD));
         }
         row.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
 
@@ -422,13 +444,27 @@ public final class MainActivity extends Activity {
             else if (!snapshot.checked()) label = snapshot.failure.equals("尚未检查环境") ? "未检查" : "环境异常";
             else if (snapshot.ready()) { label = "● 就绪"; filled = true; }
             else label = "未就绪";
+            // 右上角一排小按钮：「关于」是入口，「就绪」是环境状态。两者样式一致，
+            // 点「就绪」仍然按老规矩进诊断页。
+            LinearLayout badges = new LinearLayout(this);
+            badges.setGravity(Gravity.CENTER_VERTICAL);
+            TextView aboutBadge = ink.text("关于", 13, Ink.MEDIUM);
+            aboutBadge.setPadding(ink.dp(12), ink.dp(7), ink.dp(12), ink.dp(7));
+            aboutBadge.setBackground(ink.pressable(ink.outline(16), ink.solid(16)));
+            aboutBadge.setTextColor(Ink.pressedColors(Ink.INK, Ink.PAPER));
+            aboutBadge.setContentDescription(ink.t("打开关于"));
+            aboutBadge.setOnClickListener(v -> openModule(ABOUT));
+            badges.addView(aboutBadge);
             TextView badge = ink.text(label, 13, Ink.MEDIUM);
             badge.setPadding(ink.dp(12), ink.dp(7), ink.dp(12), ink.dp(7));
             badge.setBackground(filled ? ink.solid(16) : ink.outline(16));
             badge.setTextColor(filled ? Ink.PAPER : Ink.INK);
             badge.setContentDescription(ink.t("环境状态：" + label));
             badge.setOnClickListener(v -> openModule(DIAGNOSE));
-            row.addView(badge);
+            LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(-2, -2);
+            statusParams.leftMargin = ink.dp(8);
+            badges.addView(badge, statusParams);
+            row.addView(badges);
         }
         box.addView(row);
 
@@ -1571,6 +1607,8 @@ public final class MainActivity extends Activity {
     }
 
     private MotionDemo demo(String scene, String style, int steps, String origin, String direction, int spread) {
+        // 全刷扫过用自己的方向，别让「擦除方向」的取值带进预览。
+        if ("gc_clear".equals(scene)) direction = gcDirection();
         MotionDemo demo = new MotionDemo(this, ink, false).configure(scene, style, steps, origin, direction, spread);
         mainDemo = demo;
         return demo;
@@ -1633,6 +1671,10 @@ public final class MainActivity extends Activity {
     private int steps() { return snapshot.config.enabled("motion.steps") ? Integer.parseInt(snapshot.config.value("motion.steps")) : 2; }
     private String origin() { return snapshot.config.enabled("motion.origin") ? snapshot.config.value("motion.origin") : "touch"; }
     private String direction() { return snapshot.config.enabled("motion.direction") ? snapshot.config.value("motion.direction") : "auto"; }
+    /** 全刷扫过自己的方向；auto 时沿用原厂「从左向右」。 */
+    private String gcDirection() { return snapshot.config.enabled("motion.gc_direction") ? snapshot.config.value("motion.gc_direction") : "auto"; }
+    /** 场景取哪个方向：全刷扫过用独立设置，其余共用「擦除方向」。 */
+    private String sceneDirection(String id) { return "motion.gc_clear".equals(id) ? gcDirection() : direction(); }
     private int spread() { return snapshot.config.enabled("motion.spread") ? Integer.parseInt(snapshot.config.value("motion.spread")) : 12; }
     private String timing(String style) {
         if (style.equals("kiris") || style.equals("kwipe")) {
@@ -1666,7 +1708,7 @@ public final class MainActivity extends Activity {
             if (thumbs) {
                 View thumb;
                 if (g.visual == Guide.Visual.LOCK_STYLE) thumb = LockPreview.create(this, Integer.parseInt(value), snapshot.config);
-                else thumb = new MotionDemo(this, ink, true).configure(f.id.substring(7), value, steps(), origin(), direction(), spread());
+                else thumb = new MotionDemo(this, ink, true).configure(f.id.substring(7), value, steps(), origin(), sceneDirection(f.id), spread());
                 FrameLayout frame = new FrameLayout(this);
                 frame.setPadding(ink.dp(2), ink.dp(2), ink.dp(2), ink.dp(2));
                 frame.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 6));
@@ -2604,6 +2646,8 @@ public final class MainActivity extends Activity {
                 "", false, "打开实验室", v -> { tab = FEATURES; category = "实验室"; featureId = ""; scroll = null; render(); }), 12));
         body.addView(spaced(navCard("名词解释", "刷新方式、残影、关键帧、波形动画……这些词是什么意思。",
                 "", false, "名词解释", v -> navigate(TERMS, "")), 12));
+        body.addView(spaced(navCard("关于", "版本信息、作者与贡献者、上游与参考项目，以及手动检测更新。",
+                "", false, "打开关于", v -> { modulePage = ABOUT; scroll = null; render(); }), 12));
 
         LinearLayout languageCard = column(ink.text("语言 / Language", 16, Ink.BOLD));
         TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
@@ -2620,6 +2664,163 @@ public final class MainActivity extends Activity {
         noticeCard.addView(spaced(paragraph("修改设置后的结果提示会在页面上停留一段时间后自动消失；"
                 + "选「不显示」则不再占用页面空间。失败提示不会自动消失。", 13), 8));
         body.addView(spaced(card(noticeCard), 12));
+    }
+
+    // ───────────────────────── 关于 ─────────────────────────
+
+    /** 只跳浏览器，不在应用内下载或安装任何东西。 */
+    private void openLink(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception failure) {
+            Toast.makeText(this, ink.t("没有可以打开链接的应用"), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** 一条外链：名字 + 一行说明。不放头像，图标也不加背景形状。 */
+    private View linkRow(String name, String detail, String url) {
+        LinearLayout row = column(ink.text(name, 16, Ink.BOLD), spaced(paragraph(detail, 13), 4));
+        row.setPadding(ink.dp(2), ink.dp(10), ink.dp(2), ink.dp(10));
+        row.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
+                ink.box(Ink.PAPER, Ink.INK, 2, 10)));
+        row.setContentDescription(ink.t(name + "，" + detail + "，打开链接"));
+        row.setOnClickListener(v -> openLink(url));
+        return row;
+    }
+
+    /** 一组外链放在同一张卡里，条目之间用细线分隔。 */
+    private View aboutSection(String title, View... rows) {
+        LinearLayout box = column(ink.text(title, 16, Ink.BOLD));
+        for (int i = 0; i < rows.length; i++) {
+            if (i > 0) box.addView(spaced(ink.rule(1), 10));
+            box.addView(spaced(rows[i], 10));
+        }
+        return spaced(card(box), 12);
+    }
+
+    private void aboutPage() {
+        LinearLayout brand = new LinearLayout(this);
+        brand.setOrientation(LinearLayout.VERTICAL);
+        brand.setGravity(Gravity.CENTER_HORIZONTAL);
+        brand.setPadding(0, ink.dp(12), 0, ink.dp(6));
+        try {
+            ImageView icon = new ImageView(this);
+            icon.setImageDrawable(getPackageManager().getApplicationIcon(getPackageName()));
+            brand.addView(icon, new LinearLayout.LayoutParams(ink.dp(56), ink.dp(56)));
+        } catch (Exception ignored) { /* 取不到图标就只显示名字 */ }
+        TextView name = ink.text("墨控", 26, Ink.BOLD);
+        name.setGravity(Gravity.CENTER);
+        brand.addView(spaced(name, 10));
+        TextView version = ink.text("版本 v" + BuildInfo.VERSION, 13, Ink.REGULAR);
+        version.setGravity(Gravity.CENTER);
+        brand.addView(spaced(version, 6));
+        body.addView(brand);
+
+        LinearLayout primary = new LinearLayout(this);
+        primary.setGravity(Gravity.CENTER_VERTICAL);
+        primary.addView(ink.button("项目仓库", Ink.Kind.SECONDARY, v -> openLink(REPO)),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams docParams = new LinearLayout.LayoutParams(0, -2, 1);
+        docParams.leftMargin = ink.dp(10);
+        primary.addView(ink.button("文档", Ink.Kind.SECONDARY, v -> openLink(README_URL)), docParams);
+        body.addView(spaced(primary, 14));
+
+        body.addView(spaced(card(column(paragraph(
+                "海信 A5 Pro 经典版（HLTE203T / Android 10）的墨水屏增强模块。全部增强默认关闭，按需开启。", 14))), 12));
+
+        // 作者、来源、上游与参考项目合成一张卡；nuku 不再单列「社区」，
+        // README 由上面的「文档」按钮直达，不再重复放一条「项目说明」。
+        body.addView(aboutSection("作者与来源",
+                linkRow("liuqianhe", "作者 / 维护者 · GitHub 主页", AUTHOR_URL),
+                linkRow("贡献者", "查看本仓库的全部贡献者", CONTRIBUTORS),
+                linkRow("项目仓库", "源码与文档", REPO),
+                linkRow("版本发布", "下载签名 APK 与后端模块", RELEASES),
+                linkRow("问题反馈", "提交问题与建议", REPO + "/issues"),
+                linkRow("wzp100", "上游项目原作者 · GitHub 主页", UPSTREAM_AUTHOR),
+                linkRow("wzp100/InkControl", "上游仓库，本项目的起点", UPSTREAM_REPO),
+                linkRow("nuku", "翻页动画作者 · 酷安主页；社区作品经同意整合", COMMUNITY_NUKU),
+                linkRow("Hisense-E-Ink-auto-refresh", "自动刷新能力的参考项目", REFRESH_REFERENCE)));
+
+        LinearLayout update = column(ink.text("查看更新", 16, Ink.BOLD));
+        update.addView(spaced(paragraph("当前版本 v" + BuildInfo.VERSION
+                + "。只在点按钮时检测一次，不会自动检查、下载或安装。", 13), 8));
+        update.addView(spaced(ink.button("检测更新", Ink.Kind.SECONDARY, v -> checkForUpdate()), 12));
+        aboutUpdateView = ink.text(aboutUpdateText.isEmpty() ? "检测结果会显示在这里。" : aboutUpdateText,
+                14, Ink.REGULAR);
+        if (!aboutUpdateUrl.isEmpty()) {
+            aboutUpdateView.setPaintFlags(aboutUpdateView.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+            aboutUpdateView.setOnClickListener(v -> openLink(aboutUpdateUrl));
+            aboutUpdateView.setClickable(true);
+        }
+        update.addView(spaced(aboutUpdateView, 12));
+        update.addView(spaced(linkRow("打开发布页", "在浏览器里查看全部版本", RELEASES), 12));
+        body.addView(spaced(card(update), 12));
+        body.addView(spaced(paragraph("第三方二进制与社区作品的权利归原权利人所有，详见仓库 NOTICE.md。", 13), 12));
+    }
+
+    /** 手动检测一次最新版本；结果留在字段里，页面重建后仍然可见。 */
+    private void checkForUpdate() {
+        if (checkingUpdate) return;
+        checkingUpdate = true;
+        aboutUpdateText = "正在检测最新版本…";
+        aboutUpdateUrl = "";
+        if (aboutUpdateView != null) {
+            aboutUpdateView.setText(ink.t(aboutUpdateText));
+            aboutUpdateView.setOnClickListener(null);
+            aboutUpdateView.setClickable(false);
+        }
+        WORKER.execute(() -> {
+            String result, link = "";
+            try {
+                HttpURLConnection connection = (HttpURLConnection) new URL(LATEST_API).openConnection();
+                connection.setConnectTimeout(6000);
+                connection.setReadTimeout(6000);
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Accept", "application/vnd.github+json");
+                connection.setRequestProperty("User-Agent", "InkControl/" + BuildInfo.VERSION);
+                connection.setInstanceFollowRedirects(true);
+                try {
+                    if (connection.getResponseCode() != 200)
+                        throw new java.io.IOException("接口返回 " + connection.getResponseCode());
+                    java.io.InputStream input = connection.getInputStream();
+                    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+                    byte[] chunk = new byte[4096];
+                    int count;
+                    while ((count = input.read(chunk)) > 0) buffer.write(chunk, 0, count);
+                    input.close();
+                    JSONObject release = new JSONObject(
+                            new String(buffer.toByteArray(), java.nio.charset.StandardCharsets.UTF_8));
+                    String tag = release.optString("tag_name", "");
+                    String page = release.optString("html_url", RELEASES);
+                    String latest = tag.startsWith("v") ? tag.substring(1) : tag;
+                    if (latest.isEmpty()) throw new java.io.IOException("发布页没有版本标签");
+                    if (latest.equals(BuildInfo.VERSION)) {
+                        result = "已是最新版本 v" + BuildInfo.VERSION;
+                    } else {
+                        result = "发现新版本 v" + latest + "（当前 v" + BuildInfo.VERSION + "），点这里打开发布页";
+                        link = page;
+                    }
+                } finally { connection.disconnect(); }
+            } catch (Exception failure) {
+                result = "检测失败：网络或接口暂不可用，可点下方打开发布页查看";
+            }
+            final String text = result, url = link;
+            runOnUiThread(() -> {
+                checkingUpdate = false;
+                aboutUpdateText = text; aboutUpdateUrl = url;
+                if (isFinishing() || isDestroyed() || aboutUpdateView == null) return;
+                aboutUpdateView.setText(ink.t(text));
+                if (url.isEmpty()) {
+                    aboutUpdateView.setOnClickListener(null);
+                    aboutUpdateView.setClickable(false);
+                } else {
+                    aboutUpdateView.setPaintFlags(aboutUpdateView.getPaintFlags()
+                            | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+                    aboutUpdateView.setOnClickListener(v -> openLink(url));
+                    aboutUpdateView.setClickable(true);
+                }
+            });
+        });
     }
 
     // ───────────────────────── 大功能排序 ─────────────────────────

@@ -195,7 +195,7 @@ layout(std430,binding=2)readonly buffer Template{uint templ[];};
 layout(std430,binding=3)readonly buffer SMap{uint smap[];};
 layout(location=0)out vec4 color;
 uniform uint frameNumber;uniform bool neutral;uniform bool motion;uniform uint activeFrames;
-uniform uint indexLayout;uniform uvec4 activeRect;uniform uint bandDirection;uniform uint bandFrames;
+uniform uint indexLayout;uniform uvec4 activeRect;uniform uint bandDirection;uniform uint bandFrames;uniform uint bandRows;uniform uint bandTail;uniform uint bandStyle;
 uniform bool overlay12;uniform bool maskRegion;uniform bool twoRegions;uniform uvec4 secondRect;
 bool inGroups(uvec4 r,uint x,uint row){uint begin=r.x>>2u,count=((r.z>>1u)-(r.x>>1u)+1u)>>1u;
 return x>=begin&&x<begin+count&&row>=r.y&&row<r.w;}
@@ -203,10 +203,41 @@ uint lookup(uint k,uint f){if(f>=activeFrames)return 0u;k+=f*65536u;return(lut[k
 uint late(uint k,uint s){if(frameNumber<s)return 0u;return lookup(k,frameNumber-s);}
 void main(){uint x=uint(gl_FragCoord.x),y=uint(gl_FragCoord.y),p=y*384u+x,t=templ[p];
 if(y>=5u&&x<360u){uint row=y-5u,g=row*360u+x,data=0u,f=frameNumber;bool drive=true;
-if(bandDirection!=0u){uint delay=(bandDirection==2u?719u-row:row)/48u;
-drive=frameNumber>=delay&&frameNumber-delay<=bandFrames;f=frameNumber-delay;}
+if(bandDirection!=0u){
+// 分带揭示：每行按 bandRows 划带，delay 压缩到波形前 1/3，保证任何带都在
+// 末帧之前启动并有足够帧数走完 LUT。bandFrames 由 validWave 约束，不再作上界。
+uint rows=bandRows>0u?bandRows:48u,steps=719u/rows+1u;
+// pageanim.style：0 横向 / 1 纵向 / 2 斜向 / 3 反斜向 / 4 环绕 / 5 中心。
+// 把二维坐标折成一维「揭示次序」，再交给下面的逐带延迟；行坐标 0..719，
+// 列坐标 0..359（每 4 个像素一组），统一折到 0..719 区间。
+uint coord=row;
+if(bandStyle==1u)coord=x*2u;
+else if(bandStyle==2u)coord=(row+x*2u)/2u;
+else if(bandStyle==3u)coord=(719u-row+x*2u)/2u;
+else if(bandStyle==4u||bandStyle==5u){
+uint dr=row>359u?row-359u:359u-row,dc=x>179u?(x-179u)*2u:(179u-x)*2u;
+coord=(dr+dc)/2u;
+if(coord>359u)coord=359u;
+if(bandStyle==4u)coord=359u-coord;}
+if(coord>719u)coord=719u;
+if(bandDirection==2u)coord=719u-coord;
+// bandTail 是「整条波形为分带错峰额外延长出来的帧数」。每带仍然是
+// f = frameNumber - delay、从 LUT 第 0 帧一直走到第 activeFrames-1 帧，
+// 一条不落地跑完整条波形 —— 这是「刷新干净」的关键：
+// 只错峰启动、不延长总帧数，后启动的带会被截掉尾部收敛帧，像素停在
+// 中间灰阶，旧页就留下浅灰残影。
+uint bandIndex=coord/rows;
+if(bandIndex>=steps)bandIndex=steps-1u;
+uint delay=steps>1u?bandIndex*bandTail/(steps-1u):0u;
+if(delay>bandTail)delay=bandTail;
+f=frameNumber>delay?frameNumber-delay:0u;
+// 走完 LUT 之后 lookup() 自然返回 0（中性，保持像素），不需要再截断。
+drive=frameNumber>=delay;}
 if(neutral)data=0u;
-else if(!drive){color=vec4(float((t>>16u)&255u),float((t>>8u)&255u),float(t&255u),float(t>>24u))/255.;return;}
+// 未揭示的区域必须输出中性驱动字节（保持当前画面），不能把控制模板的原始
+// 驱动字节送出去：面板级 forceClearGhosting 不产生新合成帧，会把那个中间态
+// 直接刷到屏幕上定格成大面积黑底白字（智墨键单击=刷新，连按两次尤其容易命中）。
+else if(!drive)data=0u;
 else if(indexLayout==0u){uint m=mixPixels[g],lo=m&65535u,hi=m>>16u;
 if(!motion)data=(lookup(lo,f)<<4u)|lookup(hi,f);
 else{uint s=smap[g];data=(((late(lo,s&255u)>>2u)&3u)<<6u)|((late(lo,(s>>8u)&255u)&3u)<<4u)|
@@ -239,7 +270,9 @@ struct WaveRequest {
     const uint32_t*controlTemplate=nullptr;size_t templateBytes=0;
     GLuint gpuStartMap=0;const uint8_t*cpuStartMap=nullptr;size_t startMapBytes=0;
     uint32_t activeFrames=0,totalFrames=0,maxDelay=0;
-    uint32_t bandDirection=0,bandFrames=0;
+    // bandTail：为分带错峰额外延长的帧数。每带从 LUT 第 0 帧走满 activeFrames 帧，
+    // 所以总帧数必须是 activeFrames + bandTail + 1，否则后启动的带会被截尾。
+    uint32_t bandDirection=0,bandFrames=0,bandRows=48,bandTail=0,bandStyle=0;
     IndexLayout layout=IndexLayout::PairY4;Rect region{},secondRegion{};
     bool maskRegion=false,overlay12=false,gpuIndexValidated=false,neutralOnly=false,twoRegions=false;
     uint64_t wave=0,stateGeneration=0;
@@ -249,8 +282,10 @@ inline bool validWave(const WaveRequest&r){
     bool start=r.gpuStartMap||r.cpuStartMap;
     bool frames=r.neutralOnly?(r.activeFrames==0&&r.totalFrames>0&&r.totalFrames<=MaxLiveFrames+1u&&
                               !r.maxDelay&&!start&&!r.bandDirection&&r.layout==IndexLayout::PairY4):
-                             (r.activeFrames>0&&r.activeFrames<=MaxLiveFrames&&r.totalFrames==r.activeFrames+r.maxDelay+1u);
+                             (r.activeFrames>0&&r.activeFrames<=MaxLiveFrames&&
+                              r.totalFrames==r.activeFrames+r.maxDelay+(r.bandDirection?r.bandTail:0u)+1u);
     return uint32_t(r.layout)<=2u&&validRect(r.region)&&frames&&r.maxDelay<=255u&&r.bandDirection<=2u&&
+        r.bandRows>=4u&&r.bandRows<=720u&&r.bandTail<=24u&&r.bandStyle<=5u&&
         r.liveLut&&r.lutBytes>=(r.neutralOnly?4:size_t(r.activeFrames)*65536u)&&r.controlTemplate&&r.templateBytes>=FrameBytes&&
         ((r.gpuIndices!=0)!=(r.cpuIndices!=nullptr))&&r.indexBytes>=need&&
         ((r.gpuStartMap!=0)!=(r.cpuStartMap!=nullptr)||!start)&&

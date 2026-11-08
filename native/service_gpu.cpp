@@ -125,6 +125,12 @@ __attribute__((constructor)) static void initialize(){dl_iterate_phdr(findHwc,nu
 #include "service_stock_color.hpp"
 #include "service_transitions.hpp"
 #include "service_reading_capture.hpp"
+#include "service_pageanim.hpp"
+#include "service_fusion.hpp"
+
+// 融合分带这次的延长帧数；0 表示本次波形不分带。frame 0 的原厂调用之后
+// 按它给 ctl 的 remaining/total 同时加数，让每条带都能跑完整条 LUT。
+static uint32_t fusionTail=0;
 
 // The stock mode/state machine remains authoritative. Only its image-sized
 // consumers are substituted; their addresses and dimensions are checked here.
@@ -305,6 +311,10 @@ static void hookPattern(void*p){
     reinterpret_cast<void(*)(void*)>(base+0x97540)(p);
 }
 static int hookUpdate(void*entry,void*ctl){
+    // 翻页动画 4 块原型：属性没打开时只读一个 prop 就返回 false，原流程零变化。
+    if(einkpageanim::probe(entry,ctl,base))return 0;
+    // 融合路线：把分块揭示重写成 GPU 波形的条带相位，默认关闭、恒不接管。
+    (void)einkfusion::probe(entry,ctl,base);
     uint64_t start=now();int ordinal=generated++;
     auto control=einktransition::snapshot(ctl);auto segment=einktransition::segment(control);
     int frame=segment.valid?int(segment.localFrame):ordinal;
@@ -355,6 +365,28 @@ static int hookUpdate(void*entry,void*ctl){
                     if(motionMax>0){request.cpuStartMap=smapHost.data();request.startMapBytes=smapHost.size();
                         request.maxDelay=uint32_t(motionMax);request.totalFrames+=uint32_t(motionMax);}
                 }else motionMax=0;
+                // 融合：翻页动画的分阶段揭示改由 GPU 波形层原生 bandDirection 驱动。
+                // motionMax>0 表示这一帧已经被「动画」里的某个过渡接管（全刷扫过 / 擦除 /
+                // 扫描线 / 百叶窗）。两者都靠波形时序表达，叠加会互相覆盖：分带的几何
+                // 会把扫过方向盖成斜向。所以显式动画优先，融合让位。
+                auto fd=einkfusion::drive(int(request.activeFrames),ctl);
+                if(fd.enabled&&motionMax==0&&!blank&&!segment.regionOverlay&&
+                   segment.phase==einktransition::Phase::Normal){
+                    // 分带必须「迟启动 + 总帧数等量延长」：总帧数 = active + tail + 1，
+                    // 并在 frame 0 的原厂调用之后把 ctl 的 remaining/total 同时加 tail，
+                    // 让每条带都从 LUT 第 0 帧走满 activeFrames 帧。只错峰不延长会把
+                    // 后启动的带截尾，像素停在中间灰阶 → 旧页浅灰残影（刷新不干净）。
+                    motionMax=0;
+                    request.cpuStartMap=nullptr;request.gpuStartMap=0;request.startMapBytes=0;
+                    request.maxDelay=0;
+                    request.totalFrames=request.activeFrames+fd.tail+1;
+                    request.bandDirection=fd.direction;request.bandFrames=fd.frames;
+                    request.bandRows=fd.rows;request.bandTail=fd.tail;request.bandStyle=fd.style;
+                    fusionTail=fd.tail;
+                    LOG("FUSION_DRIVE wave=%llu dir=%u style=%u rows=%u tail=%u frames=%u active=%u total=%u",
+                        (unsigned long long)waveId,fd.direction,fd.style,fd.rows,fd.tail,fd.frames,
+                        request.activeFrames,request.totalFrames);
+                }else fusionTail=0;
                 request.wave=waveId;request.gpuIndexValidated=true;
                 gpuBeginWave(request);waveformFrames=int(request.totalFrames);
             }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("ROLL_BEGIN_FALLBACK reason=%s",e.what());
@@ -367,7 +399,9 @@ static int hookUpdate(void*entry,void*ctl){
             rollingWindowEnd=uint32_t(frame)+pools[rollingWindowPool].count;producerPool=rollingWindowPool;
             try{readingCaptureWindow(rollingWindowPool);}catch(const std::exception&e){LOG("READING_CAPTURE_ERROR reason=%s",e.what());readingDone=true;}
         }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("ROLL_WINDOW_FALLBACK reason=%s",e.what());
-            motionAbort(ctl,frame);control=einktransition::snapshot(ctl);segment=einktransition::segment(control);
+            motionAbort(ctl,frame);
+            // 撤销分带延长，避免原厂用扩展后的帧号越界访问 LUT。
+            einkfusion::restoreTail();fusionTail=0;control=einktransition::snapshot(ctl);segment=einktransition::segment(control);
             bridgeResidentPixels(ctl);gpuCancelRollingWave();rollingProducer=false;producerPool=-1;gpuFailed=true;}
     }
     if(frame==0&&configuredMode==1)eligible=gpuWaveEligible(ctl);
@@ -387,6 +421,12 @@ static int hookUpdate(void*entry,void*ctl){
             (unsigned long long)waveId,unsigned(segment.phase),segment.total+1);
     }
     if(frame==0&&motionMax>0){if((rollingProducer||eligible)&&producerPool>=0)motionExtend(ctl);else motionMax=0;}
+    // 分带延长：必须在本帧的原厂调用之后做，帧号 = total - remaining 保持不变，
+    // 下一帧起循环会多跑 fusionTail 帧，每条带才来得及走完 LUT 尾部收敛帧。
+    if(frame==0&&fusionTail>0){
+        if((rollingProducer||eligible)&&producerPool>=0)einkfusion::extendTail(ctl,fusionTail);
+        else fusionTail=0;
+    }
     // Publish the frame before the stock code stores the ring tail (plain store).
     std::atomic_thread_fence(std::memory_order_release);
     uint64_t end=now();
@@ -398,6 +438,7 @@ static int hookUpdate(void*entry,void*ctl){
     }
     if(rollingProducer&&segment.terminal())rollingProducer=false;
     if(motionExtended&&!result)motionRestore();
+    if(einkfusion::tailActive()&&!result)einkfusion::restoreTail();
     VLOG("GEN wave=%llu f=%d slot=%d begin=%llu ready=%llu remain=%d total=%d mode=%d special=%d result=%d",
         (unsigned long long)waveId,frame,slot,(unsigned long long)start,(unsigned long long)end,
         remaining,total,field<uint8_t>(ctl,0x15c),field<int>(ctl,0x270),result);return result;

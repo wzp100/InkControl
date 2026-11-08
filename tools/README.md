@@ -1,13 +1,14 @@
 # tools/ —— 真机排查工具速查
 
-这个目录里主要是构建、测试与发布脚本。下面三个是**连着真机排查时才用**的小工具，
+这个目录里主要是构建、测试与发布脚本。下面几个是**连着真机排查时才用**的小工具，
 不参与 APK 构建，也不会被打包进去。
 
 | 文件 | 用途 | 说明 |
 | --- | --- | --- |
-| `adb_target.py` | 设备选择器，下面两个脚本共用 | 见「设备选择」 |
+| `adb_target.py` | 设备选择器，下面几个脚本共用 | 见「设备选择」 |
 | `unlock_device.py` | 锁屏 PIN 自动输入 | 见「怎么填 PIN」 |
 | `eink_lock_capture.py` | 抓墨水屏锁屏的实际送屏位图 | [eink_lock_capture.md](eink_lock_capture.md) |
+| `reboot_safe.py` | 无线 adb 安全重启（自动唤醒 + 有界判定） | 见「无线 adb 重启为什么会卡住」 |
 
 ## 前置条件
 
@@ -66,3 +67,52 @@ python tools/unlock_device.py grid     # 打印数字键盘坐标网格，不需
 `adb shell screencap` 截不到墨水屏的息屏海报，所以走墨控在 SystemUI 里钩住的送屏位图：
 开调试开关 → 息屏触发 → 从 SystemUI 缓存取回 PNG；`--rotate` 会额外产出横版阅读图。
 完整用法见 [eink_lock_capture.md](eink_lock_capture.md)。
+
+## 无线 adb 重启为什么会卡住
+
+现象：息屏状态下通过无线 adb 发 `adb reboot`，设备**仍在线**、`sys.boot_completed` 仍是 1，
+`/proc/uptime` 也没归零，看起来像重启完成了，实际命令一直挂着；按一次电源键后才真正重启。
+无人值守的自动化会卡在等待里。
+
+原因（在 HLTE203T 上实测）：设备未充电时 `stay_on_while_plugged_in=7` 不生效，
+屏幕超时后息屏，展锐平台的 `sprd_pm_thread` 带着活跃唤醒源
+`PowerManager.SuspendLockout` 在 suspend/resume 之间反复打转：
+
+```
+PM: has wakeup events in progress:
+HSINFO: active wakeup source: PowerManager.SuspendLockout
+HSINFO: active wakeup source: PowerManagerService.Display
+```
+
+此时 `sys.powerctl=reboot` 的处理排在电源管理状态机后面，直到电源键产生一个真实唤醒事件
+才继续。无线 adb 的 WiFi 省电也会让这条链路更容易挂住。
+
+**别用 `sys.boot_completed` 判断重启**，它在卡住时同样是 1。要同时看
+`/proc/sys/kernel/random/boot_id` 变化（或 `/proc/uptime` 变小）。
+`reboot_safe.py` 就是按这个判定写的：
+
+```bash
+python tools/reboot_safe.py --dry-run       # 只看电源状态与探针，不重启
+python tools/reboot_safe.py                 # 唤醒 → reboot → 等到开机完成
+python tools/reboot_safe.py --timeout 45    # 每轮等待秒数（默认 60）
+```
+
+流程：先 `KEYCODE_WAKE` 唤醒屏幕（并尝试 `svc power stayon true`）→ 发 `adb reboot`
+（命令本身也带超时，不会把脚本拖死）→ 每 3 秒用 `boot_id` / `uptime` 判定；
+超时判为「卡住」就补一次 `KEYCODE_WAKE` 并重发，第二轮仍失败则**明确报错退出**，
+绝不无限等待。退出码 0 = 已确认重启并开机，2 = 需要人工按电源键或改用有线 adb。
+
+判定上还有两个容易踩的坑，脚本都已处理：
+
+- **设备掉线 ≠ 没重启。** 开机后无线 adb（靠 `START_ADBD` 恢复 5555 端口）常常比
+  `boot_completed` 晚 30 秒以上，期间 `boot_id()` 返回空。只要这一轮里出现过掉线，
+  就额外再等一段开机时间；重发 reboot 之前也会先复核一次，避免重复重启。
+- **两轮超时后做最终复核。** 曾有实测：脚本报「两轮都未重启」，设备其实早已
+  重启完毕（boot_id 已变、uptime 归零），只是无线 adb 回来得晚。现在这种情况
+  按成功返回（日志里标「延迟确认」），不会再把已完成误报成需要人工按键。
+
+实测（息屏 + 未充电）：**第一轮仍会卡住，第二轮补唤醒重发后成功**，所以单次 `KEYCODE_WAKE`
+并不能保证一次成功，两轮重试是必需的；整个过程不需要人按电源键。
+
+其它规避办法：接 USB 用有线 adb（adbd 会持有唤醒锁）；或让设备保持充电 +
+`svc power stayon true`，使屏幕不进入息屏 suspend。

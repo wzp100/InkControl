@@ -147,9 +147,12 @@ static void motionDecide(void*ctl,bool gc=false,bool reading=false){
         frontDiff>=720u*1440u*uint32_t(motionReq.minPercent)/100u));
     if(gc&&!requested){
         char policy[PROP_VALUE_MAX]={};__system_property_get("debug.eink.motion.gc",policy);
-        int spread=0;
-        if(std::sscanf(policy,"gcsweep %d",&spread)!=1||spread<1||spread>MOTION_MAX_FRAMES)return;
-        MotionReq sweep;std::strcpy(sweep.style,"gcsweep");std::strcpy(sweep.dir,"ltr");sweep.spread=spread;
+        int spread=0;char rawDir[8]={};
+        // 新格式 "gcsweep <spread> <dir>"；旧格式只有 spread，方向按原厂习惯取 ltr。
+        if(std::sscanf(policy,"gcsweep %d %7s",&spread,rawDir)<1||spread<1||spread>MOTION_MAX_FRAMES)return;
+        const char*dir="ltr";
+        if(rawDir[0]&&(!std::strcmp(rawDir,"rtl")||!std::strcmp(rawDir,"ttb")||!std::strcmp(rawDir,"btt")))dir=rawDir;
+        MotionReq sweep;std::strcpy(sweep.style,"gcsweep");std::strncpy(sweep.dir,dir,sizeof(sweep.dir)-1);sweep.spread=spread;
         motionMax=buildMotionMap(sweep);
         LOG("MOTION_GC wave=%llu max=%d active=%d",(unsigned long long)waveId,motionMax,field<int>(ctl,0x160));
         return;

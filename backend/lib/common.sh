@@ -135,7 +135,8 @@ ic_validate() {
           # qs.panel.pinsize（截屏便签对齐尺寸）、qs.panel.btn1–4（四个位置的按钮动作）是后来新增的，
           # 旧配置里没有，缺省按「关」处理（pinsize 在 App 侧 defaultOn，缺省按开）。
           # 翻页动画是 0.2.5-r23 新加的一整组，旧配置里整组都没有，缺省按「关」处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-4]))?$/ || key ~ /^pageanim\./)
+          # motion.gc_direction（全刷扫过方向）是后加的单项，旧配置里没有，缺省按「自动」处理。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-4]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^pageanim\./)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -149,7 +150,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.5-r23' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.6-r26' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
@@ -198,6 +199,46 @@ ic_properties() {
         case "$ic_hysteresis" in default|on|off) ;; *) return 1 ;; esac
         setprop "debug.eink.hyst.$ic_scope" "$ic_hysteresis" || return 1
     done
+    # 融合模式：GPU 显示后端与翻页动画同时启用时，pageanim.master 不再是「挂载哪份 HWC」，
+    # 而是把 pageanim.* 配置下发给 libeinkgpu 的分带波形开关。属性即时生效，不需要重启。
+    # 只有 GPU 后端开启时才有意义；单独用翻页动画仍走它自己的 HWC 与 resident。
+    ic_fusion=0
+    if ic_enabled display.gpu && ic_enabled pageanim.master; then ic_fusion=1; fi
+    setprop debug.inkcontrol.fusion "$ic_fusion" || return 1
+    if [ "$ic_fusion" = 1 ]; then
+        # 分带揭示由 GPU 波形层驱动。着色器里 !drive 的区域输出中性驱动字节而不是
+        # 控制模板原像素，面板级 forceClearGhosting 定格任何中间帧都不会刷出黑屏；
+        # 逐带延迟被压在波形前半段，末帧所有带都走完 LUT 并收敛。
+        # 详见 docs/翻页动画4块原型预研.md 第十节。
+        setprop debug.inkcontrol.fusion.drive 1 || return 1
+        setprop debug.inkcontrol.fusion.armed 1 || return 1
+        # 白名单闸门：默认不允许，由 system_server 侧在每次前台切换时按
+        # pageanim.readers 名单改写。名单为空即「不触发」，与原版语义一致。
+        # 这里只在属性还没被写过时给初值，避免 apply 把当前前台状态冲掉。
+        if [ -z "$(getprop debug.inkcontrol.fusion.reader)" ]; then
+            setprop debug.inkcontrol.fusion.reader 0 || return 1
+        fi
+        ic_fusion_reverse=0
+        ic_enabled pageanim.reverse && ic_fusion_reverse=1
+        setprop debug.inkcontrol.fusion.reverse "$ic_fusion_reverse" || return 1
+        ic_fusion_style=$(ic_get pageanim.style.value)
+        case "$ic_fusion_style" in
+            horizontal) ic_fusion_style=0 ;; vertical) ic_fusion_style=1 ;;
+            diag) ic_fusion_style=2 ;; antidiag) ic_fusion_style=3 ;;
+            ring) ic_fusion_style=4 ;; center) ic_fusion_style=5 ;; *) ic_fusion_style=0 ;;
+        esac
+        setprop debug.inkcontrol.fusion.style "$ic_fusion_style" || return 1
+        ic_fusion_bands=$(ic_get pageanim.bands.value); [ -n "$ic_fusion_bands" ] || ic_fusion_bands=12
+        case "$ic_fusion_bands" in 4|8|12|16|24|32) ;; *) ic_fusion_bands=12 ;; esac
+        setprop debug.inkcontrol.fusion.bands "$ic_fusion_bands" || return 1
+        ic_fusion_spacing=$(ic_get pageanim.spacing.value); [ -n "$ic_fusion_spacing" ] || ic_fusion_spacing=12
+        case "$ic_fusion_spacing" in 6|8|12|16|24|40) ;; *) ic_fusion_spacing=12 ;; esac
+        setprop debug.inkcontrol.fusion.spacing "$ic_fusion_spacing" || return 1
+    else
+        setprop debug.inkcontrol.fusion.drive 0 || return 1
+        setprop debug.inkcontrol.fusion.armed 0 || return 1
+        setprop debug.inkcontrol.fusion.reader 0 || return 1
+    fi
 }
 # 波形动画能力：system_server（LSPosed motion Hook）用 debug.eink.motion.cap / lockcap
 # 判断能否向 HWC 请求波形动画（墨迹晕开/网点长大/扫描线/百叶窗/全刷扫过）。

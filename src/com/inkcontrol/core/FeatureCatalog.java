@@ -94,6 +94,7 @@ public final class FeatureCatalog {
         add("motion.hold", "动画", "关键帧停留", "关闭时随温度自动计算", "system", "motion.master", HOT, false, "0,60,100,200,300,500,1000,@curve", "温度自适应,60ms,100ms,200ms,300ms,500ms,1000ms,自定义曲线");
         add("motion.origin", "动画", "展开起点", "关闭时使用触摸位置", "system", "motion.master", HOT, false, "touch,center", "触摸位置,屏幕中心");
         add("motion.direction", "动画", "擦除方向", "关闭时自动选择方向", "system", "motion.master", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
+        add("motion.gc_direction", "动画", "全刷扫过方向", "全刷扫过从哪一侧开始；自动＝从左向右", "system", "motion.gc_clear", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
         add("motion.spread", "动画", "波形动画速度", "以扫描帧为单位，关闭时使用12帧", "system", "motion.master", HOT, true, "12,1,6,18,24", "12帧,1帧,6帧,18帧,24帧");
         add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
         add("lock.style", "锁屏主题", "锁屏主题", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
@@ -122,9 +123,10 @@ public final class FeatureCatalog {
         add("lock.lyricmode", "锁屏主题", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
         add("lock.delay", "锁屏主题", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
         add("lock.dither", "锁屏主题", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
-        // 翻页动画：把第三方 HWC 派生库收进同一个后端模块，按总开关切换挂载哪一份显示库。
-        // 它和 libeinkgpu 抢同一个 /vendor 文件，因此总开关是 REBOOT，且不能与 GPU 后端同时生效。
-        add("pageanim.master", "翻页动画", "翻页动画总开关", "挂载翻页动画专用的显示库；与「GPU 显示后端」共用同一个文件，只能二选一，改后完整重启", "backend", "", REBOOT, false, "default", "启用翻页动画");
+        // 翻页动画：GPU 后端开启时不切换 HWC，配置实时下发给 libeinkgpu 的分带波形分支，
+        // 两个开关可同时启用、不用重启，分带揭示与 GPU 波形在同一条流水线上生效。
+        // 只有 GPU 后端关闭时才挂第三方专用 HWC，那种模式仍是 REBOOT、与其它显示功能互斥。
+        add("pageanim.master", "翻页动画", "翻页动画总开关", "GPU 显示后端开启时两者同时生效、实时生效，按「目标阅读器」名单触发；未开 GPU 后端时改挂专用显示库，需完整重启", "backend", "", HOT, false, "default", "启用翻页动画");
         add("pageanim.style", "翻页动画", "翻页风格", "新一页按哪种方式分块、分阶段展开", "backend", "pageanim.master", HOT, false,
                 "horizontal,vertical,diag,antidiag,ring,center", "横向展开,纵向展开,斜向分块,反斜向分块,环绕分块,中心展开");
         add("pageanim.bands", "翻页动画", "分块数量", "分块越多，展开越细", "backend", "pageanim.master", HOT, false,
