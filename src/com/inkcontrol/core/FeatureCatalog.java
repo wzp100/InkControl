@@ -112,7 +112,7 @@ public final class FeatureCatalog {
         // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」或「显示设备状态」。
         // 互斥由界面统一保证（MainActivity.change 里开一个就自动关另一个），
         // 所以配置里正常只会有一个为开；设备状态条的四项由 lock.ext.* 单独控制显示与否。
-        add("lock.notify", "锁屏显示", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
+        add("lock.notify", "锁屏显示", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读；也可以选「不显示」先留空", "systemui", "lock.style", HOT, false, "system,wechat,none", "系统通知,微信,不显示");
         // 「显示设备状态」：auto 跟随样式（编辑排版/横版用图标，瑞士网格用文字），
         // icon/text 强制一种。默认 auto 保持各样式原有的观感。
         add("lock.ext", "锁屏显示", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "auto,icon,text", "跟随样式,图标版,文字版");

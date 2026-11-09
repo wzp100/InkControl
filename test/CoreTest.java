@@ -42,7 +42,7 @@ public final class CoreTest {
         // 锁屏底部那一块位置的两个总开关：「显示通知」与「显示设备状态」，都挂在锁屏样式下
         FeatureDefinition notify = FeatureCatalog.get("lock.notify");
         check(notify.role.equals("systemui") && notify.dependency.equals("lock.style"));
-        check(notify.values.equals(Arrays.asList("system", "wechat")));
+        check(notify.values.equals(Arrays.asList("system", "wechat", "none")));
         check(!new Configuration().enabled("lock.notify"));
         // 设备状态总开关本身没有选项，画图标版还是文字版由 auto/icon/text 决定；默认 off
         FeatureDefinition ext = FeatureCatalog.get("lock.ext");

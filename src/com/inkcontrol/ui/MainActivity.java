@@ -938,7 +938,9 @@ public final class MainActivity extends Activity {
                 String id = section[i];
                 FeatureDefinition f = FeatureCatalog.get(id);
                 // 「显示信息修改」是四项多选，直接在页里展开勾选，不再单开一页来回跳。
+                // 「锁屏倒数日」既是开关又有自己的编辑页：右侧给状态与开关，点标题仍可进去编辑。
                 View row = id.equals("lock.ext.edit") ? lockExtBlock()
+                        : "lock.countdown".equals(id) ? compactToggleRow(id, true)
                         : compactSpecial(id) ? entryRow(f)
                         : realValues(f).size() > 1 ? dropdownRow(f, f.title) : smallToggleRow(id);
                 if (rows++ > 0) list.addView(ink.rule(1));
@@ -1102,7 +1104,6 @@ public final class MainActivity extends Activity {
             choices.addView(dropdownRow(FeatureCatalog.get(picks[i][0]), picks[i][1]));
         }
         body.addView(choices);
-        body.addView(spaced(paragraph("选完下次翻页生效，无需重启。", 13), 8));
 
         body.addView(spaced(ink.text("02 翻页操作", 20, Ink.BOLD), 22));
         LinearLayout ops = new LinearLayout(this);
@@ -1125,8 +1126,6 @@ public final class MainActivity extends Activity {
         box.addView(spaced(ink.button("选择阅读器", Ink.Kind.SECONDARY,
                 v -> appPickerDialog(readers, snapshot.config.requested(readers.id), current, true)), 10));
         body.addView(card(box));
-
-        body.addView(spaced(paragraph("与「GPU 显示后端」共用一个显示库，只能二选一；切换后要完整重启。", 13), 18));
     }
 
     /** 一行「标签 + 当前值 ▾」：点右侧出单选列表，点标签进原详情页（自定义值、预览都在那里）。 */
@@ -1213,11 +1212,14 @@ public final class MainActivity extends Activity {
         return row;
     }
 
+    private View compactToggleRow(String id) { return compactToggleRow(id, false); }
+
     /**
      * 单行「标题 + 状态 + 开关」：状态（已生效 / 待重启 / 异常）挤到开关左侧，不再单独占一行。
      * 翻页动画总开关这类只有开关、没有参数的项用它，比三行的 {@link #featureRow} 省一半高度。
+     * chevron=true 时右侧再加一个「›」，表示点标题还能进详情页（锁屏倒数日这种带编辑页的项）。
      */
-    private View compactToggleRow(String id) {
+    private View compactToggleRow(String id, boolean chevron) {
         FeatureDefinition f = FeatureCatalog.get(id);
         boolean requested = snapshot.config.requested(id);
         boolean pending = busy && id.equals(pendingId);
@@ -1236,6 +1238,7 @@ public final class MainActivity extends Activity {
         stateParams.rightMargin = ink.dp(10);
         row.addView(state, stateParams);
         row.addView(toggle(f, shown, requested));
+        if (chevron) row.addView(withMargin(ink.text("›", 20, Ink.REGULAR), 6));
         return row;
     }
 
@@ -1413,12 +1416,23 @@ public final class MainActivity extends Activity {
 
         // 1. 状态
         String status = pending ? "正在保存" : status(f.id);
+        // 必选参数没有「开启/关闭」这两个状态，标题直接写「当前选择」，右侧放当前值。
+        boolean required = FeatureCatalog.required(f.id);
+        if ("lock.countdown".equals(f.id)) {
+            // 这一页的重点是下面的事项编辑器，状态区压成和「翻页动画总开关」一样的单行紧约条，
+            // 别让一张大卡片把编辑器顶到一屏之外。
+            LinearLayout bar = new LinearLayout(this);
+            bar.setOrientation(LinearLayout.VERTICAL);
+            bar.setBackground(ink.outline(12));
+            bar.addView(compactToggleRow(f.id));
+            if (!f.dependency.isEmpty() && !s.config.enabled(f.dependency))
+                dependencyHint(bar, f.dependency, "这一项属于「" + FeatureCatalog.get(f.dependency).title + "」，要先开启它才会生效。");
+            body.addView(spaced(bar, 14));
+        } else {
         LinearLayout statusRow = new LinearLayout(this);
         statusRow.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout statusTitle = new LinearLayout(this);
         statusTitle.setGravity(Gravity.CENTER_VERTICAL);
-        // 必选参数没有「开启/关闭」这两个状态，标题直接写「当前选择」，右侧放当前值。
-        boolean required = FeatureCatalog.required(f.id);
         statusTitle.addView(ink.text(required ? "当前选择" : shown ? "已开启" : "未开启", 18, Ink.BOLD));
         if (f.experimental) statusTitle.addView(withMargin(ink.tag("实验", false), 8));
         if (f.mode == FeatureDefinition.ApplyMode.REBOOT && status.equals("待重启")) statusTitle.addView(withMargin(ink.tag("需重启", false), 6));
@@ -1438,6 +1452,7 @@ public final class MainActivity extends Activity {
             statusCard.addView(spaced(ink.button("前往「诊断」", Ink.Kind.SECONDARY, v -> switchTab(DIAGNOSE)), 10));
         }
         body.addView(card(statusCard));
+        }
 
         // 2. 名单编辑器（模式 + 应用），放在说明之前
         if (f.id.equals("refresh.apps")) appsFilterEditor(f, requested, current);
@@ -1871,9 +1886,10 @@ public final class MainActivity extends Activity {
                         Toast.makeText(this, ink.t("请输入 1–999 之间的整数"), Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    if (!begin(f.id, true, value)) return;
+                    boolean enable = enableOnSave(f);
+                    if (!begin(f.id, enable || snapshot.config.requested(f.id), value)) return;
                     perform(ink.t("使用"), () -> {
-                        change(f.id, true, value);
+                        saveValue(f, value);
                         return "已保存「" + f.title + "」：" + value + Guide.numberUnit(f);
                     }, false);
                     preview = "";
@@ -1882,7 +1898,9 @@ public final class MainActivity extends Activity {
 
     private View useButton(FeatureDefinition f, boolean requested, String selected) {
         String name = Guide.optionName(f, selected);
-        String label = requested ? "使用「" + name + "」" : "开启并使用「" + name + "」";
+        // 依赖没开时按钮只保存，不假装会开启；否则点下去像被拒了。
+        String label = !enableOnSave(f) ? "保存「" + name + "」"
+                : requested ? "使用「" + name + "」" : "开启并使用「" + name + "」";
         return ink.button(label, Ink.Kind.PRIMARY, v -> use(f, selected));
     }
 
@@ -1893,12 +1911,37 @@ public final class MainActivity extends Activity {
 
     private void use(FeatureDefinition f, String selected) {
         String name = Guide.optionName(f, selected);
-        if (!begin(f.id, true, selected)) return;
+        // 依赖的总开关没开时只保存取值、不顺手把这一项打开：否则会被「请先开启…」拦住，
+        // 用户想先把参数配好、回头再开总开关就做不到（自动刷新的触发次数、体感的遮挡延时都是这种）。
+        boolean enable = enableOnSave(f);
+        if (!begin(f.id, enable || snapshot.config.requested(f.id), selected)) return;
         perform("使用「" + name + "」", () -> {
-            change(f.id, true, selected);
-            return "已保存「" + f.title + "」：" + name;
+            saveValue(f, selected);
+            return "已保存「" + f.title + "」：" + name + (enable ? "" : "（开启后生效）");
         }, false);
         preview = "";
+    }
+
+    /**
+     * 保存一个取值：依赖的总开关开着才顺手打开这一项，否则只落盘、不动开关。
+     *
+     * <p>「只落盘」走 {@link com.inkcontrol.core.FeatureService#changeValue}，既不触发
+     * 「请先开启…」的依赖校验，也不会把原本开着的项关掉。
+     */
+    private void saveValue(FeatureDefinition f, String value) throws Exception {
+        if (enableOnSave(f)) change(f.id, true, value);
+        else services.changeValue(f.id, value);
+    }
+
+    /** 沿用当前开关状态保存取值（名单、按钮格这类「改内容不改开关」的编辑器用）。 */
+    private void saveValueKeeping(FeatureDefinition f, String value) throws Exception {
+        if (snapshot.config.requested(f.id) && enableOnSave(f)) change(f.id, true, value);
+        else services.changeValue(f.id, value);
+    }
+
+    /** 保存取值时能不能顺手把这一项打开：只取决于依赖的总开关，必选参数/顶层项恒为 true。 */
+    private boolean enableOnSave(FeatureDefinition f) {
+        return f.dependency.isEmpty() || snapshot.config.enabled(f.dependency);
     }
 
     // ── 应用名单：黑白名单 ──
@@ -1973,12 +2016,9 @@ public final class MainActivity extends Activity {
             items.addView(spaced(item, 2));
         }
         panel.addView(items);
-        // 恢复默认是次要操作：小一号的按钮，默认顺序用一行小字写在它下面。
-        panel.addView(spaced(smallButton("恢复默认顺序", v -> resetSlots()), 14));
-        panel.addView(spaced(ink.text("默认：WiFi · 蓝牙 · 墨控快捷设置 · 截屏便签", 12, Ink.REGULAR), 6));
         body.addView(spaced(panel, 20));
 
-        // 两个开关收在这一页里：点行不跳页，只有开关本身能改；用和分类页一样的紧凑行。
+        // 两个开关放在按钮顺序下面：点行不跳页，只有开关本身能改；用和分类页一样的紧凑行。
         LinearLayout switches = new LinearLayout(this);
         switches.setOrientation(LinearLayout.VERTICAL);
         switches.setBackground(ink.outline(12));
@@ -1986,6 +2026,11 @@ public final class MainActivity extends Activity {
         switches.addView(ink.rule(1));
         switches.addView(smallToggleRow("qs.panel.pinsize"));
         body.addView(spaced(switches, 16));
+
+        // 恢复默认是次要操作，压到最底下：小一号按钮 + 一行说明默认顺序。
+        LinearLayout reset = column(spaced(smallButton("恢复默认顺序", v -> resetSlots()), 10),
+                ink.text("默认：WiFi · 蓝牙 · 墨控快捷设置 · 截屏便签", 12, Ink.REGULAR));
+        body.addView(spaced(reset, 18));
     }
 
     /** 比主按钮小一号：14sp、最小高度 40dp、宽度随文字，用在页内的次要操作上。 */
@@ -2046,7 +2091,7 @@ public final class MainActivity extends Activity {
         FeatureDefinition slot = FeatureCatalog.get(id);
         String name = slot.values.contains(value) ? Guide.optionName(slot, value) : appLabel(value);
         perform("更换按钮动作", () -> {
-            change(id, true, value);
+            saveValue(slot, value);
             return "已保存「" + slot.title + "」：" + name;
         }, false);
     }
@@ -2150,7 +2195,7 @@ public final class MainActivity extends Activity {
     private void resetSlots() {
         final String[] defaults = {"wifi", "bt", "quick", "pin"};
         perform("恢复默认顺序", () -> {
-            for (int i = 0; i < PANEL_SLOTS.length; i++) change(PANEL_SLOTS[i], true, defaults[i]);
+            for (int i = 0; i < PANEL_SLOTS.length; i++) saveValue(FeatureCatalog.get(PANEL_SLOTS[i]), defaults[i]);
             return "已恢复默认顺序";
         }, false);
     }
@@ -2188,7 +2233,7 @@ public final class MainActivity extends Activity {
             String value = FeatureDefinition.withActiveList(current, "");
             if (!begin(f.id, requested, value)) return;
             perform("清空名单", () -> {
-                change(f.id, requested, value);
+                saveValueKeeping(f, value);
                 return "已清空名单应用";
             }, false);
         }), 10));
@@ -2210,7 +2255,7 @@ public final class MainActivity extends Activity {
             String value = FeatureDefinition.filterMode(current, white);
             if (!begin(f.id, requested, value)) return;
             perform("使用「" + name + "」", () -> {
-                change(f.id, requested, value);
+                saveValueKeeping(f, value);
                 return "已保存「" + f.title + "」：" + name;
             }, false);
         });
@@ -2276,7 +2321,7 @@ public final class MainActivity extends Activity {
                             : FeatureDefinition.withActiveList(current, String.join(",", chosen));
                     if (!begin(f.id, requested, value)) return;
                     perform(ink.t("保存"), () -> {
-                        change(f.id, requested, value);
+                        saveValueKeeping(f, value);
                         return "已保存「" + f.title + "」：" + chosen.size() + " 个应用";
                     }, false);
                 }).show();
@@ -2383,9 +2428,9 @@ public final class MainActivity extends Activity {
                 Toast.makeText(this, ink.t("日期格式不正确"), Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!begin(target.id, true, text)) return;
+            if (!begin(target.id, enableOnSave(target) || snapshot.config.requested(target.id), text)) return;
             perform(ink.t("保存"), () -> {
-                change(target.id, true, text);
+                saveValue(target, text);
                 return "已保存「" + target.title + "」";
             }, false);
         }), 14));

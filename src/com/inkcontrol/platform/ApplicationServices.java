@@ -59,6 +59,11 @@ public final class ApplicationServices {
         features.change(id, enabled, value);
         inspect();
     }
+    /** 只改取值、不动开关：总开关没开时先配参数用，不检查依赖也就不需要环境就绪。 */
+    public void changeValue(String id, String value) throws Exception {
+        features.changeValue(id, value);
+        inspect();
+    }
     /** 批量改取值（面板换顺序）：一次落盘 + 一次应用，别按格逐个来。 */
     public void changeAll(java.util.LinkedHashMap<String, String> values) throws Exception {
         features.changeAll(values);

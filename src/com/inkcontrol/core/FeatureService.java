@@ -25,6 +25,17 @@ public final class FeatureService {
         executor.apply(before, after);
     }
     /**
+     * 只改取值、不动开关：总开关关着时用它在「先配参数、回头再开」的场景下保存，
+     * 既不触发依赖校验（「请先开启…」），也不会把这一项顺手打开或关掉。
+     */
+    public synchronized void changeValue(String id, String value) throws Exception {
+        Configuration before = store.load();
+        FeatureCatalog.get(id).validate(value);
+        Configuration after = before.change(id, before.requested(id), value);
+        store.save(after);
+        executor.apply(before, after);
+    }
+    /**
      * 一次改多组取值（拖动换顺序用）：只落盘一次、只跑一次应用。
      * 逐条 {@link #change} 时每格都要重新应用一遍，四格排一次要等十几秒。
      */

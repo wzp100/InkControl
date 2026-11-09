@@ -80,7 +80,8 @@ final class LockData {
         boolean notifyOn = RuntimeConfig.enabled("lock.notify");
         d.extMode = RuntimeConfig.enabled("lock.ext")
                 || (notifyOn && "ext".equals(RuntimeConfig.value("lock.notify")));
-        boolean notifyVisible = notifyOn && !d.extMode;
+        boolean notifyVisible = notifyOn && !d.extMode
+                && !"none".equals(RuntimeConfig.value("lock.notify"));
         if (notifyVisible && Settings.Global.getInt(c.getContentResolver(), "eink_keyguard_notification_on", 1) != 0) {
             if ("wechat".equals(RuntimeConfig.value("lock.notify"))) {
                 d.notifications = Math.max(0, Settings.System.getInt(c.getContentResolver(), "com_hs_wechat_mini", 0));
