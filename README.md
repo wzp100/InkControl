@@ -36,7 +36,7 @@
 
 <table><tr><th>功能首页</th><th>模块设置</th><th>桌面快捷方式</th></tr><tr><td><img src="docs/media/ui-home.png" alt="功能首页" width="260"></td><td><img src="docs/media/ui-settings.png" alt="模块设置" width="260"></td><td><img src="docs/media/ui-shortcuts.png" alt="桌面快捷方式" width="260"></td></tr></table>
 
-<table><tr><th>E-Ink 快捷面板</th><th>快捷面板按钮</th></tr><tr><td><img src="docs/media/ui-panel.png" alt="E-Ink 快捷面板" width="300"></td><td><img src="docs/media/ui-panel-buttons.png" alt="快捷面板按钮页" width="230"></td></tr></table>
+<table><tr><th>E-Ink 快捷面板</th><th>快捷面板按钮</th></tr><tr><td><img src="docs/media/ui-panel.png" alt="E-Ink 快捷面板：亮度、当前显示模式，底部五格 WiFi、蓝牙、自动刷新、翻页动画、截屏便签" width="300"></td><td><img src="docs/media/ui-panel-buttons.png" alt="快捷面板按钮页：按钮顺序五行（各带拖动把手与更换）与两个页内开关" width="230"></td></tr></table>
 
 <table><tr><th>翻页动画</th><th>目标阅读器</th></tr><tr><td><img src="docs/media/ui-pageanim.png" alt="翻页动画设置页：总开关，以及风格、速度、分块、间隔四个下拉" width="230"></td><td><img src="docs/media/ui-pageanim-readers.png" alt="目标阅读器选择弹窗：搜索应用并勾选" width="230"></td></tr></table>
 

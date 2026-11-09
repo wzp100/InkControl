@@ -51,11 +51,11 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * 被 {@code mIsSupportNewDisplayMode} 与顶部应用过滤掉，所以底部只有居中一个按钮。
  *
  * <p>所以这里把原厂那个「截屏便签」摘下来当一枚可复用的按钮，再按 {@code qs.panel.btnN} 的取值
- * 摆四个位置：控制中心那套动作（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、
- * 免打扰、省电模式、悬浮球）、墨控自己的三项开关（自动刷新、锁屏主题、遮挡息屏）、
- * 「墨控快捷设置」、「截屏便签」原厂按钮、以及任意一个应用（包名）或「无」（这一格不显示）。
- * 四个位置都标 {@code two}，与原厂单行同排，面板高度不变（{@code InkButtonsParent} 按每行
- * 个数平分宽度）。
+ * 摆最多五个位置：控制中心那套动作（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、
+ * 免打扰、省电模式、悬浮球）、墨控自己的开关（自动刷新、锁屏主题、遮挡息屏、翻页动画、全刷扫过）、
+ * 「刷新格言」、「墨控快捷设置」、「截屏便签」原厂按钮、以及任意一个应用（包名）或「无」（这一格
+ * 不显示）。五个位置都标 {@code two}，与原厂单行同排，面板高度不变（{@code InkButtonsParent} 按
+ * 每行个数平分宽度）。
  *
  * <p>长按是「跳去设置」：WiFi、蓝牙跳系统设置页；「自动刷新」「遮挡息屏」跳墨控里对应的
  * 大功能分类页，「锁屏主题」跳样式选择那一页。跳转前一律收起面板（不给开关）。
@@ -73,7 +73,8 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static final String CLOSE = "qs.panel.close";
     /** 原厂「截屏便签」的图标与文字比补上来的按钮大一圈，默认缩到同一档。 */
     private static final String PIN_SIZE = "qs.panel.pinsize";
-    private static final String[] SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4"};
+    private static final String[] SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3",
+            "qs.panel.btn4", "qs.panel.btn5"};
     private static final ComponentName HOME =
             new ComponentName("com.inkcontrol", "com.inkcontrol.ui.MainActivity");
     /** 墨控里「快捷设置」页：MainActivity 读到这个 extra 直接渲染遮挡息屏 / 锁屏主题 / 自动刷新。 */
@@ -171,6 +172,42 @@ public class PanelHook implements IXposedHookLoadPackage {
         // 顺序就是位置顺序：先清空再按顺序放回去，InkButtonsParent 会在下一轮测量里重新均分宽度。
         parent.removeAllViews();
         for (View item : items) parent.addView(item);
+        fitCells(context, items);
+    }
+
+    /**
+     * 并排超过四个时每格会窄于 85dp（容器固定 680px：四格 170px、五格 136px），而模板里的
+     * {@code click_region} 写死 100dp、文字 12sp，「墨控快捷设置」这种六字动作会被裁掉两头。
+     * 所以格子多于四个时把 {@code click_region} 撑满整格，再把文字一档档缩到放得下（最小 9sp）。
+     *
+     * <p>只改宽、不动原有的 LayoutParams：模板里 {@code click_region} 带 16dp 上边距，
+     * 换成新的 LayoutParams 会把边距一起丢掉，五个按钮的图标就会顶到格子最上面。
+     */
+    private static void fitCells(Context context, List<View> items) {
+        if (items.size() <= 4) return;
+        float density = context.getResources().getDisplayMetrics().density;
+        // 容器宽度＝屏宽 − 两侧各 10dp 外边距（见 ink_screen_pop_window 里那层 LinearLayout）。
+        int cell = Math.max(1, Math.round((context.getResources().getDisplayMetrics().widthPixels - 20 * density) / items.size()));
+        float room = cell - 4 * density;
+        for (View item : items) {
+            try {
+                View region = item.findViewById(id(context, "click_region"));
+                ViewGroup.LayoutParams params = region == null ? null : region.getLayoutParams();
+                if (params != null) {
+                    params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                    region.setLayoutParams(params);
+                }
+                TextView summary = item.findViewById(id(context, "summary"));
+                if (summary == null || summary.getText() == null) continue;
+                String text = summary.getText().toString();
+                for (int sp = 12; sp > 9; sp--) {
+                    summary.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp);
+                    if (summary.getPaint().measureText(text) <= room) break;
+                }
+            } catch (Throwable error) {
+                XposedBridge.log(TAG + "fit cell failed: " + error);
+            }
+        }
     }
 
     /** 按位置读动作；取值非法（比如旧配置）时退回该位置自己的默认值。 */
@@ -280,7 +317,7 @@ public class PanelHook implements IXposedHookLoadPackage {
     /**
      * 原厂模板里图标是 wrap_content：状态栏那套图标本身是白色、尺寸还不一样（蓝牙那个
      * 96dp 见方，会把下面的文字挤成 0 高），所以这里固定成 28dp 见方；矢量图标再染成黑色，
-     * 白底面板上才看得见，四个按钮的图标也对得齐。
+     * 白底面板上才看得见，几个按钮的图标也对得齐。
      */
     private static void setIcon(Context context, ImageView icon, Drawable drawable, boolean tint) {
         int box = Math.round(28 * context.getResources().getDisplayMetrics().density);

@@ -68,23 +68,23 @@ adb shell input swipe 647 1395 647 1395 120
 - 唤出后按 HOME / back 会发 `android.intent.action.CLOSE_SYSTEM_DIALOGS`，`StatusBar$14` 收到后 `dismissView`；唤出到点击之间不要插返回操作。
 - 息屏 / 锁屏唤不出，且无线 adb 在息屏时会掉线；测试前确认 `dumpsys power` 为 `Awake`、`dumpsys trust` 为 `deviceLocked=0`。
 - `input tap` 会丢点（一次连发只进前几个），点按钮统一用 `input swipe x y x y 120`。
-- 四格按钮的设备像素中心约 x=107 / 277 / 445 / 618、y≈1275；截图 720×1440。
+- 四格按钮的设备像素中心约 x=107 / 277 / 445 / 618、y≈1275；摆满五格时每格 136px，中心 x≈88 / 224 / 360 / 496 / 632。截图 720×1440。
 - **收起必须调 `closePopWindow()`**：它 removeView 并置空；只把 `mReallyView` 设 `GONE`，下次唤起会被当成「关闭」吞掉一次。
 - 拉起墨控用 `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_SINGLE_TOP`；`MainActivity` 没声明 launchMode，不加 `SINGLE_TOP` 会重复开页。
 
-## 四、当前实现：`qs.panel` 四格按钮
+## 四、当前实现：`qs.panel` 最多五格按钮
 
 主体在 `src/com/inkcontrol/features/qsext/PanelHook.java`：
 
 1. 只在 `com.android.systemui` 作用域安装一次（`sInstalled`），hook `InkPopWindow.showPopWindow` 的 `afterHookedMethod`，异常一律写 `XposedBridge.log`，不让 SystemUI 崩。
 2. 从 `mButtonsParent` / `mContext` 取容器与上下文，按资源名取 `ink_screen_button_item` 布局；把原厂「截屏便签」按钮摘下来复用（它可能被排到别的位次）。
-3. 按 `qs.panel.btn1` … `qs.panel.btn4` 的取值摆四个位置，四格都标 `two`，与原厂单行同排；`InkButtonsParent` 按每行个数平分宽度，面板高度不变。App 里换位是**拖把手**：按住左侧三条横线上下拖，松手后把四格动作整体搬一次（只写真的动了的那几格）。
+3. 按 `qs.panel.btn1` … `qs.panel.btn5` 的取值摆最多五个位置，都标 `two`，与原厂单行同排；`InkButtonsParent` 按每行个数平分宽度（容器 680px：四格 170px、五格 136px），面板高度不变。出厂顺序是 WiFi / 蓝牙 / 自动刷新 / 翻页动画 / 截屏便签，`恢复默认顺序` 一键回到这套。并排超过四个时 `click_region` 固定 100dp 会把「墨控快捷设置」这类六字动作裁掉两头，`fitCells()` 会把 `click_region` 撑满整格、文字从 12sp 逐级缩到放得下（最小 9sp）；撑宽只改 `LayoutParams.width`，不能新建 LayoutParams（模板里 `click_region` 带 16dp 上边距，整体换掉图标会顶到格子最上面）。App 里换位是**拖把手**：按住左侧三条横线上下拖，松手后把整排动作整体搬一次（只写真的动了的那几格）。
 4. 动作表见 `FeatureCatalog.PANEL_ACTIONS`：控制中心那套（WiFi、蓝牙、铃声、飞行模式、手电筒、自动旋转、整屏翻页、免打扰、省电模式、悬浮球）、墨控自己的开关（自动刷新 / 锁屏主题 / 遮挡息屏 / 翻页动画 / 全刷扫过）、就地动作「刷新格言」、「墨控快捷设置」、原厂「截屏便签」、任意应用包名、以及 `PANEL_NONE`（这一格不显示）。取值非法时退回该位置的默认值。
 5. 长按是「跳去设置」：WiFi / 蓝牙跳系统设置页；墨控的几项用 `quick=1` 或 `category=<分类名>` extra 落到对应页，全刷扫过再带 `focus=motion.gc_clear` 让「动画」页直接滚到 `02 全刷扫过`，刷新格言落到「锁屏显示」页。跳转前一律收起面板。
 6. 「刷新格言」不是开关，也不是功能项：点一下由 `run()` 直接发 `com.inkcontrol.action.LOCK_MOTTO_NEXT` 给本进程（SystemUI）的锁屏 Hook，由它反射原厂 `MottoHelper.getNextMotto()` 换下一条并提示。桌面快捷方式里的同名项走同一条广播。
 7. `qs.panel.close` 控制点完是否收起；`qs.panel.pinsize` 把原厂「截屏便签」的 28dp 图标 / 12sp 文字与补上的按钮对齐。总开关 `qs.panel` 关闭时完全走原厂，不摘按钮、不换顺序、不缩尺寸。
 
-配置键一览：`qs.panel`、`qs.panel.btn1` … `btn4`、`qs.panel.close`、`qs.panel.pinsize`。新增/修改这类键需按仓库「增删功能键」规范同步 `FeatureCatalog`、`Guide`、`common.sh` 的 `ic_validate`、`CoreTest` 等处。
+配置键一览：`qs.panel`、`qs.panel.btn1` … `btn5`、`qs.panel.close`、`qs.panel.pinsize`。新增/修改这类键需按仓库「增删功能键」规范同步 `FeatureCatalog`、`Guide`、`common.sh` 的 `ic_validate`、`CoreTest` 等处。
 
 ## 五、面板开关与 App 状态同步
 
