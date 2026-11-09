@@ -195,10 +195,10 @@ public final class CoreTest {
         check(safeime.group.equals("系统增强") && safeime.role.equals("systemui")
                 && safeime.mode == FeatureDefinition.ApplyMode.HOT && !safeime.defaultOn
                 && safeime.values.size() == 1 && safeime.values.get(0).equals("default"));
-        // 四个位置各存一个动作，默认顺序 WiFi / 蓝牙 / 墨控快捷设置 / 截屏便签。
+        // 五个位置各存一个动作，默认顺序 WiFi / 蓝牙 / 自动刷新 / 翻页动画 / 截屏便签。
         // 取值＝动作表 + 末尾的「无」和单个应用包名（@package）。
-        String[] slotDefaults = {"wifi", "bt", "quick", "pin"};
-        for (int slot = 1; slot <= 4; slot++) {
+        String[] slotDefaults = {"wifi", "bt", "refresh", "pageanim", "pin"};
+        for (int slot = 1; slot <= 5; slot++) {
             FeatureDefinition button = FeatureCatalog.get("qs.panel.btn" + slot);
             check(button.group.equals("快捷面板修改") && button.dependency.equals("qs.panel")
                     && button.mode == FeatureDefinition.ApplyMode.HOT

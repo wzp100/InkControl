@@ -18,7 +18,7 @@ flowchart LR
 
 ## 版本与不可覆盖
 
-当前候选 `0.2.6-r26`；新版本通过后自动创建 `v<version>` tag 和 Release，固定到已验证的准确 commit。`-rcN` 自动标为预发布，不标记 Latest；稳定版本标记 Latest。候选状态由版本决定，云端通过不等于实机稳定版。
+当前候选 `0.2.7-r27`；新版本通过后自动创建 `v<version>` tag 和 Release，固定到已验证的准确 commit。`-rcN` 自动标为预发布，不标记 Latest；稳定版本标记 Latest。候选状态由版本决定，云端通过不等于实机稳定版。
 
 版本递增同步 `AndroidManifest.xml`、`tools/build.py`、`backend/lib/common.sh`、App/模块 versionCode、发布说明及知识索引。仅文档提交可以保留版本；已发布同版本直接跳过，不修改 tag、说明或附件。代码／资源行为变化必须新版本。
 

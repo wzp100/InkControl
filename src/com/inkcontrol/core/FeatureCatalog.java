@@ -20,7 +20,7 @@ public final class FeatureCatalog {
     /** 这一项是否没有开关、始终启用。 */
     public static boolean required(String id) { return REQUIRED.contains(id); }
     /**
-     * 刷新面板底部四个位置可选的动作（取值, 面板上显示的名字）。
+     * 刷新面板底部每个位置可选的动作（取值, 面板上显示的名字）。
      *
      * <p>前十个就是控制中心那排磁贴；{@code refresh}／{@code lock}／{@code cover}／{@code pageanim}
      * 是墨控自己的四个开关（自动刷新、锁屏主题、遮挡息屏、翻页动画），点一下就地开关（锁屏主题
@@ -38,7 +38,7 @@ public final class FeatureCatalog {
     /** 这个位置不显示按钮（选择框里排在最上面的「无」）。 */
     public static final String PANEL_NONE = "none";
 
-    /** 四个位置共用同一套动作，只是默认值不同；{@code defaultValue()} 取第一个取值，所以把默认项排到最前。 */
+    /** 各位置共用同一套动作，只是默认值不同；{@code defaultValue()} 取第一个取值，所以把默认项排到最前。 */
     private static String panelValues(String first) {
         StringBuilder out = new StringBuilder();
         for (String[] action : panelActions(first)) out.append(out.length() == 0 ? "" : ",").append(action[0]);
@@ -56,9 +56,11 @@ public final class FeatureCatalog {
     private static String[][] panelActions(String first) {
         String[][] ordered = new String[PANEL_ACTIONS.length + 2][];
         int at = 0;
+        // 默认项也可以是「无」：此时它排在动作表之前（当前五个位置没用到，留着以后加位置时不必重写）。
+        if (PANEL_NONE.equals(first)) ordered[at++] = new String[]{PANEL_NONE, "无"};
         for (String[] action : PANEL_ACTIONS) if (action[0].equals(first)) ordered[at++] = action;
         for (String[] action : PANEL_ACTIONS) if (!action[0].equals(first)) ordered[at++] = action;
-        ordered[at++] = new String[]{PANEL_NONE, "无"};
+        if (!PANEL_NONE.equals(first)) ordered[at++] = new String[]{PANEL_NONE, "无"};
         ordered[at] = new String[]{FeatureDefinition.PACKAGE_TOKEN, "某个应用"};
         return ordered;
     }
@@ -189,16 +191,20 @@ public final class FeatureCatalog {
         add("fix.safeime", "系统增强", "冻结安全输入服务后能输密码", "密码框改用当前输入法，不再因原厂强制切换导致设置崩溃、隐藏应用进不去、应用锁被直接放行；关闭开关时还原原值", "systemui", "", HOT, false, "default", "恢复密码输入");
         // 同一个面板的按钮区：原厂在这台设备上只会生成「截屏便签」一个按钮（另外三个属于
         // 老显示模式），空着一大片。这里在每次弹出后按原厂按钮模板补几个自用按钮。
-        add("qs.panel", "快捷面板修改", "快捷面板按钮", "刷新面板底部补上自己的按钮，四个位置的动作在下面选", "systemui", "", HOT, false, "default", "加入按钮");
-        // 四个位置各存一个动作；位置顺序就是按钮顺序，所以「排序」等于把两格的动作对调。
+        add("qs.panel", "快捷面板修改", "快捷面板按钮", "刷新面板底部补上自己的按钮，每个位置的动作在下面选", "systemui", "", HOT, false, "default", "加入按钮");
+        // 五个位置各存一个动作；位置顺序就是按钮顺序，所以「排序」等于把两格的动作对调。
         add("qs.panel.btn1", "快捷面板修改", "第 1 个按钮", "面板底部从左数第一个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("wifi"), panelLabels("wifi"));
         add("qs.panel.btn2", "快捷面板修改", "第 2 个按钮", "面板底部从左数第二个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("bt"), panelLabels("bt"));
-        add("qs.panel.btn3", "快捷面板修改", "第 3 个按钮", "面板底部从左数第三个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("quick"), panelLabels("quick"));
-        add("qs.panel.btn4", "快捷面板修改", "第 4 个按钮", "面板底部从左数第四个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("pin"), panelLabels("pin"));
+        add("qs.panel.btn3", "快捷面板修改", "第 3 个按钮", "面板底部从左数第三个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("refresh"), panelLabels("refresh"));
+        add("qs.panel.btn4", "快捷面板修改", "第 4 个按钮", "面板底部从左数第四个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("pageanim"), panelLabels("pageanim"));
+        // 第 5 个位置默认「截屏便签」：和前面四格一起构成出厂顺序
+        // WiFi / 蓝牙 / 自动刷新 / 翻页动画 / 截屏便签。选满五格时每格只有 68dp，
+        // 面板里会把这几个按钮的文字自动缩一档（见 PanelHook.fitCells）。
+        add("qs.panel.btn5", "快捷面板修改", "第 5 个按钮", "面板底部从左数第五个按钮的动作", "systemui", "qs.panel", HOT, false, panelValues("pin"), panelLabels("pin"));
         // 面板是盖住屏幕下半部分的系统悬浮窗，点完按钮不会自己收起，会一直挡住后面的界面。
         add("qs.panel.close", "快捷面板修改", "点完收起面板", "点完按钮后自动收起面板，不再挡住界面", "systemui", "qs.panel", HOT, false, "default", "点完收起");
         // 原厂那个「截屏便签」的图标和文字都比补上来的按钮大一圈（原厂按整块面板的尺寸画，
-        // 补上的四个按 28dp 图标 / 12sp 文字），默认缩到同一档，四个按钮才齐平。
+        // 补上的按 28dp 图标 / 12sp 文字），默认缩到同一档，并排的几个按钮才齐平。
         add("qs.panel.pinsize", "快捷面板修改", "截屏便签对齐尺寸", "把原厂「截屏便签」的图标和文字缩到和补上的按钮一样大", "systemui", "qs.panel", HOT, false, "default", "统一尺寸", true);
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");

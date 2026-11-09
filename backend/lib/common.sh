@@ -132,12 +132,12 @@ ic_validate() {
           # qs.extend（控制中心拓展）只在 SystemUI 里生效，旧配置里没有，缺省按「关」处理。
           # navbar.white（三大金刚键漂白）同理，旧配置里没有，缺省按「关」处理。
           # fix.safeime（冻结安全输入服务后能输密码）、qs.panel（快捷面板按钮）、qs.panel.close（点完收起面板）、
-          # qs.panel.pinsize（截屏便签对齐尺寸）、qs.panel.btn1–4（四个位置的按钮动作）是后来新增的，
+          # qs.panel.pinsize（截屏便签对齐尺寸）、qs.panel.btn1–5（五个位置的按钮动作）是后来新增的，
           # 旧配置里没有，缺省按「关」处理（pinsize 在 App 侧 defaultOn，缺省按开）。
           # 翻页动画是 0.2.5-r23 新加的一整组，旧配置里整组都没有，缺省按「关」处理。
           # motion.gc_direction / motion.gc_speed / motion.gc_style 是后加的三项，
           # 旧配置里没有，缺省按「自动」/跟随「波形动画速度」/「横向展开」处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-4]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -151,7 +151,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.6-r26' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.7-r27' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。

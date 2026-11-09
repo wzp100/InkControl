@@ -122,7 +122,7 @@ final class Guide {
                 {"备份", "sys.backup"}});
         cat("快捷面板修改", "把系统的E-Ink刷新面板换成一些自定义功能", new String[][]{
                 {"按钮", "qs.panel"}},
-                new String[]{"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4",
+                new String[]{"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4", "qs.panel.btn5",
                         "qs.panel.close", "qs.panel.pinsize"});
         // 独立界面（不走功能开关列表），sections 留空；渲染由 MainActivity 特判。
         // 放默认顺序最后：首页里它是唯一会动系统应用的入口，不该夹在常用分类中间。
@@ -440,12 +440,14 @@ final class Guide {
                 .option("default", "加入按钮", "");
         put("qs.panel.close").summary("点完按钮就收起面板").what("面板盖住屏幕下半部分，点完不收会一直挡着后面的界面；开启后点完就收，回到刚才那一屏。")
                 .option("default", "点完收起", "");
-        put("qs.panel.pinsize").summary("原厂「截屏便签」缩到和补上的按钮一样大").what("原厂那个按钮按整块面板的尺寸画，图标和文字都比补上来的大一圈；开启后按同样的 28dp 图标、12sp 文字重画，四个按钮看起来齐平。")
+        put("qs.panel.pinsize").summary("原厂「截屏便签」缩到和补上的按钮一样大").what("原厂那个按钮按整块面板的尺寸画，图标和文字都比补上来的大一圈；开启后按同样的 28dp 图标、12sp 文字重画，并排的按钮看起来才齐平。")
                 .option("default", "统一尺寸", "");
-        for (int slot = 1; slot <= 4; slot++) {
+        for (int slot = 1; slot <= 5; slot++) {
             Entry entry = put("qs.panel.btn" + slot)
                     .summary("第 " + slot + " 个按钮做什么")
-                    .what("面板底部从左数第 " + slot + " 个按钮的动作。四个位置共用这套动作，换位置就是换顺序。"
+                    .what("面板底部从左数第 " + slot + " 个按钮的动作。五个位置共用这套动作，换位置就是换顺序。"
+                            + "默认顺序是 WiFi、蓝牙、自动刷新、翻页动画、截屏便签，点「恢复默认顺序」可以一键回到这套；"
+                            + "五格并排时每格窄一点，长一点的文字会自动缩一档。"
                             + "墨控自己的几项（自动刷新、遮挡息屏、翻页动画、全刷扫过）点一下就地开关，长按跳到对应的设置页；"
                             + "锁屏主题点一下等同于长按，直接去挑样式，免得误触把整套锁屏关掉；"
                             + "刷新格言点一下就让锁屏格言换下一条，长按跳到「锁屏显示」页。");

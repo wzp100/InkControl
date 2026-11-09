@@ -124,7 +124,7 @@ public final class MainActivity extends Activity {
     private View visualView;
     /** 从面板/快捷方式进来时，落页后要滚到的那一行（功能 id）。 */
     private String scrollToFocus;
-    /** 面板四格刚拖完、还没写进配置的新顺序；有值时按它画，省得等 root 应用那一两秒。 */
+    /** 面板按钮刚拖完、还没写进配置的新顺序；有值时按它画，省得等 root 应用那一两秒。 */
     private String[] panelOrderPending;
     private boolean panelOrderBusy;
 
@@ -1956,7 +1956,8 @@ public final class MainActivity extends Activity {
 
     // ── 快捷面板：按钮顺序、动作与两个开关 ──
 
-    private static final String[] PANEL_SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4"};
+    private static final String[] PANEL_SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3",
+            "qs.panel.btn4", "qs.panel.btn5"};
 
     /**
      * 「快捷面板修改」页：总开关 + 按钮顺序 + 两个小开关。
@@ -1984,9 +1985,9 @@ public final class MainActivity extends Activity {
     }
 
     /**
-     * 「快捷面板按钮」页里的一块编辑：四个位置各是什么动作（位置顺序就是按钮顺序），
+     * 「快捷面板按钮」页里的一块编辑：五个位置各是什么动作（位置顺序就是按钮顺序），
      * 下面挂「点完收起面板」与「截屏便签对齐尺寸」两个开关。挪位置靠拖动把手重排，
-     * 写回时四格动作整体搬一次，不另存一份顺序。
+     * 写回时整排动作整体搬一次，不另存一份顺序。
      */
     private void panelEditor() {
         com.inkcontrol.core.Configuration config = snapshot.config;
@@ -1995,7 +1996,7 @@ public final class MainActivity extends Activity {
         if (panelOrderPending == null) for (int i = 0; i < order.length; i++) order[i] = config.value(PANEL_SLOTS[i]);
         LinearLayout panel = column(heading("按钮顺序", 18),
                 spaced(paragraph("从左到右排。按住左侧的三条横线上下拖即可换位置，点「更换」换动作。", 13), 6));
-        // 四个位置单独装一层：拖动落点是按容器子视图的中线算的，标题与按钮不能混在同一个容器里。
+        // 每个位置单独装一层：拖动落点是按容器子视图的中线算的，标题与按钮不能混在同一个容器里。
         LinearLayout items = DragSort.container(this);
         for (int i = 0; i < PANEL_SLOTS.length; i++) {
             String id = PANEL_SLOTS[i];
@@ -2025,11 +2026,17 @@ public final class MainActivity extends Activity {
         switches.addView(smallToggleRow("qs.panel.close"));
         switches.addView(ink.rule(1));
         switches.addView(smallToggleRow("qs.panel.pinsize"));
-        body.addView(spaced(switches, 16));
+        body.addView(spaced(switches, 12));
 
-        // 恢复默认是次要操作，压到最底下：小一号按钮 + 一行说明默认顺序。
-        LinearLayout reset = column(spaced(smallButton("恢复默认顺序", v -> resetSlots()), 10),
-                ink.text("默认：WiFi · 蓝牙 · 墨控快捷设置 · 截屏便签", 12, Ink.REGULAR));
+        // 恢复默认是次要操作，压在页面底部：左边小一号按钮，右边直接跟出厂顺序本身
+        // （不再写「默认：」前缀，也不再占一行，省得整块贴着底部导航）。
+        LinearLayout reset = new LinearLayout(this);
+        reset.setOrientation(LinearLayout.HORIZONTAL);
+        reset.setGravity(Gravity.CENTER_VERTICAL);
+        reset.addView(smallButton("恢复默认顺序", v -> resetSlots()));
+        LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(0, -2, 1);
+        note.leftMargin = ink.dp(12);
+        reset.addView(ink.text("WiFi · 蓝牙 · 自动刷新 · 翻页动画 · 截屏便签", 11, Ink.REGULAR), note);
         body.addView(spaced(reset, 18));
     }
 
@@ -2154,7 +2161,7 @@ public final class MainActivity extends Activity {
     /**
      * 拖动换位：把第 {@code from} 格的动作用搬到第 {@code to} 位。
      *
-     * <p>先按新顺序重画一版再后台落盘 + 应用，中间不弹「处理中」——四格动作只有 SystemUI 读，
+     * <p>先按新顺序重画一版再后台落盘 + 应用，中间不弹「处理中」——这些动作只有 SystemUI 读，
      * 但顺序要写进配置，所以仍要跑一次应用；一次应用一两秒，拖完立刻回弹原位会很难用。
      */
     private void orderSlots(int from, int to) {
@@ -2193,7 +2200,7 @@ public final class MainActivity extends Activity {
     }
 
     private void resetSlots() {
-        final String[] defaults = {"wifi", "bt", "quick", "pin"};
+        final String[] defaults = {"wifi", "bt", "refresh", "pageanim", "pin"};
         perform("恢复默认顺序", () -> {
             for (int i = 0; i < PANEL_SLOTS.length; i++) saveValue(FeatureCatalog.get(PANEL_SLOTS[i]), defaults[i]);
             return "已恢复默认顺序";
