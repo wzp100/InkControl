@@ -9,8 +9,8 @@
 - 所有编译及构建验证走 GitHub 托管 Actions；本地只编辑和做静态检查。
 - Keep feature IDs, backend properties, configuration syntax and default values independent of UI language. Run `python tools/check_i18n.py` after changing user-visible source phrases. English UI translations are **no longer maintained** (since 2026-10-24): `check_i18n.py` reports missing entries as notes instead of failing the build; existing `assets/i18n/en.tsv` entries stay for the in-app English UI.
 - 功能 ID、后端属性、配置语法与默认值不得依赖界面语言。修改用户可见源码文案后运行 `python tools/check_i18n.py`。**英文界面翻译自 2026-10-24 起停止维护**：`check_i18n.py` 对缺失翻译只提示不阻断；`assets/i18n/en.tsv` 已有条目保留（App 内英文界面仍可用）。
-- Never commit private signing keys, device backups, raw logs, build outputs or local acceptance reports. Vendor-derived HWC binaries live in `inputs/` and **are versioned** (since 2026-11-09); everything else in `ci/private-inputs.zip.enc` stays encrypted with the password in Actions secrets.
-- 禁止提交签名私钥、设备备份、原始日志、构建产物与本机验收报告。厂商派生的 HWC 二进制放在 `inputs/` 并**允许入库**（2026-11-09 起）；`ci/private-inputs.zip.enc` 里的其余私有输入仍保持加密，密码只放 Actions secrets。
+- Never commit private signing keys, device backups, raw logs, build outputs or local acceptance reports. Vendor-derived HWC binaries live in `inputs/`.
+- 禁止提交签名私钥、设备备份、原始日志、构建产物与本机验收报告。厂商派生的 HWC 二进制放在 `inputs/` 里。
 - Do not install, mount, flash, reboot or run device-changing tests as part of repository maintenance or CI. Real-device acceptance is a separate explicit task.
 - 默认配置不因仓库整理、语言切换或云构建而改变；历史报告与发布版本不可覆盖。
 - The user authorized public publication after the 2026-10-18 sensitive-data review. Maintain the native GitHub Wiki from docs/wiki; audit full Git history, Actions logs/artifacts and Release assets before expanding public content. Third-party binaries and artwork remain outside MIT; see NOTICE.md. Never put personal access tokens in workflows or Wiki pages.

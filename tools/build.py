@@ -14,7 +14,8 @@ INPUTS = {
     'hwcomposer.stock.so': 'a95b9f92df5c4c37633fae5e15aa216359d314f58a214375a07a5a83e26e6502',
     'hwcomposer.motion.so': 'adbdf9aeb1868e1fb9bf01394a8f67942adb9b3c97a93d6ec2d168f83e60a675',
     # 翻页动画：第三方 HWC 派生库与两个原生小工具，逐字节校验后打进同一个后端模块。
-    # 私有二进制只放在本机 inputs/（不进 Git），CI 由 ci/inputs.json 单独维护。
+    # 构建输入随仓库放在 inputs/（2026-11-09 起入库，权利归原权利人，见 NOTICE.md）；
+    # 云端构建另有 ci/inputs.json 记录同一批文件的哈希。
     'hwcomposer.pageanim.so': '3e241e4bab0d9b79f9506543bbc68da069b1ae7954d25f45598d55e564eaf478',
     'a5pro-resident': '75c64d1f22da9f22a84f57665f231bfc97b29589366b5c193719159e4fc442ee',
     'a5pro-control-once': 'a79f49f05f984cf51e1b20126aa73aff72aab79841b7b410c13b96bc6e8bec01',
