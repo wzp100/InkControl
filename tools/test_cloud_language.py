@@ -42,16 +42,33 @@ def main():
     def dump():
         device('shell','uiautomator','dump','/sdcard/inkcontrol-ci.xml',timeout=25)
         return device('exec-out','cat','/sdcard/inkcontrol-ci.xml')
+    size=list(map(int,re.findall(r'(\d+)x(\d+)',device('shell','wm','size').decode('utf-8'))[-1]))
+    def swipe(up):
+        x=size[0]//2;top,bottom=size[1]//4,size[1]*3//4
+        device('shell','input','swipe',str(x),str(bottom if up else top),str(x),str(top if up else bottom),'300')
+        time.sleep(1)
+    def lookup(text):
+        # Headings can repeat a control's label; prefer the node that actually accepts the tap.
+        matches=[n for n in ET.fromstring(dump()).iter('node') if n.get('text')==text or n.get('content-desc')==text]
+        matches.sort(key=lambda n:n.get('clickable')!='true')
+        return matches[0] if matches else None
     def find(text):
-        tree=ET.fromstring(dump())
-        for node in tree.iter('node'):
-            if node.get('text')==text or node.get('content-desc')==text: return node
+        # Module settings is longer than a small emulator screen; scroll down until the control appears.
+        for attempt in range(8):
+            node=lookup(text)
+            if node is not None: return node
+            swipe(True)
         raise AssertionError('Missing UI control: '+text)
     def tap(text):
         node=find(text)
         left,top,right,bottom=map(int,re.findall(r'\d+',node.get('bounds')))
         device('shell','input','tap',str((left+right)//2),str((top+bottom)//2))
         time.sleep(1)
+    def module(tab,marker):
+        # Install, diagnostics and the language switch live on the module-settings tab.
+        for attempt in range(4): swipe(False)
+        if lookup(marker) is None: tap(tab)
+        for attempt in range(4): swipe(False)
     def capture(name,expected):
         raw=dump();tree=ET.fromstring(raw)
         texts={n.get('text') for n in tree.iter('node')}
@@ -72,15 +89,19 @@ def main():
         device('shell','wm','dismiss-keyguard')
         device('shell','am','start','-W','-n','com.inkcontrol/.ui.MainActivity')
         time.sleep(2)
+        module('Module settings','Install')
         capture('english-system',['InkControl','Features','Install','Diagnostics'])
         tap('Language / Language');tap('简体中文')
+        module('模块设置','安装')
         capture('chinese-explicit',['墨控','功能','安装','诊断'])
         tap('语言 / Language');tap('English')
+        module('Module settings','Install')
         capture('english-explicit',['InkControl','Features','Install','Diagnostics'])
         # Recreate/process restart must preserve the user's language choice.
         device('shell','am','force-stop','com.inkcontrol')
         device('shell','am','start','-W','-n','com.inkcontrol/.ui.MainActivity')
         time.sleep(1)
+        module('Module settings','Install')
         capture('english-after-restart',['InkControl','Features','Install','Diagnostics'])
     except Exception:
         # Preserve the original failure even if a busy emulator cannot provide diagnostics.

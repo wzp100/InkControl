@@ -27,7 +27,7 @@ class ReleasePolicyTest(unittest.TestCase):
             self.artifacts[name] = hashlib.sha256(data).hexdigest()
         self.manifest = {'version': '0.1.0-rc15', 'signing': 'verified', 'artifacts': self.artifacts,
                          'cloud': dict(self.context), 'sources': {'ci/trusted-certificate.der': 'c'*64}}
-        self.package = {'version': '0.1.0-rc15', 'signing': 'verified', 'default_off': 74,
+        self.package = {'version': '0.1.0-rc15', 'signing': 'verified', 'default_off': 88,
                         'module_checksums': True, 'embedded_zip_identical': True,
                         'apk_sha256': self.artifacts['InkControl-v0.1.0-rc15.apk'],
                         'zip_sha256': self.artifacts['inkcontrol_backend-v0.1.0-rc15.zip']}
