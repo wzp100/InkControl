@@ -13,9 +13,9 @@
   "source_version": "0.3.0-rc1",
   "enhancements_default_off": 88,
   "recorded_device": {
-    "app": "0.1.0-rc10",
-    "backend": "rc10-gpu-fix1",
-    "last_evidence_date": "2026-10-17",
+    "app": "0.3.0-rc1",
+    "backend": "0.3.0-rc1",
+    "last_evidence_date": "2026-11-11",
     "changed_by_documentation_task": false
   },
   "reference_cloud_evidence": {

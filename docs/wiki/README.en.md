@@ -29,4 +29,4 @@ Read the [native GitHub Wiki](https://github.com/wzp100/InkControl/wiki/Home.en)
 
 Implementation, standalone-kernel validation, device smoke tests, reboot checks, panel evaluation, and long-term tests are distinct evidence levels. `Rxx` references resolve through the [source index](knowledge-index.json), which records repository sources and hashes for workspace-only reports.
 
-The recorded device as of 2026-10-18 runs rc10 app + rc10-gpu-fix1. New signing starts at rc13. Read `AndroidManifest.xml` for the current source version and Release attachments for exact build evidence. Documentation is not authorization to install, mount, flash, or reboot a device.
+The recorded device runs the 0.3.0-rc1 app and backend since the 2026-11-11 smoke test (previously rc10 app + rc10-gpu-fix1). New signing starts at rc13. Read `AndroidManifest.xml` for the current source version and Release attachments for exact build evidence. Documentation is not authorization to install, mount, flash, or reboot a device.
