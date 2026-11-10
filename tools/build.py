@@ -9,16 +9,10 @@ import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.2.7-r27'
+VERSION = '0.3.0-rc1'
 INPUTS = {
-    'hwcomposer.stock.so': 'a95b9f92df5c4c37633fae5e15aa216359d314f58a214375a07a5a83e26e6502',
+    'hwcomposer.stock.so': 'd1ba01bf135151580c41dc7de13dd1c80876094c8022f58fe9ceecd0c9fb0988',
     'hwcomposer.motion.so': 'adbdf9aeb1868e1fb9bf01394a8f67942adb9b3c97a93d6ec2d168f83e60a675',
-    # 翻页动画：第三方 HWC 派生库与两个原生小工具，逐字节校验后打进同一个后端模块。
-    # 构建输入随仓库放在 inputs/（2026-11-09 起入库，权利归原权利人，见 NOTICE.md）；
-    # 云端构建另有 ci/inputs.json 记录同一批文件的哈希。
-    'hwcomposer.pageanim.so': '3e241e4bab0d9b79f9506543bbc68da069b1ae7954d25f45598d55e564eaf478',
-    'a5pro-resident': '75c64d1f22da9f22a84f57665f231bfc97b29589366b5c193719159e4fc442ee',
-    'a5pro-control-once': 'a79f49f05f984cf51e1b20126aa73aff72aab79841b7b410c13b96bc6e8bec01',
 }
 # 工具链是逐段手工调用（aapt2 / javac / d8 / zipalign / apksigner），每一步都会留下文件。
 # 逐段产物全部落在 out/.work/<name>/（不再塞进产物目录），构建前后各清一次：
@@ -203,29 +197,7 @@ def main():
     default = bytearray(motion); default[0x92bcc:0x92bd4] = stock[0x92bcc:0x92bd4]
     (payload/'hwcomposer.default.so').write_bytes(default)
     (payload/'hwcomposer.idle10.so').write_bytes(motion)
-    # 翻页动画的 HWC 与墨控的两份是同一个 /vendor 文件，不能同时挂载；
-    # post-fs-data.sh 按 pageanim.master 在这三份里选一份。
-    (payload/'hwcomposer.pageanim.so').write_bytes((args.inputs/'hwcomposer.pageanim.so').read_bytes())
-    # resident 里三条硬编码路径原本指向独立模块目录，改成墨控自己的状态目录。
-    # 新前缀更短，剩余字节补 0，保持 C 字符串长度与所有偏移不变。
-    resident = bytearray((args.inputs/'a5pro-resident').read_bytes())
-    old = b'/data/adb/modules/a5pro_epd_probe'
-    new = b'/data/adb/inkcontrol/pageanim'
-    hits = 0
-    at = 0
-    while True:
-        at = resident.find(old, at)
-        if at < 0: break
-        end = resident.find(b'\x00', at)
-        if end < 0: raise ValueError('resident 路径字符串没有结束符')
-        replacement = (new + bytes(resident[at + len(old):end])).ljust(end - at, b'\x00')
-        resident[at:end] = replacement
-        hits += 1
-        at = end + 1
-    if hits != 3: raise ValueError('resident 路径数量异常：%d' % hits)
-    (module/'bin/a5pro-resident').write_bytes(bytes(resident))
-    (module/'bin/a5pro-control-once').write_bytes((args.inputs/'a5pro-control-once').read_bytes())
-    (module/'module.prop').write_text('id=inkcontrol_backend\nname=墨控显示后端\nversion='+VERSION+'\nversionCode=27\nauthor=InkControl contributors\ndescription=墨控统一后端；增强默认关闭，通过App逐项开启。\n', encoding='utf-8', newline='\n')
+    (module/'module.prop').write_text('id=inkcontrol_backend\nname=墨控显示后端\nversion='+VERSION+'\nversionCode=28\nauthor=InkControl contributors\ndescription=墨控统一后端；增强默认关闭，通过App逐项开启。\n', encoding='utf-8', newline='\n')
     (module/'checksums.sha256').write_text(''.join(sha(p)+'  '+p.relative_to(module).as_posix()+'\n' for p in sorted(module.rglob('*')) if p.is_file() and p.name != 'customize.sh' and 'META-INF' not in p.parts), encoding='utf-8', newline='\n')
     assert b'\r' not in (module/'module.prop').read_bytes() + (module/'checksums.sha256').read_bytes()
     suffix = '-unsigned' if args.unsigned else ''

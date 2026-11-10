@@ -11,22 +11,8 @@ rm -f "$IC_STATE/error" "$MODDIR/skip_mount"
 # 仅删除本模块固定的派生文件，不递归删除目录，不操作原厂分区。
 # InkControlGoogleIcon.apk 是已下线的图标覆盖，保留清理以便旧安装升级后自动移除。
 for file in system/vendor/lib64/hw/hwcomposer.ums512.so system/vendor/lib64/hw/libeinkgpu.so system/product/overlay/InkControlGoogleIcon.apk; do rm -f "$MODDIR/$file"; done
-# GPU 显示后端优先：两个开关都开时挂 GPU 库 + libeinkgpu，翻页动画由融合分支承担，
-# 不再需要二选一或重启。只有 GPU 后端关闭时才挂翻页动画专用 HWC（保持旧行为）。
-if ic_enabled pageanim.master && ! ic_enabled display.gpu; then
-    # 这一份是第三方派生库，自带 HWC 注入段；resident 在 service.sh 里拉起。
-    if [ ! -f "$MODDIR/payload/hwcomposer.pageanim.so" ]; then
-        echo '缺少翻页动画 HWC；未挂载显示库' > "$IC_STATE/error"
-    else
-        mkdir -p "$MODDIR/system/vendor/lib64/hw"
-        cp "$MODDIR/payload/hwcomposer.pageanim.so" "$MODDIR/system/vendor/lib64/hw/hwcomposer.ums512.so"
-        chmod 644 "$MODDIR/system/vendor/lib64/hw/hwcomposer.ums512.so"
-        chcon u:object_r:vendor_hal_file:s0 "$MODDIR/system/vendor/lib64/hw"
-        chcon u:object_r:vendor_file:s0 "$MODDIR/system/vendor/lib64/hw/hwcomposer.ums512.so"
-        echo 0 > "$IC_STATE/pending"
-        ic_pageanim_sync
-    fi
-elif ic_enabled display.gpu; then
+# 翻页动画由 GPU 显示后端的融合分支承担；没有独立的翻页 HWC。
+if ic_enabled display.gpu; then
     current=$(sha256sum "$IC_VENDOR/hwcomposer.ums512.so" | cut -d' ' -f1)
     pending=$(cat "$IC_STATE/pending" 2>/dev/null || echo 0)
     if [ "$current" != "$IC_STOCK" ] || [ "$pending" -ge 2 ] || [ -f "$IC_STATE/disable_hwc" ]; then

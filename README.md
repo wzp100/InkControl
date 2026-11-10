@@ -1,10 +1,10 @@
 <p align="center"><img src="docs/brand/banner.svg" alt="墨控 InkControl — Hisense A5 Pro 经典版" width="100%"></p>
 
-<p align="center"><b>中文文档（主）</b> · <a href="docs/wiki/README.md"><b>知识库</b></a> · <a href="docs/wiki/agent-handbook.md">Agent 从这里开始</a> · <a href="README.en.md">English</a> · <a href="https://github.com/liuqianhe/InkControl/releases">下载安装包</a></p>
+<p align="center"><b>简体中文</b> · <a href="docs/wiki/README.md"><b>知识库</b></a> · <a href="docs/wiki/agent-handbook.md">Agent 从这里开始</a> · <a href="README.en.md">English</a> · <a href="https://github.com/wzp100/InkControl/releases">下载安装包</a></p>
 
 # 黑白之间，多一点掌控
 
-**墨控 · InkControl** 是给 **Hisense A5 Pro 经典版**（`HLTE203T` / Android 10 / arm64）做的黑白墨水屏增强套件：一个 App 管理显示算法、动画、翻页动画、锁屏、原厂桌面与系统增强，配套一个 Magisk 后端模块。**全部增强默认关闭**，按需开启；界面同时展示期望配置、运行回执与异常状态。安装包与版本说明见 [Releases](https://github.com/liuqianhe/InkControl/releases)，App 与后端模块的版本号必须一致。
+**墨控 · InkControl** 是给 **Hisense A5 Pro 经典版**（`HLTE203T` / Android 10 / arm64）做的黑白墨水屏增强套件：一个 App 管理显示算法、动画、翻页动画、锁屏、原厂桌面与系统增强，配套一个 Magisk 后端模块。**全部增强默认关闭**，按需开启；界面同时展示期望配置、运行回执与异常状态。安装包与版本说明见 [Releases](https://github.com/wzp100/InkControl/releases)，App 与后端模块的版本号必须一致。
 
 > 仅建议用于备用机或测试机，安装前先备份并阅读[风险提示与免责声明](#风险提示与免责声明)。
 
@@ -25,7 +25,7 @@
 
 ## 使用方式
 
-1. 从 [Releases](https://github.com/liuqianhe/InkControl/releases) 下载签名 APK，先看该版本说明与校验文件。
+1. 从 [Releases](https://github.com/wzp100/InkControl/releases) 下载签名 APK，先看该版本说明与校验文件。
 2. 在 App 的「安装」页核对环境，导出配套后端 ZIP，交给 Magisk 安装。
 3. 在 LSPosed 类框架中启用墨控，勾选系统框架、系统界面、原厂桌面三个作用域。
 4. 完整重启，在「诊断」页确认就绪，再逐项开启需要的功能。
@@ -40,7 +40,7 @@
 
 <table><tr><th>翻页动画</th><th>目标阅读器</th></tr><tr><td><img src="docs/media/ui-pageanim.png" alt="翻页动画设置页：总开关，以及风格、速度、分块、间隔四个下拉" width="230"></td><td><img src="docs/media/ui-pageanim-readers.png" alt="目标阅读器选择弹窗：搜索应用并勾选" width="230"></td></tr></table>
 
-截图来源、尺寸与 SHA256 见 [docs/media/README.md](docs/media/README.md)。英文翻译已停止维护，界面部分文字仍会显示中文。
+截图来源、尺寸与 SHA256 见 [docs/media/README.md](docs/media/README.md)。
 
 ## 开发者与 Agent
 

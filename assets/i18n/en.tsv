@@ -911,3 +911,564 @@ GPU 记录到执行错误	GPU execution error recorded
 需要 GPU 显示后端，并关闭「改用原厂显示算法」	Requires the GPU backend, and the stock display algorithm must be off
 像素量化交回系统原厂处理，白底、灰底不再出现规则方格；代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。	Hand pixel quantization back to the stock path, so flat backgrounds no longer show a regular grid. Waveform animations are unavailable in this mode; the full-refresh sweep belongs to Clear mode and is unaffected.
 像素量化严格交回系统原厂 CPU 路径，白底、灰底不再出现规则网点；滑动时系统会自动切到均衡模式，那条 A2 局部刷新路径也跟随这里的选择，所以这一项同时决定滚动、切页时的网点样式。代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。	Hand pixel quantization strictly back to the stock CPU path, so flat backgrounds no longer show a regular dot grid. Scrolling makes the system switch to Balanced mode automatically, and that A2 partial-refresh path follows this setting, so it also decides the dot pattern while scrolling and paging. Waveform animations stop working in this mode; the full-refresh sweep belongs to Clear mode and is unaffected.
+模块设置	Module settings
+功能列表排序	Feature list order
+桌面快捷方式	Launcher shortcuts
+关于	About
+快捷设置	Quick settings
+模块未注入，请到框架管理器启用墨控并勾选三个作用域（系统框架、系统界面、桌面），改完完整重启。	The module is not injected. In your framework manager, enable InkControl and tick all three scopes (System Framework, System UI, Launcher), then restart fully.
+已刷新锁屏格言，锁一次屏就能看到新的	Lock-screen motto refreshed; lock the screen once to see the new one
+出错了先从这里处理：进「诊断」查看详情，或在「安装」重新导出 Magisk 模块 ZIP。	If something went wrong, start here: open "Diagnostics" for details, or re-export the Magisk module ZIP in "Install".
+版本、作者、来源与更新。	Version, author, sources and updates.
+遮挡息屏、锁屏自定义与自动刷新的常用开关。	Common switches for sleep on cover, lock-screen customization and auto refresh.
+版本 	Version 
+打开关于	Open About
+环境未就绪：开启增强前请按「模块设置 → 安装」完成安装并完整重启。	Environment not ready: before enabling enhancements, finish "Module settings → Install" and restart fully.
+尚未检查环境。开启任何增强前，先到「模块设置 → 安装」完成检查与安装。	Environment not checked yet. Before enabling any enhancement, complete the checks and installation in "Module settings → Install".
+。开启增强前请先到「模块设置 → 安装」处理。	. Resolve this in "Module settings → Install" before enabling enhancements.
+系统应用卸载/还原	Remove / restore system apps
+系统更新	System update
+腾讯位置服务	Tencent location service
+工作设置	Work settings
+读取卸载状态	Read removal state
+「卸载」只从机主账号移除，系统文件保留，点「还原」即可装回。	"Remove" only removes the app for the device owner; system files stay, and "Restore" puts it back.
+常驻组件不在此列：冻结压不住，卸载会让系统软重启。	Persistent components are not listed: freezing cannot hold them, and removing them soft-restarts the system.
+重新读取状态	Reload state
+状态：	State: 
+卸载	Remove
+卸载「	Remove "
+只从机主账号里移除，系统分区里的原始文件不动；以后在任何时候点「还原」都能原样装回。	It is only removed for the device owner; the original file on the system partition is untouched, and "Restore" reinstalls it unchanged at any time.
+还原	Restore
+还原「	Restore "
+已安装	Installed
+已卸载	Removed
+设备上没有这个应用	This app is not on the device
+翻页动画	Page-turn animation
+锁屏显示	Lock-screen display
+刷新格言	Refresh motto
+刷新系统的格言	Refresh the system motto
+显示信息修改	Edit displayed items
+显示信息修改，已选 	Edit displayed items, selected 
+，已展开	, expanded
+，点开可勾选	, tap to choose items
+显示方式与说明 ›	Display style and notes ›
+，已勾选	, ticked
+，未勾选	, not ticked
+勾选「	Tick "
+取消「	Untick "
+常用三项放在一页，开关直接改；点进每一项可以调细节。	The three most-used items on one page; flip switches directly, or open an item for details.
+遮挡息屏关闭屏幕后要按电源键唤醒；锁屏显示与自动刷新在锁屏、系统界面里生效。	After sleep on cover turns the screen off, wake it with the power key; lock-screen display and auto refresh take effect on the lock screen and in System UI.
+01 选择翻页风格	01 Choose a page-turn style
+翻页风格	Page-turn style
+展开速度	Reveal speed
+分块数量	Band count
+02 翻页操作	02 Page-turn controls
+03 目标阅读器	03 Target readers
+未选择阅读器	No reader selected
+目标阅读器	Target readers
+不选则动画不触发；上下滚动仍走原厂刷新。	With none selected the animation never triggers; vertical scrolling still uses the stock refresh.
+选择阅读器	Choose readers
+自定义 	Custom 
+未换过字体	Font never changed
+上次应用 	Last applied 
+ · 自定义目录	 · custom folder
+，打开字体设置	, open font settings
+四项都不显示	All four items hidden
+，选择显示哪几项	, choose which items to show
+正在读取…	Reading…
+还没有快照	No snapshots yet
+ 个快照 · 最近 	 snapshots · latest 
+，打开备份	, open backups
+ 个阅读器	 readers
+实验	Experimental
+当前选择	Current selection
+前往「诊断」	Go to "Diagnostics"
+选择显示哪几项	Choose which items to show
+ 项显示 · 	 items shown · 
+四项都关着，锁屏底部那块位置留空。	All four are off, so that area at the bottom of the lock screen stays empty.
+锁屏底部那块位置按这四项从左到右排，关掉的项不占位，其余各项自动均分宽度。	That area at the bottom of the lock screen lays these four out left to right; hidden items take no space and the rest share the width evenly.
+「显示设备状态」没开时这四项都不显示，开关照常保存。	While "Show device status" is off none of the four is shown; the switches are still saved.
+显示哪几项	Items to show
+画成图标版还是文字版（当前：	Draw as icons or as text (current: 
+光带扫过的快慢由「全刷扫过速度」决定；整段仍是一次原厂清晰全刷（约 0.9 秒），去残影效果不变。	The band's pace follows "Full-refresh sweep speed"; the whole pass is still one stock Clear full refresh (about 0.9 s) with the same ghost removal.
+保持原厂：画面直接切换，不额外增加刷新。	Keep stock: the screen switches directly with no extra refresh.
+点按卡片先预览效果，满意后点标题右侧的「使用此主题」。	Tap a card to preview it, then tap "Use this theme" to the right of the title.
+点按卡片先查看说明，满意后再点下方按钮使用。	Tap a card to read its notes, then use the button below.
+点按卡片先预览效果，满意后再点下方按钮使用。	Tap a card to preview it, then use the button below.
+使用此主题	Use this theme
+（开启后生效）	 (takes effect once enabled)
+按钮顺序	Button order
+从左到右排。按住左侧的三条横线上下拖即可换位置，点「更换」换动作。	Laid out left to right. Hold the three bars on the left and drag up or down to reorder; tap "Change" to pick another action.
+更换	Change
+WiFi · 蓝牙 · 自动刷新 · 翻页动画 · 截屏便签	WiFi · Bluetooth · Auto refresh · Page-turn animation · Screenshot note
+无	None
+无（这个位置不显示）	None (nothing shown in this slot)
+APP…（当前：	App… (current: 
+这个按钮做什么	What this button does
+更换按钮动作	Change button action
+搜索应用名或包名	Search app name or package
+点它打开哪个应用	Which app it opens
+按钮顺序未保存	Button order not saved
+已恢复默认顺序	Default order restored
+只有名单里的应用会触发翻页动画；不选则不会触发。上下滚动仍走原厂刷新。	Only listed apps trigger the page-turn animation; with none selected it never triggers. Vertical scrolling still uses the stock refresh.
+当前名单	Current list
+最多三个，按目标日先后显示。事项名可留空；日期为空该组停用。开启「农历日期」时按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭「显示」可暂时隐藏该组。	Up to three, shown in order of target date. The name may be empty; a group with no date is disabled. With "Lunar date" on, the date is read as a lunar year/month/day (2027-01-01 means Lunar New Year 2027); turn "Show" off to hide a group temporarily.
+（农历）	 (lunar)
+农历日期	Lunar date
+事项 	Event 
+ 没选日期，不会显示	 has no date and will not be shown
+农历日期「	Lunar date "
+」不存在，请改选其他日期	" does not exist; choose another date
+点「应用」写进系统槽位后，替换全局字体。	Tap "Apply" to write it into the system slot and replace the global font.
+保存并刷新列表	Save and refresh list
+选择目录	Choose folder
+从文件选择	Choose from file
+恢复原厂字体	Restore stock font
+字体是全局替换：状态栏、锁屏、桌面与所有应用一起换字。字体缺少中文字形时部分界面会出现方块，点上面的「恢复原厂字体」即可退回系统默认字体。	The font is replaced globally: status bar, lock screen, launcher and all apps change together. If a font lacks Chinese glyphs some screens show boxes; tap "Restore stock font" above to return to the system default.
+默认：	Default: 
+上次应用：	Last applied: 
+搜索字体名…	Search font name…
+正在扫描…	Scanning…
+读取目录失败：	Could not read folder: 
+\n可以用「从文件选择」直接挑一个字体文件。	\nYou can use "Choose from file" to pick a font file directly.
+这个目录里没找到字体文件。换一个目录，或用「从文件选择」。	No font files found in this folder. Try another folder, or use "Choose from file".
+ 个字体	 fonts
+没有匹配「	No font matches "
+」的字体，清空搜索框显示全部	"; clear the search box to show all
+匹配 	Matches 
+ / 共 	 / total 
+重新加载列表	Reload list
+ · 上次已应用	 · last applied
+应用	Apply
+请填绝对路径，例如 	Enter an absolute path, for example 
+路径里不能有等号、分号或换行	The path cannot contain an equals sign, semicolon or line break
+保存字体目录	Save font folder
+已保存字体目录：	Font folder saved: 
+无法选择目录	Cannot choose a folder
+系统没有可用的文件夹选择界面。	The system has no folder picker available.
+无法选择文件	Cannot choose a file
+系统没有可用的文件选择界面。	The system has no file picker available.
+应用字体	Apply font
+无法读取所选文件	Cannot read the selected file
+把系统原厂默认字体（Roboto-Medium）重新指向当前槽位——也就是系统「字体样式」里的「默认字体」。写完界面自动刷新（全局界面一起换，包括桌面），不用重启。	Point the current slot back to the stock default font (Roboto-Medium), which is "Default font" under the system's "Font style". The UI refreshes automatically afterwards (everything including the launcher changes together); no restart needed.
+导出 Magisk 安装包、启用墨控模块并勾选作用域的完整向导。	Full wizard for exporting the Magisk package, enabling the InkControl module and ticking its scopes.
+打开安装向导	Open install wizard
+查看后端模块、配置应用与各项生效状态，排查异常。	Inspect the backend module, configuration apply status and each feature's effective state to troubleshoot problems.
+打开诊断	Open Diagnostics
+调整首页各大功能的显示顺序，按住把手上下拖即可，立即生效、随时可恢复默认。	Reorder the feature groups on the home page; hold the handle and drag up or down. Takes effect immediately and can be reset to default at any time.
+打开功能列表排序	Open feature list order
+长按桌面上的墨控图标，直接跳到最常用的几个功能。	Long-press the InkControl icon on the launcher to jump straight to your most-used features.
+选择快捷方式	Choose shortcuts
+打开实验室	Open Laboratory
+版本信息、作者与来源、参考项目，以及手动检测更新。	Version information, author and sources, reference projects, and a manual update check.
+修改设置后的结果提示会在页面上停留一段时间后自动消失；	After you change a setting, the result notice stays on the page for a while and then disappears on its own; 
+选「不显示」则不再占用页面空间。失败提示不会自动消失。	choose "Do not show" to stop it taking up page space. Failure notices never disappear automatically.
+没有可以打开链接的应用	No app can open this link
+，打开链接	, open link
+版本 v	Version v
+项目仓库	Repository
+文档	Docs
+海信 A5 Pro 经典版（HLTE203T / Android 10）的墨水屏增强模块。全部增强默认关闭，按需开启。	E-ink enhancement module for the Hisense A5 Pro Classic Edition (HLTE203T / Android 10). All enhancements are off by default; enable what you need.
+作者与来源	Authors and sources
+贡献者 · GitHub 主页	Contributor · GitHub profile
+项目主仓库	Main project repository
+翻页动画作者 · 酷安主页	Page-turn animation author · Coolapk profile
+参考项目	Reference projects
+自动刷新能力的参考项目	Reference project for auto refresh
+该项目的分支	Fork of that project
+体感相关的参考项目	Reference project for proximity features
+查看更新	Check for updates
+当前版本 v	Current version v
+。只在点按钮时检测一次，不会自动检查、下载或安装。	. A check runs only when you tap the button; nothing is checked, downloaded or installed automatically.
+检测更新	Check for updates
+检测结果会显示在这里。	The result will appear here.
+打开发布页	Open releases page
+在浏览器里查看全部版本	See all versions in the browser
+第三方二进制与社区作品的权利归原权利人所有，详见仓库 NOTICE.md。	Rights in third-party binaries and community work remain with their owners; see NOTICE.md in the repository.
+正在检测最新版本…	Checking for the latest version…
+接口返回 	API returned 
+发布页没有版本标签	The release has no version tag
+已是最新版本 v	Already on the latest version v
+发现新版本 v	New version found: v
+（当前 v	 (current v
+），点这里打开发布页	); tap here to open the releases page
+本机 v	This device's v
+ 比线上发布的 v	 is newer than the published v
+ 更新（未发布或本地构建）	 (unreleased or local build)
+检测失败：网络或接口暂不可用，可点下方打开发布页查看	Check failed: network or API unavailable; open the releases page below instead
+调整首页各大功能的显示顺序。按住左侧的三条横线上下拖，松手就放到新位置；改动立即生效，只影响排列，不影响任何功能本身；「实验室」在「模块设置」里，不参与排序。	Reorder the feature groups on the home page. Hold the three bars on the left and drag up or down; release to drop. Changes apply immediately and only affect ordering, not any feature itself. "Laboratory" lives in "Module settings" and is not part of the order.
+长按桌面图标	Long-press the launcher icon
+长按桌面上的「墨控」图标，弹出的菜单里直接列出下面这几项，点一个就到对应功能页，	Long-press the "InkControl" icon on the launcher and the menu lists the items below directly; tap one to open that feature page, 
+不再多一层面板。最多 	with no extra panel in between. Up to 
+ 个。	.
+说明：这几条是安卓的「动态快捷方式」，桌面把它们画成一列「图标 + 名字」，	Note: these are Android "dynamic shortcuts"; the launcher draws them as a column of "icon + name", 
+和系统自带的「分享 / 冻结 / 卸载」那一行是同一块菜单的不同样式。	a different style of the same menu as the built-in "Share / Freeze / Uninstall" row. 
+名字只留两三个字，字多了会被桌面截成「遮挡息…」。	Names are kept very short because the launcher truncates longer ones.
+还没有选择任何功能。	No feature selected yet.
+快捷动作 · 换下一条	Quick action · next motto
+选择功能	Choose features
+恢复默认四个	Restore default four
+已恢复默认：遮挡息屏、锁屏显示、自动刷新、桌面主题	Defaults restored: Sleep on cover, Lock-screen display, Auto refresh, Desktop theme
+桌面没有接受这次改动，稍后再试一次	The launcher did not accept this change; try again shortly
+改完立即生效，不用重启桌面。个别桌面会缓存长按菜单，	Changes apply immediately without restarting the launcher. Some launchers cache the long-press menu, 
+第一次可能要多等几秒，或者先滑一下桌面再长按。	so the first time may take a few seconds, or swipe the launcher once before long-pressing.
+最多选 	Choose at most 
+ 个，先取消一个再选	; untick one before choosing another
+快捷动作	Quick actions
+勾选顺序按列表从上到下排列，与点选先后无关。	Ticked items follow the list order from top to bottom, regardless of the order you tapped them.
+（最多 	 (up to 
+ 个）	)
+至少要留一个，否则长按图标不会弹出菜单	Keep at least one, or long-pressing the icon will not open a menu
+已保存 	Saved 
+ 个快捷方式，长按桌面图标就能看到	 shortcuts; long-press the launcher icon to see them
+桌面拒绝了这次更新（可能刚改过太多次），过一会儿再保存一次	The launcher rejected this update (possibly too many recent changes); save again in a moment
+存的是什么	What is stored
+系统设置本身：息屏与锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、	The system settings themselves: screen-off and lock timeouts, per-stream volumes, default input method, font name, eye-care and game modes, 
+显示模式、开发者选项这些。真机上约 420 项，恢复时逐条写回。	display mode, developer options and the like. About 420 entries on a real device, written back one by one on restore.
+不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。	App data, the lock-screen password and app installation records are not backed up.
+立即备份当前设置	Back up current settings now
+正在备份系统设置…	Backing up system settings…
+已备份 	Backed up 
+ 项设置，编号 	 settings, ID 
+正在读取已有快照…	Reading existing snapshots…
+已有快照	Existing snapshots
+还没有备份过。点上面的按钮拍第一张。	No backup yet. Tap the button above to take the first snapshot.
+快照存在 /data/adb/inkcontrol/backup 下，清除应用数据不会带走。	Snapshots live under /data/adb/inkcontrol/backup and survive clearing app data.
+恢复只改设置项，不会覆盖系统文件；写之前还会先给当前状态拍一张，写坏了能退回去。	Restoring only changes settings entries and never overwrites system files; the current state is snapshotted first so a bad restore can be undone.
+ 项 · 	 entries · 
+写回	Write back
+删除	Delete
+删除快照	Delete snapshot
+删掉 	Delete 
+？这张快照里的 	? The 
+ 项就找不回来了。	 entries in this snapshot cannot be recovered.
+写回系统设置	Write back system settings
+把 	Write 
+ 里的 	 (
+ 项写回当前系统。\n\n	 entries) back to the current system.\n\n
+写之前会自动给现在的状态拍一张快照，写坏了可以用它退回去。	The current state is snapshotted automatically first, so a bad restore can be undone with it.
+无线网络、字体这类要重启系统界面才看得出来；个别项可能要重启手机。	Items such as wireless and fonts show only after System UI restarts; a few may need a phone restart.
+正在写回设置…	Writing settings back…
+已写回 	Written back: 
+ 项，跳过 	, skipped: 
+ 项，失败 	, failed: 
+ 项。	.
+\n写回前的状态已存为 	\nThe state before writing back was saved as 
+正在删除快照…	Deleting snapshot…
+已删除快照 	Deleted snapshot 
+时间未知	Time unknown
+环境还没读到（配置读取失败）。检查动作依赖 Root；仍可在「安装」导出 ZIP。	Environment not read yet (configuration read failed). Checks need root; you can still export the ZIP in "Install".
+无法换成路径	Cannot convert to a path
+这个位置没法转换成文件路径。可以改用「从文件选择」直接挑一个字体文件。	This location cannot be converted to a file path. Use "Choose from file" to pick a font file directly.
+磁贴	Tile
+下拉快捷设置面板里的一格按钮（Wi-Fi、蓝牙、手电筒等）。装了磁贴的第三方应用会注册一个磁贴服务，系统在「编辑磁贴」里把它列出来，拖到面板上才能用。	One button in the pull-down quick settings panel (Wi-Fi, Bluetooth, flashlight and so on). A third-party app with a tile registers a tile service; the system lists it under "Edit tiles" and it works once dragged onto the panel.
+无障碍服务	Accessibility service
+系统里授权给辅助应用的一种常驻服务：能读到界面上的操作、按键，也能代你执行锁屏等全局动作（设置 → 无障碍）。墨控的「墨控体感」「墨控自动刷新」就是两个这样的服务，开关打开时由后端自动加进这张清单，关闭后撤掉。	A persistent service the system grants to assistive apps: it can observe on-screen actions and keys and perform global actions such as locking the screen for you (Settings → Accessibility). InkControl's "InkControl Proximity" and "InkControl Auto Refresh" are two such services; the backend adds them to the enabled list when their switches are on and removes them when off.
+三大金刚键	Navigation keys
+屏幕最下面那一排键：返回、主屏、最近任务；本机右端还有一个菜单键。它们的背景与图标都是「系统界面」自己画的。	The row of keys at the very bottom of the screen: Back, Home and Recents; this device also has a Menu key at the right end. Their background and icons are drawn by System UI itself.
+系统界面	System UI
+负责画状态栏、锁屏、通知和底部导航栏的系统进程。墨控的一部分改动（锁屏样式、导航栏颜色）都跑在这个进程里。	The system process that draws the status bar, lock screen, notifications and bottom navigation bar. Some InkControl changes (lock-screen styles, navigation bar color) run inside this process.
+锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词与格言相关设置。	Lock-screen style, weather, extended display, countdowns and lock-screen refresh, plus lyrics and motto settings.
+拓展显示	Extended display
+翻页时把新一页分块、分阶段揭示。	Reveal the new page in bands and phases when turning pages.
+画面细分	Band detail
+翻页操作	Page-turn controls
+字体	Font
+把系统字体换成目录里的任意 TTF/OTF。	Replace the system font with any TTF/OTF from a folder.
+实现类似合盖息屏、翻盖亮屏的功能，因使用距离传感器，启用会自动打开相关无障碍服务	Works like sleeping when a cover closes and waking when it opens. It uses the proximity sensor, so enabling it turns on the related accessibility service automatically
+原厂桌面的主题、图标、壁纸与组件；不改动图标位置和布局。	Theme, icons, wallpaper and widgets for the stock launcher; icon positions and layout are unchanged.
+修复原厂服务的几个问题，放开快捷磁贴、导航栏与密码框的限制。	Fix several issues in stock services and lift limits on quick tiles, the navigation bar and password fields.
+控制中心	Control center
+导航栏	Navigation bar
+备份	Backup
+快捷面板修改	Quick panel customization
+把系统的E-Ink刷新面板换成一些自定义功能	Replace parts of the system E-Ink refresh panel with custom functions
+按钮	Buttons
+把用不到的系统应用从机主账号里卸掉，随时可还原；系统分区文件保留。常驻组件不在此列。	Remove unused system apps for the device owner and restore them at any time; system partition files are kept. Persistent components are not listed.
+(自定义)	(custom)
+保持原厂：不加任何过渡，画面直接切换，也不额外刷新。	Keep stock: no transition is added, the screen switches directly and nothing extra is refreshed.
+原厂算法	Stock algorithm
+一键退回原厂算法，优先级高于 GPU 后端	Return to the stock algorithm in one step; takes priority over the GPU backend
+清晰、阅读、快速、极速、视频五个模式都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，触摸响应加速与全刷复用照常可用，但所有像素量化都走原厂路径。	Clear, Reading, Fast, Extreme and Video modes all stop overriding the quantization algorithm and hysteresis and hand everything back to stock. The GPU display backend itself stays loaded, so touch-response acceleration and full-refresh reuse still work, but all pixel quantization takes the stock path.
+使用原厂算法	Use stock algorithm
+翻页时把新一页分块、分阶段揭示	Reveal the new page in bands and phases when turning pages
+翻页动画由墨控自己的 GPU 波形层实现，需要同时开启 GPU 显示后端：整屏刷新按选定的风格逐带揭示，与分模式算法、波形动画同时生效，开关与参数实时生效不用重启。触发范围由「目标阅读器」名单决定：只有名单里的应用在前台时才播放。GPU 显示后端关闭时翻页动画不生效。	The page-turn animation is implemented by InkControl's own GPU waveform layer and requires the GPU display backend: a full-screen refresh is revealed band by band in the chosen style, together with per-mode algorithms and waveform animations, and switches and parameters apply live without a restart. The trigger range is set by the "Target readers" list: it plays only while a listed app is in the foreground. With the GPU display backend off the page-turn animation has no effect.
+翻页是一次整帧瞬间替换，画面直接跳变。	A page turn replaces the whole frame at once and the picture jumps.
+新一页按方向或分块逐步展开，看得出翻页过程。	The new page unfolds gradually by direction or by bands, so the turn is visible.
+不额外停用其它功能，但同一应用内的整屏刷新（含滚动与弹窗）也会一起播放。	No other feature is disabled, but full-screen refreshes inside the same app (including scrolling and dialogs) play it too.
+启用翻页动画	Enable page-turn animation
+新一页怎么展开	How the new page unfolds
+横向或纵向整片展开，以及斜向、反斜向、环绕、中心四种分块展开。选完下次翻页生效。	Horizontal or vertical whole-sheet reveal, plus four banded reveals: diagonal, anti-diagonal, ring and center. Takes effect on the next page turn.
+横向展开	Horizontal reveal
+新画面从一侧向另一侧整片推开。	The new picture pushes across as one sheet from one side to the other.
+纵向展开	Vertical reveal
+新画面从上往下或从下往上整片推开。	The new picture pushes as one sheet from top to bottom or bottom to top.
+斜向分块	Diagonal bands
+沿对角线把画面切成若干条依次揭示。	The picture is cut into strips along the diagonal and revealed in turn.
+反斜向分块	Anti-diagonal bands
+与斜向相反的对角线方向。	The opposite diagonal direction.
+环绕分块	Ring bands
+从四周向中间或从中间向四周逐圈揭示。	Revealed ring by ring from the edges inward or from the center outward.
+中心展开	Center reveal
+以画面中心为起点向两侧展开。	Unfolds to both sides starting from the center of the picture.
+展开快慢	Reveal pace
+阶段越少越快、越接近瞬间切换；越多展开越明显，一次翻页也更慢。	Fewer phases are faster and closer to an instant switch; more phases make the reveal more visible and each page turn slower.
+6 阶段（更快）	6 phases (faster)
+几乎一闪而过，适合不想拖慢翻页。	Almost a flash; for when you do not want page turns slowed.
+8 阶段	8 phases
+轻微展开感。	A slight sense of unfolding.
+12 阶段（均衡）	12 phases (balanced)
+原模块默认值，速度与观感比较平衡。	The original module's default; a fair balance of speed and look.
+16 阶段	16 phases
+展开更连贯。	A more continuous reveal.
+24 阶段	24 phases
+明显变慢，适合演示。	Noticeably slower; good for demonstrations.
+40 阶段（最明显）	40 phases (most visible)
+最慢，仅建议对照效果用。	Slowest; recommended only for comparing effects.
+新画面切成多少块	How many bands the new picture is cut into
+块数越多，展开的颗粒越细、边界越不明显；分块类风格会自动调整到 4 的倍数。	More bands give a finer reveal with less visible edges; banded styles adjust to a multiple of 4 automatically.
+4 块	4 bands
+原模块默认，块感最明显。	The original module's default; the most blocky look.
+8 块	8 bands
+略细。	Slightly finer.
+12 块	12 bands
+默认，中等。	Default; medium.
+16 块	16 bands
+较细。	Fairly fine.
+24 块	24 bands
+很细。	Very fine.
+32 块	32 bands
+最细，接近连续展开。	Finest; close to a continuous reveal.
+把展开方向掉个头	Flip the reveal direction
+翻页方向默认跟手势走：左滑或点右半屏＝翻下一页，右滑或点左半屏＝翻上一页。开启这一项会把自动判断的结果反过来。	By default the direction follows the gesture: swipe left or tap the right half for the next page, swipe right or tap the left half for the previous page. Turning this on reverses the automatic result.
+反转方向	Reverse direction
+音量键翻页按习惯定方向	Volume-key page turns use the conventional direction
+音量键没有「点在哪一边」的信息，方向只能按习惯给：音量+＝上一页、音量-＝下一页。关闭后按键翻页沿用上一次点击或滑动的方向——比如刚在右侧点过，按音量+ 时动画也从右往左，和习惯相反。	Volume keys carry no "which side was tapped" information, so the direction follows convention: Volume+ is previous page, Volume- is next page. When off, key page turns reuse the direction of the last tap or swipe; for example, after a tap on the right, Volume+ also animates right to left, the opposite of convention.
+遵从翻页直觉	Follow page-turn convention
+只对选中的阅读器生效	Only applies to the selected readers
+只有名单里的应用才触发翻页动画；默认不内置任何应用，自己选。融合模式下这是唯一的触发条件：不在名单里的应用（含墨控自己）不会播放，名单留空则完全不触发。	Only listed apps trigger the page-turn animation; none is built in by default, so choose your own. This is the only trigger condition: apps not on the list (including InkControl itself) never play it, and an empty list means it never triggers.
+阅读器名单	Reader list
+选「无」或关闭此场景，都恢复原厂的瞬间切换。	Choosing "None" or turning this scene off both restore the stock instant switch.
+黑色光带扫过一屏，过程柔和，去残影效果相同。形状、方向与快慢分别在“全刷扫过风格”“全刷扫过方向”“全刷扫过速度”里设置。	A black band sweeps across the screen; the process is gentle and ghost removal is the same. Shape, direction and pace are set separately under "Full-refresh sweep style", "Full-refresh sweep direction" and "Full-refresh sweep speed".
+全刷扫过的光带是什么形状	The shape of the full-refresh sweep band
+按翻页动画那套分块展开的思路，让整屏刷新按不同形状依次开始：横向一条带、纵向一条带、斜向分块、反斜向分块、从中心向外的一圈圈，或者从中心平滑扩开。	Following the banded-reveal idea of the page-turn animation, the full-screen refresh starts in different shapes: a horizontal band, a vertical band, diagonal bands, anti-diagonal bands, rings spreading from the center, or a smooth expansion from the center.
+只改变“谁先开始刷新”，波形与去残影效果不变；斜向、环绕、中心展开不使用“全刷扫过方向”。	Only "which part starts refreshing first" changes; the waveform and ghost removal stay the same. Diagonal, ring and center reveals do not use "Full-refresh sweep direction".
+光带左右扫过，最接近原厂整屏刷新。	The band sweeps left-right; closest to the stock full-screen refresh.
+光带上下扫过。	The band sweeps up-down.
+从左上角向右下角斜着铺开，像翻页动画的斜向分块。	Spreads diagonally from the top-left corner to the bottom-right, like the page-turn animation's diagonal bands.
+从右上角向左下角斜着铺开。	Spreads diagonally from the top-right corner to the bottom-left.
+从屏幕中心向外一圈圈扩散，分成 12 圈。	Spreads outward from the screen center in 12 rings.
+从屏幕中心均匀扩开，没有分圈痕迹。	Expands evenly from the screen center with no visible rings.
+不开启时为 12 帧。全刷扫过有自己的“全刷扫过速度”，不受这一项影响。	12 frames when off. The full-refresh sweep has its own "Full-refresh sweep speed" and is not affected by this item.
+动画擦除方向：从哪一侧开始	Animation wipe direction: which side it starts from
+关键帧擦除、扫描线和百叶窗从屏幕的哪一侧开始；只影响这三类动画，全刷扫过另有自己的方向与风格。	Which side of the screen keyframe wipe, scanlines and blinds start from; only these three animations are affected, and the full-refresh sweep has its own direction and style.
+全刷扫过从哪一侧开始	Which side the full-refresh sweep starts from
+系统做“清晰全刷”去残影时，那道黑色光带从屏幕的哪一侧开始扫。	When the system performs a "Clear full refresh" to remove ghosting, which side of the screen the black band starts sweeping from.
+只在“全刷扫过”启用时生效，与“动画擦除方向”互不影响；不开启时横向从左向右、纵向从上向下。	Only effective while "Full-refresh sweep" is enabled and independent of "Animation wipe direction"; when off, horizontal runs left to right and vertical top to bottom.
+沿用原厂习惯：从左向右扫过。	Follows the stock habit: sweeps left to right.
+全刷扫过这道光带走多快	How fast the full-refresh sweep band travels
+光带扫完整屏时，屏幕上不同位置的像素错开多久开始刷新。帧数越少，光带越宽、走得越快，1 帧几乎等于整屏同时刷新（也就是原厂的整屏闪黑）；帧数越多，光带越窄、过程越明显，但整段会稍微变长。	How far apart in time pixels at different positions start refreshing as the band crosses the screen. Fewer frames make the band wider and faster; 1 frame is almost a simultaneous full-screen refresh (the stock full-screen black flash). More frames make the band narrower and the process more visible, but the whole pass gets slightly longer.
+只在“全刷扫过”启用时生效，与上面的“波形动画速度”互不影响；不开启时跟随“波形动画速度”。整段仍是原厂一次清晰全刷，去残影效果不变。	Only effective while "Full-refresh sweep" is enabled and independent of "Waveform animation speed" above; when off it follows "Waveform animation speed". The whole pass is still one stock Clear full refresh with the same ghost removal.
+极快（1 帧）	Very fast (1 frame)
+几乎整屏同时刷新，和原厂全刷一样快，只留一点扫过的痕迹。	Almost a simultaneous full-screen refresh, as fast as the stock full refresh, leaving only a trace of the sweep.
+快（4 帧）	Fast (4 frames)
+光带很宽，扫得很快。	A very wide band that sweeps quickly.
+适中（8 帧）	Moderate (8 frames)
+光带宽度与速度都比较均衡。	Band width and speed are fairly balanced.
+原厂节奏（12 帧）	Stock pace (12 frames)
+与之前跟随波形动画速度时相同。	Same as before, when it followed the waveform animation speed.
+慢（18 帧）	Slow (18 frames)
+光带最窄，过程最清楚，整段略长。	The narrowest band and the clearest process; the pass is slightly longer.
+横版构图，横转手机阅读：大号时间加方框，右侧倒数日框，右下电池与通知，左下格言。	Landscape composition for reading with the phone turned sideways: large boxed time, countdown box on the right, battery and notifications at bottom right, motto at bottom left.
+编辑排版-横-逆	Editorial landscape reversed
+编辑排版-横 旋转 180°，适合手机反向横转阅读。	Editorial landscape rotated 180°, for reading with the phone turned the other way.
+在锁屏卡片上显示当前天气、温度和图标。原厂锁屏的天气来自桌面时钟/天气小组件，桌面上没放那个小组件时它就没有数据。选择「天气App」后，墨控直接读取系统预装的天气软件（墨迹天气）已经下载的天气，不需要桌面小组件，仍然不额外联网。	Show the current weather, temperature and icon on the lock-screen card. Stock lock-screen weather comes from the launcher clock/weather widget and has no data when that widget is not on the launcher. With "Weather app" selected, InkControl reads the weather already downloaded by the preinstalled weather app (Moji Weather) directly; no launcher widget is needed and no extra network access is made.
+「天气App」用的是天气软件最后一次下载的结果；开机后没打开过天气软件、长期不打开它、或把它冻结，都可能取不到，此时自动退回原厂数据。	"Weather app" uses the weather app's last downloaded result; if the app has not been opened since boot, has not been opened for a long time, or is frozen, data may be unavailable and the stock source is used automatically.
+原厂桌面组件	Stock launcher widget
+沿用原厂锁屏天气，数据来自桌面时钟/天气小组件；没有放小组件时通常取不到。	Keep the stock lock-screen weather, sourced from the launcher clock/weather widget; usually unavailable when the widget is not placed.
+天气App	Weather app
+直接读取系统预装的天气软件（墨迹天气）已下载的数据，不需要桌面小组件。	Read the data already downloaded by the preinstalled weather app (Moji Weather) directly; no launcher widget is needed.
+锁屏底部显示通知条	Show a notification strip at the bottom of the lock screen
+锁屏倒数日下方那一块位置只有一处，本页是「显示通知」这个总开关。开启后在来源里选：系统通知、微信未读，或者「不显示」把这块留空。关闭则整块都不画：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。	There is only one area below the lock-screen countdown, and this page is the "Show notifications" master switch. When on, choose a source: system notifications, WeChat unread, or "Do not show" to leave the area empty. When off the whole area is not drawn: the "N notifications" box in Editorial, the bottom-right notification box in landscape, the notification count at the bottom right of Swiss and Liquid glass, and the notification count and cell in Pixel all disappear, and no empty frame is left in their place.
+只影响显示，通知照常统计；关掉再打开马上恢复，不用等新的通知。想在那块位置显示无线、蓝牙等开关情况，请开启「显示设备状态」——两者互斥，开一个会自动关掉另一个。	Only display is affected; notifications are still counted, and turning it back on restores the display at once without waiting for a new notification. To show wireless, Bluetooth and similar states in that area, enable "Show device status"; the two are mutually exclusive, and enabling one turns the other off automatically.
+开关保持开启，但锁屏底部不画通知条；不用为了留空先去关总开关。	The switch stays on but no notification strip is drawn at the bottom of the lock screen; no need to turn the master switch off just to leave it empty.
+锁屏底部改显示设备开关状态	Show device switch states at the bottom of the lock screen instead
+同一块位置（倒数日下方、上滑解锁提示上方）改画设备状态：无线网络、蓝牙、声音模式、飞行模式是否开启。要显示哪几项，到「显示信息修改」里逐个开关；关掉的项不再占位，其余各项自动均分宽度。本页选的是画成什么样：跟随样式、图标版还是文字版。	The same area (below the countdown, above the swipe-up hint) shows device status instead: whether wireless, Bluetooth, sound mode and airplane mode are on. Choose which items to show under "Edit displayed items"; hidden items take no space and the rest share the width evenly. This page chooses the look: follow style, icons, or text.
+只读显示，不会改动无线、蓝牙、飞行模式或铃声音量。与「显示通知」互斥：开启本项会自动关闭「显示通知」，反之亦然；两项都关时那块位置留空。像素样式是英文标牌（ON / OFF），固定用图标版；瑞士网格本身就是纯文字排版，选「跟随样式」时用文字版。	Read-only display; it never changes wireless, Bluetooth, airplane mode or ringer volume. Mutually exclusive with "Show notifications": enabling this turns "Show notifications" off automatically and vice versa; with both off the area stays empty. The Pixel style uses English signs (ON / OFF) and always uses icons; Swiss grid is a pure text layout and uses text when "Follow style" is selected.
+跟随样式	Follow style
+编辑排版、横版用图标版，瑞士网格用文字版，与各样式原本的观感一致。	Editorial and landscape use icons and Swiss grid uses text, matching each style's original look.
+图标版	Icons
+左侧一个线描图标、右侧「开 / 关 / 静音 / 有声」。	A line icon on the left and "On / Off / Silent / Sound" on the right.
+文字版	Text
+「无线|开」这类类型加竖线加状态，两边同字号同基线，没有图标。	A type, a vertical bar and a state, such as "Wireless|On", in the same size on the same baseline, without icons.
+选择设备状态里显示哪几项	Choose which device-status items to show
+锁屏底部那块位置宽度固定，项越多每格越窄。这里逐项决定画不画：无线网络、蓝牙、声音模式、飞行模式。关掉的项直接不占位，剩下的自动均分宽度；四项全关时那块位置留空。	That area at the bottom of the lock screen has a fixed width, so more items mean narrower cells. Decide here item by item: wireless, Bluetooth, sound mode, airplane mode. Hidden items take no space and the rest share the width evenly; with all four off the area stays empty.
+四项开关只影响显示，不会改变无线、蓝牙、飞行模式或铃声音量本身。四个都是默认显示：新装或升级后不用先来这里设置；关掉某一项才需要记住。画成图标还是文字在上一页「显示设备状态」里选。	The four switches only affect display and never change wireless, Bluetooth, airplane mode or ringer volume themselves. All four are shown by default, so nothing needs setting here after an install or upgrade; only hiding an item needs remembering. Icons or text is chosen on the previous page, "Show device status".
+设备状态里是否显示无线网络	Whether device status shows wireless
+关掉后锁屏设备状态条里不再出现无线这一格，其余各项自动补位。默认显示；只影响这一格，不会关闭无线网络。	When off, the wireless cell no longer appears in the lock-screen device-status strip and the other items fill in. Shown by default; only this cell is affected and wireless is not turned off.
+显示无线	Show wireless
+设备状态里是否显示蓝牙	Whether device status shows Bluetooth
+关掉后锁屏设备状态条里不再出现蓝牙这一格。默认显示；只影响这一格，不会关闭蓝牙。	When off, the Bluetooth cell no longer appears in the lock-screen device-status strip. Shown by default; only this cell is affected and Bluetooth is not turned off.
+显示蓝牙	Show Bluetooth
+设备状态里是否显示声音模式	Whether device status shows sound mode
+关掉后锁屏设备状态条里不再出现声音这一格（其余样式里是「静音 / 有声」，像素样式里是喇叭的 ON / OFF）。默认显示；只读铃声音量模式，不会改音量。	When off, the sound cell no longer appears in the lock-screen device-status strip ("Silent / Sound" in other styles, a speaker ON / OFF in Pixel). Shown by default; it only reads the ringer mode and never changes the volume.
+显示声音	Show sound
+设备状态里是否显示飞行模式	Whether device status shows airplane mode
+关掉后锁屏设备状态条里不再出现飞行这一格。默认显示；只读飞行模式状态，不会改变它。	When off, the airplane cell no longer appears in the lock-screen device-status strip. Shown by default; it only reads the airplane-mode state and never changes it.
+显示飞行	Show airplane
+一个开关管显示，本页直接编辑事项	One switch controls display; edit the events right on this page
+打开后在锁屏上显示事项倒数日：最多三个，每组一个事项和日期，多个按目标日先后排列。下方就是事项编辑器——事项名可留空；日期为空该组停用。	When on, event countdowns are shown on the lock screen: up to three, each with a name and a date, ordered by target date. The event editor is below; the name may be empty, and a group with no date is disabled.
+关闭后锁屏不再显示倒数日，已填的事项和日期仍保留，再打开即恢复。	When off, the lock screen no longer shows countdowns; the names and dates you entered are kept and return when it is turned on again.
+倒数日事项的数据存储位置	Where countdown event data is stored
+最多三个倒数日，每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。编辑入口已并入上一页「锁屏倒数日」，这里是它的数据保存位置，旧配置继续有效。	Up to three countdowns, each with its own "Lunar date" and "Show" switches: with lunar on, the date is read as a lunar year/month/day (2027-01-01 means Lunar New Year 2027); turning Show off hides a group temporarily without deleting it. Editing has moved to the previous page, "Lock-screen countdown"; this is where its data is saved, and old configurations remain valid.
+每组一个事项和日期，在「锁屏倒数日」页下方编辑。	One name and date per group, edited at the bottom of the "Lock-screen countdown" page.
+给原厂桌面换一套完整的外观。下面的图标、壁纸、组件可以分别开关；图标位置和桌面布局保持不变。	Give the stock launcher a complete new look. The icons, wallpaper and widgets below can be switched separately; icon positions and launcher layout stay unchanged.
+换掉系统正在用的字体	Replace the font the system is using
+填字体所在目录（默认是海信主题字体目录，也可以填 TF 卡上的文件夹，或点「选择目录」从文件管理器挑），目录里的 TTF/OTF 会逐个列出来，可用搜索框按名字过滤；墨控按文件头识别，文件不用改扩展名。点某个字体右侧的「应用」，字体文件会以独立路径写进 /data/fonts、把 HmctFont.ttf 与 persist.sys.font* 指过去，并微扰 font_scale 让所有界面立即重建——照海信主题商店做法复刻的全局热切换，状态栏、锁屏、桌面与正在运行的应用立刻一起换字，不用重启。目录读不到时，可用「从文件选择」直接挑一个字体文件。	Enter the folder that holds your fonts (the default is the Hisense theme font folder; a folder on the TF card works too, or tap "Choose folder" to pick one from the file manager). The TTF/OTF files in it are listed one by one and can be filtered by name in the search box; InkControl identifies them by file header, so extensions need not be changed. Tap "Apply" next to a font and the file is written to /data/fonts under its own path, HmctFont.ttf and persist.sys.font* are pointed at it, and font_scale is nudged so every screen rebuilds immediately. This reproduces the Hisense theme store's global hot switch: status bar, lock screen, launcher and running apps change together without a restart. If the folder cannot be read, use "Choose from file" to pick a font file directly.
+字体缺少中文字形时部分界面会出现方块，点「恢复原厂字体」即可退回系统默认字体。全局替换，桌面应用字体也会一起换。	If a font lacks Chinese glyphs some screens show boxes; tap "Restore stock font" to return to the system default. The replacement is global, so launcher app fonts change too.
+记录上次应用的字体	Records the last applied font
+只保存最近一次应用成功的字体名，用于在页面上标出「上次已应用」，不单独出现在分类里。	Only stores the name of the most recently applied font, used to mark "last applied" on the page; it does not appear separately in the category.
+从文件管理器选中的字体记录	Record of a font chosen from the file manager
+兼容旧版本：用系统文件选择器挑过字体时会写在这里。功能已经合并到「字体文件」一页，不再单独显示。	Compatibility with older versions: a font picked with the system file picker was recorded here. The function has been merged into the "Font file" page and is no longer shown separately.
+快捷设置里能选到第三方应用的磁贴	Third-party app tiles become selectable in quick settings
+原厂在「编辑磁贴」的候选列表里塞了一个开关，只枚举自家磁贴，装有磁贴的第三方应用（VPN、下载、清理等）一个都不列。开启后按原厂自己的枚举流程再补一遍，这些应用的磁贴就会出现在可添加列表里。	Stock adds a switch to the candidate list in "Edit tiles" so that only its own tiles are enumerated; third-party apps with tiles (VPN, download, cleaner and so on) are never listed. When on, the stock enumeration is run once more for them, so their tiles appear in the list of tiles you can add.
+不开启时：可添加列表只有系统与海信自带磁贴。	When off: the list only has system and Hisense tiles.
+开启后：再打开一次「编辑磁贴」即可看到第三方应用，长按拖动就能加到面板上。	When on: open "Edit tiles" again to see third-party apps; long-press and drag to add them to the panel.
+只改候选列表的枚举，不碰系统安全特性，也不要重启。个别应用自带的磁贴本身有问题时，加到面板上仍会显示成占位图标。	Only the candidate enumeration changes; no system security feature is touched and no restart is needed. If an app's own tile is faulty it still shows a placeholder icon on the panel.
+列出第三方磁贴	List third-party tiles
+底部三大金刚键改成白底黑键	Make the bottom navigation keys black on white
+原厂把导航栏背景写死在系统界面的代码里，不读资源，换主题或用界面设置都改不动，所以底部一直是黑条配白键。开启后墨控在系统界面画完这一帧之后把它盖成白色，导航键同步改成纯黑。	Stock hard-codes the navigation bar background in System UI code and ignores resources, so themes and UI settings cannot change it and the bottom is always a black bar with white keys. When on, InkControl paints it white after System UI finishes drawing the frame and turns the navigation keys pure black.
+不开启时：黑底白键。	When off: white keys on black.
+开启后：白底黑键；锁屏与通话界面维持原厂配色。	When on: black keys on white; the lock screen and call screen keep stock colors.
+只改系统界面自己画的那一条；全屏应用自己隐藏导航栏时不受影响。切换开关立即生效，不用重启系统界面。	Only the bar drawn by System UI is changed; full-screen apps that hide the navigation bar are unaffected. The switch applies immediately without restarting System UI.
+白底黑键	Black keys on white
+在刷新面板底部补上自己的按钮	Add your own buttons to the bottom of the refresh panel
+加入按钮	Add buttons
+点完按钮就收起面板	Collapse the panel after a button is tapped
+面板盖住屏幕下半部分，点完不收会一直挡着后面的界面；开启后点完就收，回到刚才那一屏。	The panel covers the lower half of the screen and keeps blocking what is behind it if left open; when on, it collapses after a tap and returns to the previous screen.
+点完收起	Collapse after tap
+原厂「截屏便签」缩到和补上的按钮一样大	Shrink the stock "Screenshot note" to the size of the added buttons
+原厂那个按钮按整块面板的尺寸画，图标和文字都比补上来的大一圈；开启后按同样的 28dp 图标、12sp 文字重画，并排的按钮看起来才齐平。	The stock button is drawn at the scale of the whole panel, with icon and text a size larger than the added ones; when on it is redrawn with the same 28dp icon and 12sp text so the row looks even.
+统一尺寸	Uniform size
+按钮 	Button 
+ 做什么	: what it does
+面板底部从左数第 	Action of button number 
+ 个按钮的动作。五个位置共用这套动作，换位置就是换顺序。	 from the left at the bottom of the panel. All five slots share this action set, and swapping slots is how you reorder.
+默认顺序是 WiFi、蓝牙、自动刷新、翻页动画、截屏便签，点「恢复默认顺序」可以一键回到这套；	The default order is WiFi, Bluetooth, Auto refresh, Page-turn animation, Screenshot note; tap "Restore default order" to return to it in one step. 
+五格并排时每格窄一点，长一点的文字会自动缩一档。	With five in a row each cell is narrower and longer labels shrink one size automatically.
+墨控自己的几项（自动刷新、遮挡息屏、翻页动画、全刷扫过）点一下就地开关，长按跳到对应的设置页；	InkControl's own items (Auto refresh, Sleep on cover, Page-turn animation, Full-refresh sweep) toggle in place on a tap and open their settings page on a long press. 
+锁屏主题点一下等同于长按，直接去挑样式，免得误触把整套锁屏关掉；	Lock-screen theme treats a tap like a long press and goes straight to the style picker, so the whole lock screen is not turned off by accident. 
+刷新格言点一下就让锁屏格言换下一条，长按跳到「锁屏显示」页。	Refresh motto changes the lock-screen motto on a tap and opens the "Lock-screen display" page on a long press.
+这个位置不显示按钮，后面的往前挪	No button in this slot; the ones after it move forward
+某个应用	An app
+从已安装应用里挑一个，点它直接打开	Pick an installed app; a tap opens it directly
+把系统设置存成快照，需要时写回去	Save system settings as a snapshot and write them back when needed
+只备份系统设置本身：息屏时长、锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、显示模式、开发者选项开关。快照存在 /data/adb/inkcontrol/backup 里（清除应用数据也不会丢），恢复出厂或换回原样时逐条写回。	Only the system settings themselves are backed up: screen-off timeout, lock timeout, per-stream volumes, default input method, font name, eye-care and game modes, display mode and the developer-options switch. Snapshots are stored in /data/adb/inkcontrol/backup (they survive clearing app data) and are written back entry by entry after a factory reset or when you want the old state back.
+不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。恢复不会覆盖系统文件，也不会让「设置」打不开——它是逐条写设置项，失败的那条跳过、其它的照写，恢复前还会先给当前状态拍一张，写坏了能退回去。少数临时状态项（下次闹钟、是否有更新）和无障碍服务清单会跳过，那几项由系统和墨控自己维护。	App data, the lock-screen password and app installation records are not backed up. Restoring never overwrites system files and cannot make "Settings" unopenable: entries are written one by one, a failed entry is skipped while the others continue, and the current state is snapshotted first so a bad restore can be undone. A few transient entries (next alarm, update available) and the accessibility-service list are skipped; the system and InkControl maintain those themselves.
+冻结安全输入服务后，密码框仍能正常输入	Password fields still accept input after the secure input service is frozen
+原厂在密码输入框里一律强制切到「安全输入服务」，却不检查这个输入法是否还在。冻结它之后，系统服务找不到对应组件就会抛错，设置的密码界面直接崩溃：隐藏应用进不去、想临时删掉密码也做不到；应用锁的解锁界面被系统强制结束后，反而直接放行应用，等于没锁。开启后墨控把原厂自己留的总开关置 0，密码框改用你当前在用的输入法；关闭开关时还原原来的值。	Stock forces every password field to switch to the "secure input service" without checking that this input method still exists. Once it is frozen, the system service cannot find the component and throws, and the Settings password screen crashes: hidden apps cannot be entered and the password cannot even be removed temporarily, and when the app-lock unlock screen is force-closed by the system the app is let through, as if never locked. When on, InkControl sets the stock master flag to 0 so password fields use your current input method; turning the switch off restores the original value.
+冻结安全输入服务后：隐藏应用密码框打不开，加了应用锁的应用不输密码就能进。	After freezing the secure input service: the hidden-apps password field cannot open, and app-locked apps open without a password.
+开启后：密码框正常弹出，隐藏应用与应用锁都按密码校验。	When on: the password field appears normally, and hidden apps and app lock both verify the password.
+密码会经过你当前选中的输入法，不再走原厂安全键盘；在意这一点就不要冻结安全输入服务，保持原厂行为。切换开关立即生效，不用重启。只改这一个系统设置项，不动输入法本身，也不解冻任何应用。	Passwords pass through your currently selected input method instead of the stock secure keyboard; if that matters to you, do not freeze the secure input service and keep stock behavior. The switch applies immediately without a restart. Only this one system setting is changed; the input method itself is untouched and no app is unfrozen.
+恢复密码输入	Restore password input
+0.5秒	0.5 second
+3秒	3 seconds
+手动输入 1–999 毫秒。	Enter 1–999 ms manually.
+蓝牙	Bluetooth
+铃声	Ringer
+飞行模式	Airplane mode
+手电筒	Flashlight
+自动旋转	Auto-rotate
+整屏翻页	Full-screen page turn
+免打扰	Do not disturb
+省电模式	Power saving
+悬浮球	Floating ball
+锁屏主题	Lock-screen theme
+墨控快捷设置	InkControl quick settings
+截屏便签	Screenshot note
+保持现状,原厂算法,Bayer,蓝噪声,固定阈值	Keep current,Stock algorithm,Bayer,Blue noise,Fixed threshold
+改用原厂显示算法	Use the stock display algorithm
+优先级高于 GPU 显示后端：开启后所有模式的像素量化全部交回原厂，GPU 只保留触摸响应与全刷复用	Takes priority over the GPU display backend: when on, pixel quantization in every mode is handed back to stock and the GPU only keeps touch response and full-refresh reuse
+无,扫描线,墨迹晕开,网点长大,百叶窗	None,Scanlines,Ink spread,Growing dots,Blinds
+无,方形展开,关键帧擦除,墨迹晕开,网点长大,扫描线,百叶窗	None,Square reveal,Keyframe wipe,Ink spread,Growing dots,Scanlines,Blinds
+选「无」保持原厂瞬间切换；关闭此场景同样恢复原厂	Choose "None" to keep the stock instant switch; turning this scene off restores stock as well
+动画擦除方向	Animation wipe direction
+关键帧擦除、扫描线、百叶窗从哪一侧开始；关闭时自动选择	Which side keyframe wipe, scanlines and blinds start from; chosen automatically when off
+全刷扫过方向	Full-refresh sweep direction
+全刷扫过从哪一侧开始；自动＝横向从左向右、纵向从上向下	Which side the full-refresh sweep starts from; Automatic means left to right when horizontal and top to bottom when vertical
+全刷扫过风格	Full-refresh sweep style
+光带扫过的形状；斜向与环绕按屏幕几何均匀展开，不使用方向设置	Shape of the sweeping band; diagonal and ring spread evenly by screen geometry and ignore the direction setting
+横向展开,纵向展开,斜向分块,反斜向分块,环绕分块,中心展开	Horizontal reveal,Vertical reveal,Diagonal bands,Anti-diagonal bands,Ring bands,Center reveal
+全刷扫过速度	Full-refresh sweep speed
+光带扫过整屏的时长；帧数越少越快，1 帧几乎整屏同时刷新	How long the band takes to cross the screen; fewer frames are faster and 1 frame is almost a simultaneous full-screen refresh
+极快（1 帧）,快（4 帧）,适中（8 帧）,原厂节奏（12 帧）,慢（18 帧）	Very fast (1 frame),Fast (4 frames),Moderate (8 frames),Stock pace (12 frames),Slow (18 frames)
+编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃	Editorial,Swiss grid,Pixel,Editorial landscape,Editorial landscape reversed,Liquid glass
+跟随原厂桌面组件，或直接读取系统预装的天气App	Follow the stock launcher widget, or read the preinstalled weather app directly
+原厂桌面组件,天气App	Stock launcher widget,Weather app
+显示通知	Show notifications
+锁屏底部显示通知条，来源可选系统通知或微信未读；也可以选「不显示」先留空	Show a notification strip at the bottom of the lock screen, sourced from system notifications or WeChat unread; "Do not show" leaves it empty for now
+系统通知,微信,不显示	System notifications,WeChat,Do not show
+显示设备状态	Show device status
+锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」	Show wireless, Bluetooth, sound mode and airplane mode at the bottom of the lock screen instead; enabling it turns "Show notifications" off automatically
+跟随样式,图标版,文字版	Follow style,Icons,Text
+选择设备状态里显示哪几项：无线网络、蓝牙、声音模式、飞行模式	Choose which device-status items to show: wireless, Bluetooth, sound mode, airplane mode
+修改	Edit
+显示无线网络	Show wireless network
+锁屏设备状态里显示无线网络开关情况	Show the wireless switch state in lock-screen device status
+锁屏设备状态里显示蓝牙开关情况	Show the Bluetooth switch state in lock-screen device status
+显示声音模式	Show sound mode
+锁屏设备状态里显示静音 / 有声；只读，不改铃声音量	Show Silent / Sound in lock-screen device status; read-only, ringer volume is not changed
+显示飞行模式	Show airplane mode
+锁屏设备状态里显示飞行模式开关情况	Show the airplane-mode switch state in lock-screen device status
+翻页动画总开关	Page-turn animation master switch
+需要同时开启 GPU 显示后端：两者实时生效，按「目标阅读器」名单触发；GPU 显示后端关闭时翻页动画不生效	Requires the GPU display backend to be on as well: both apply live and trigger by the "Target readers" list; with the GPU display backend off the page-turn animation has no effect
+新一页按哪种方式分块、分阶段展开	How the new page is banded and unfolded in phases
+分块越多，展开越细	More bands give a finer reveal
+12 块,4 块,8 块,16 块,24 块,32 块	12 bands,4 bands,8 bands,16 bands,24 bands,32 bands
+阶段越多展开越明显，也越慢	More phases make the reveal more visible and slower
+6 阶段（更快）,8 阶段,12 阶段（均衡）,16 阶段,24 阶段,40 阶段（最明显）	6 phases (faster),8 phases,12 phases (balanced),16 phases,24 phases,40 phases (most visible)
+反转动画方向	Reverse animation direction
+音量键遵从翻页直觉	Volume keys follow page-turn convention
+音量+＝上一页、音量-＝下一页，不沿用上一次点击的方向	Volume+ is previous page and Volume- is next page, instead of reusing the direction of the last tap
+只对名单里的阅读器生效；不选则动画不触发	Only applies to listed readers; with none selected the animation never triggers
+1秒,0.5秒,2秒,3秒,自定义	1 second,0.5 second,2 seconds,3 seconds,Custom
+把系统字体换成目录里的任意 TTF/OTF：点应用立刻全局生效（状态栏、锁屏、桌面与所有应用一起换，不用重启）	Replace the system font with any TTF/OTF from a folder: tapping Apply takes effect globally at once (status bar, lock screen, launcher and all apps change together, no restart)
+字体目录	Font folder
+最近应用的字体	Last applied font
+只记录上次应用成功的字体名，用于在页面标出「上次已应用」	Only records the name of the last successfully applied font, used to mark "last applied" on the page
+字体名	Font name
+文件选择器记录	File picker record
+旧版从文件管理器选字体的记录，功能已并入「字体文件」页	Record of a font chosen from the file manager in older versions; the function has moved to the "Font file" page
+控制中心拓展	Control center extension
+快捷设置的可添加磁贴里列出装有磁贴的第三方应用，打开编辑页即生效	List third-party apps with tiles among the addable quick-settings tiles; takes effect when the edit page is opened
+三大金刚键漂白	White navigation keys bar
+把底部导航栏的黑底白键改成白底黑键，切换开关立即生效	Change the bottom navigation bar from white keys on black to black keys on white; the switch applies immediately
+备份系统设置	Back up system settings
+把系统设置存成快照（息屏与锁屏时长、音量、输入法、字体名、护眼等），恢复出厂后逐条写回	Save system settings as a snapshot (screen-off and lock timeouts, volumes, input method, font name, eye care and more) and write them back entry by entry after a factory reset
+打开备份	Open backups
+冻结安全输入服务后能输密码	Enter passwords after freezing the secure input service
+密码框改用当前输入法，不再因原厂强制切换导致设置崩溃、隐藏应用进不去、应用锁被直接放行；关闭开关时还原原值	Password fields use the current input method, so the stock forced switch no longer crashes Settings, blocks hidden apps or lets app lock be bypassed; turning the switch off restores the original value
+快捷面板按钮	Quick panel buttons
+刷新面板底部补上自己的按钮，每个位置的动作在下面选	Add your own buttons to the bottom of the refresh panel; choose each slot's action below
+第 1 个按钮	Button 1
+面板底部从左数第一个按钮的动作	Action of the first button from the left at the bottom of the panel
+第 2 个按钮	Button 2
+面板底部从左数第二个按钮的动作	Action of the second button from the left at the bottom of the panel
+第 3 个按钮	Button 3
+面板底部从左数第三个按钮的动作	Action of the third button from the left at the bottom of the panel
+第 4 个按钮	Button 4
+面板底部从左数第四个按钮的动作	Action of the fourth button from the left at the bottom of the panel
+第 5 个按钮	Button 5
+面板底部从左数第五个按钮的动作	Action of the fifth button from the left at the bottom of the panel
+点完收起面板	Collapse panel after tap
+点完按钮后自动收起面板，不再挡住界面	Collapse the panel automatically after a button is tapped so it no longer blocks the screen
+截屏便签对齐尺寸	Match screenshot-note size
+把原厂「截屏便签」的图标和文字缩到和补上的按钮一样大	Shrink the icon and text of the stock "Screenshot note" to the size of the added buttons
+5分钟,1分钟,10分钟,30分钟,自定义	5 minutes,1 minute,10 minutes,30 minutes,Custom
+不支持的面板开关	Unsupported panel switch
+面板开关失败：	Panel switch failed: 
+切换失败：	Switch failed: 
+字体路径无效	Invalid font path
+字体目录无效	Invalid font folder
+包名无效	Invalid package name
+快照编号无效	Invalid snapshot ID

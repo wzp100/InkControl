@@ -105,6 +105,15 @@ ic_validate() {
         if (value ~ /[=;$`"|&<>*?!]/) return 0
         return 1
       }
+      function freeform(key, choices, legacy, value) {
+        # 自由文本只对明确声明的项放行，其余选项仍必须命中候选值：
+        # @path/@font（字体目录与字体名）、@panel（值恒为空）、已下线的旧键，
+        # 以及旧配置里 lock.notify 的 ext（App 侧会迁成 lock.ext=1）。
+        if (key=="lock.notify") return value=="ext"
+        if (index("," choices ",", ",@panel,")!=0) return value==""
+        if (!legacy && index("," choices ",", ",@path,")==0 && index("," choices ",", ",@font,")==0) return 0
+        return fontpath(value)
+      }
       NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
@@ -120,8 +129,8 @@ ic_validate() {
       # 旧配置的 lock.notify.value=ext 也照旧放行（ext 是纯字母，走 fontpath 兜底即通过）；
       # App 侧解析时会把它迁成 lock.ext=1 并在下次保存时重写。
       # 容忍旧配置里的残留键，升级不卡开机
-      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@packages" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !pkgs(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !(index("," choices[key] ",", ",@packages,")==0 && fontpath($2)))) bad=1}
-       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
+      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch|pageanim\.(touch|keys|debounce))$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@packages" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !pkgs(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !freeform(key, choices[key], legacy, $2))) bad=1}
+       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch|pageanim\.(touch|keys|debounce))$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
@@ -151,7 +160,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.7-r27' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.3.0-rc1' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
@@ -200,9 +209,9 @@ ic_properties() {
         case "$ic_hysteresis" in default|on|off) ;; *) return 1 ;; esac
         setprop "debug.eink.hyst.$ic_scope" "$ic_hysteresis" || return 1
     done
-    # 融合模式：GPU 显示后端与翻页动画同时启用时，pageanim.master 不再是「挂载哪份 HWC」，
-    # 而是把 pageanim.* 配置下发给 libeinkgpu 的分带波形开关。属性即时生效，不需要重启。
-    # 只有 GPU 后端开启时才有意义；单独用翻页动画仍走它自己的 HWC 与 resident。
+    # 翻页动画只有融合模式：GPU 显示后端开启时，把 pageanim.* 配置下发给 libeinkgpu 的
+    # 分带波形开关。属性即时生效，不需要重启。GPU 后端关闭时翻页动画不生效；
+    # 无源码的第三方专用 HWC 与常驻程序不随墨控分发。
     ic_fusion=0
     if ic_enabled display.gpu && ic_enabled pageanim.master; then ic_fusion=1; fi
     setprop debug.inkcontrol.fusion "$ic_fusion" || return 1
@@ -458,48 +467,9 @@ ic_prepare_restore() {
     CONFIG_SOURCE=$IC_LIB/config_state.sh
     . "$CONFIG_SOURCE"
 }
-# 翻页动画：把 App 的逐项配置翻译成第三方 native resident 认得的 settings.conf。
-# resident 只认这 8 个键；写不成也不阻断其它热应用，配置下一次翻页自然生效。
-# 目录固定在墨控自己的状态目录，二进制里的三条硬编码路径已在构建时改到这里。
-ic_pageanim_sync() {
-    PA_DIR=$IC_STATE/pageanim
-    mkdir -p "$PA_DIR" || return 0
-    chmod 700 "$PA_DIR"
-    PA_STYLE=0
-    case "$(ic_get pageanim.style.value)" in
-        vertical) PA_STYLE=1 ;; diag) PA_STYLE=2 ;; antidiag) PA_STYLE=3 ;;
-        ring) PA_STYLE=4 ;; center) PA_STYLE=5 ;; *) PA_STYLE=0 ;;
-    esac
-    PA_BANDS=$(ic_get pageanim.bands.value); [ -n "$PA_BANDS" ] || PA_BANDS=12
-    PA_SPACING=$(ic_get pageanim.spacing.value); [ -n "$PA_SPACING" ] || PA_SPACING=12
-    PA_DEBOUNCE=$(ic_get pageanim.debounce.value); [ -n "$PA_DEBOUNCE" ] || PA_DEBOUNCE=250
-    # 只保留包名允许的字符，避免把任意文本写进配置文件。
-    PA_READERS=$(ic_get pageanim.readers.value | tr -cd 'A-Za-z0-9_.,')
-    PA_REVERSE=0; [ "$(ic_get pageanim.reverse)" = 1 ] && PA_REVERSE=1
-    PA_TOUCH=0;   [ "$(ic_get pageanim.touch)" = 1 ]   && PA_TOUCH=1
-    PA_KEYS=0;    [ "$(ic_get pageanim.keys)" = 1 ]    && PA_KEYS=1
-    PA_TMP="$PA_DIR/settings.conf.tmp"
-    {
-        echo "readers=$PA_READERS"
-        echo "bands=$PA_BANDS"
-        echo "spacing=$PA_SPACING"
-        echo "style=$PA_STYLE"
-        echo "reverse=$PA_REVERSE"
-        echo "touch=$PA_TOUCH"
-        echo "keys=$PA_KEYS"
-        echo "debounce=$PA_DEBOUNCE"
-    } > "$PA_TMP" || return 0
-    chmod 600 "$PA_TMP"
-    mv "$PA_TMP" "$PA_DIR/settings.conf" || return 0
-    if ic_enabled pageanim.master; then : > "$PA_DIR/animation.enabled"
-    else rm -f "$PA_DIR/animation.enabled"; fi
-    return 0
-}
-
 ic_apply_hot() {
     ic_properties || return 1
     ic_accessibility || return 1
-    ic_pageanim_sync
     ic_prepare_restore
     cs_prepare_hooks || return 1
     if ic_enabled display.dynamic; then

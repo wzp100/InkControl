@@ -21,7 +21,6 @@ case "$1" in
         echo "dynamic_current=$(settings get global dynamic_refresh_mode)"
         ic_ready && echo 'ready=1' || echo 'ready=0'
         echo "hwc=$(sha256sum "$IC_VENDOR/hwcomposer.ums512.so" | cut -d' ' -f1)"
-        echo "pageanim_resident=$(pidof a5pro-resident)"
         echo "boot_id=$(cat /proc/sys/kernel/random/boot_id)"
         [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && echo 'installed=1' || echo 'installed=0'
         echo "backend_version=$(sed -n 's/^version=//p' "$IC_MODULE/module.prop" 2>/dev/null)"

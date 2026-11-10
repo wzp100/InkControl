@@ -12,8 +12,8 @@ public final class FeatureCatalog {
     private static final List<FeatureDefinition> FEATURES = new ArrayList<>();
     /**
      * 必选参数：没有开关，配置里恒为开启，界面只能挑一个值。
-     * 翻页动画的风格／速度／分块数少任何一个都拼不出完整的 settings.conf，
-     * 所以它们不像「反转方向」「音量键翻页」那样可以关掉，只能换值。
+     * 翻页动画的风格／速度／分块数少任何一个都拼不出完整的分带参数，
+     * 所以它们不像「反转方向」那样可以关掉，只能换值。
      */
     private static final Set<String> REQUIRED = new HashSet<>(Arrays.asList(
             "pageanim.style", "pageanim.spacing", "pageanim.bands"));
@@ -137,8 +137,9 @@ public final class FeatureCatalog {
         add("lock.dither", "锁屏显示", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
         // 翻页动画：GPU 后端开启时不切换 HWC，配置实时下发给 libeinkgpu 的分带波形分支，
         // 两个开关可同时启用、不用重启，分带揭示与 GPU 波形在同一条流水线上生效。
-        // 只有 GPU 后端关闭时才挂第三方专用 HWC，那种模式仍是 REBOOT、与其它显示功能互斥。
-        add("pageanim.master", "翻页动画", "翻页动画总开关", "GPU 显示后端开启时两者同时生效、实时生效，按「目标阅读器」名单触发；未开 GPU 后端时改挂专用显示库，需完整重启", "backend", "", HOT, false, "default", "启用翻页动画");
+        // 翻页动画只由 GPU 波形层实现；无源码的第三方专用 HWC 与常驻程序不随墨控分发，
+        // 所以 GPU 显示后端关闭时翻页动画不生效。
+        add("pageanim.master", "翻页动画", "翻页动画总开关", "需要同时开启 GPU 显示后端：两者实时生效，按「目标阅读器」名单触发；GPU 显示后端关闭时翻页动画不生效", "backend", "", HOT, false, "default", "启用翻页动画");
         add("pageanim.style", "翻页动画", "翻页风格", "新一页按哪种方式分块、分阶段展开", "backend", "pageanim.master", HOT, false,
                 "horizontal,vertical,diag,antidiag,ring,center", "横向展开,纵向展开,斜向分块,反斜向分块,环绕分块,中心展开");
         add("pageanim.bands", "翻页动画", "分块数量", "分块越多，展开越细", "backend", "pageanim.master", HOT, false,
@@ -146,13 +147,9 @@ public final class FeatureCatalog {
         add("pageanim.spacing", "翻页动画", "展开速度", "阶段越多展开越明显，也越慢", "backend", "pageanim.master", HOT, false,
                 "6,8,12,16,24,40", "6 阶段（更快）,8 阶段,12 阶段（均衡）,16 阶段,24 阶段,40 阶段（最明显）");
         add("pageanim.reverse", "翻页动画", "反转动画方向", "把展开方向掉个头", "backend", "pageanim.master", HOT, false, "default", "反转方向");
-        add("pageanim.touch", "翻页动画", "点击与横向滑动翻页", "点击与左右滑动当作翻页手势", "backend", "pageanim.master", HOT, false, "default", "点击滑动");
-        add("pageanim.keys", "翻页动画", "实体音量键翻页", "音量键当作翻页键", "backend", "pageanim.master", HOT, false, "default", "音量键翻页");
         // 音量键没有「点在哪一边」的信息，融合分带只能沿用上一次点击/滑动的方向，
         // 表现为「上次点右边，按音量+ 也从右往左」。这一项按习惯覆盖方向，默认开着。
         add("pageanim.vkey", "翻页动画", "音量键遵从翻页直觉", "音量+＝上一页、音量-＝下一页，不沿用上一次点击的方向", "backend", "pageanim.master", HOT, false, "default", "遵从翻页直觉", true);
-        add("pageanim.debounce", "翻页动画", "连续操作保护", "翻页连得过快时跳过新动画，翻页本身照常", "backend", "pageanim.master", HOT, false,
-                "100,250,500,1000", "100 毫秒,250 毫秒,500 毫秒,1 秒");
         add("pageanim.readers", "翻页动画", "目标阅读器", "只对名单里的阅读器生效；不选则动画不触发", "backend", "pageanim.master", HOT, false, "@packages", "选择阅读器");
         // 「体感息屏唤醒」总开关已下线：遮挡息屏 / 移开唤醒各自就是开关，
         // 两个都关时体感服务不监听传感器。无障碍里的「墨控体感」服务由后端按这两个开关自动增删。

@@ -27,8 +27,8 @@ class ReleasePolicyTest(unittest.TestCase):
             self.artifacts[name] = hashlib.sha256(data).hexdigest()
         self.manifest = {'version': '0.1.0-rc15', 'signing': 'verified', 'artifacts': self.artifacts,
                          'cloud': dict(self.context), 'sources': {'ci/trusted-certificate.der': 'c'*64}}
-        self.package = {'version': '0.1.0-rc15', 'signing': 'verified', 'default_off': 62,
-                        'module_checksums': True, 'embedded_zip_identical': True, 'overlay_zip_valid': True,
+        self.package = {'version': '0.1.0-rc15', 'signing': 'verified', 'default_off': 74,
+                        'module_checksums': True, 'embedded_zip_identical': True,
                         'apk_sha256': self.artifacts['InkControl-v0.1.0-rc15.apk'],
                         'zip_sha256': self.artifacts['inkcontrol_backend-v0.1.0-rc15.zip']}
         self.save()
@@ -76,7 +76,7 @@ class ReleasePolicyTest(unittest.TestCase):
         with self.assertRaises(ValueError): self.validate()
 
     def test_incomplete_verification(self):
-        for field in ('signing', 'default_off', 'module_checksums', 'embedded_zip_identical', 'overlay_zip_valid'):
+        for field in ('signing', 'default_off', 'module_checksums', 'embedded_zip_identical'):
             with self.subTest(field=field):
                 previous = self.package[field]
                 self.package[field] = False

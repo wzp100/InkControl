@@ -1,8 +1,4 @@
-"""Validate UTF-8 display translations, placeholders and coverage without compiling locally.
-
-英文维护已于 2026-10-24 停止：新增中文文案不再强制要求 en.tsv 翻译（仅提示），
-已有翻译保留（App 英文界面仍可用），en.tsv 自身格式仍校验。
-"""
+"""Validate UTF-8 display translations, placeholders and coverage without compiling locally."""
 import json
 from pathlib import Path
 import re
@@ -35,11 +31,7 @@ def main():
             text = json.loads(match.group())
             if re.search('[\u3400-\u9fff]', text) and text not in pairs and text not in ('中 / EN', '语言 / Language'):
                 missing.append((path.relative_to(ROOT).as_posix(), text))
-    # 英文停止维护（2026-10-24）：缺失翻译只提示，不再阻断构建
-    if missing:
-        print('NOTE: %d phrase(s) without English translation (English no longer maintained):' % len(missing))
-        for path, text in missing:
-            print('  -', path, repr(text))
+    if missing: raise ValueError('Missing translations: '+repr(missing))
     print('UTF-8 bilingual catalog validated:', len(pairs), 'phrases')
 
 if __name__ == '__main__': main()

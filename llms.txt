@@ -25,4 +25,4 @@
 
 ## Invariants
 
-All 62 enhancements default off. Preserve IDs, defaults, and grayscale/binary separation. Video selection is independent. New signing starts at rc13; old signatures cannot be updated in place. The recorded device still runs rc10 + rc10-gpu-fix1. Runtime acknowledgement, standalone GPU comparison, panel feedback, and long-term validation are separate evidence levels. Raw inputs, logs, backups and signing secrets stay outside Git. Documentation work and CI do not authorize device changes.
+All 74 enhancements default off. Preserve IDs, defaults, and grayscale/binary separation. Video selection is independent. New signing starts at rc13; old signatures cannot be updated in place. The recorded device still runs rc10 + rc10-gpu-fix1. Runtime acknowledgement, standalone GPU comparison, panel feedback, and long-term validation are separate evidence levels. Raw inputs, logs, backups and signing secrets stay outside Git. Documentation work and CI do not authorize device changes.

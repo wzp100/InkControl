@@ -7,8 +7,6 @@ for hwc in "$MODPATH/payload/hwcomposer.default.so" "$MODPATH/payload/hwcomposer
     grep -a -q '/vendor/lib64/hw/libeinkgpu.so' "$hwc" || abort 'HWC 输入缺少 libeinkgpu 依赖，拒绝安装'
 done
 [ -f "$MODPATH/payload/libeinkgpu.so" ] || abort '缺少 libeinkgpu.so，拒绝安装'
-[ -f "$MODPATH/payload/hwcomposer.pageanim.so" ] || abort '缺少翻页动画 HWC，拒绝安装'
-[ -f "$MODPATH/bin/a5pro-resident" ] && [ -f "$MODPATH/bin/a5pro-control-once" ] || abort '缺少翻页动画常驻端，拒绝安装'
 set_perm_recursive "$MODPATH" 0 0 0755 0644
 for script in "$MODPATH"/*.sh "$MODPATH"/lib/*.sh "$MODPATH"/bin/*; do set_perm "$script" 0 0 0755; done
 mkdir -p "$IC_STATE"

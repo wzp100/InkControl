@@ -39,7 +39,9 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         # 翻页动画的风格／速度／分块数是必选参数，没有开关、恒为开启。
         # 所以它们在默认配置里就写 1；其余开关仍必须全部是 0。
         default_on = {'lock.ext.wifi', 'lock.ext.bt', 'lock.ext.audio', 'lock.ext.airplane',
-                      'qs.panel.pinsize', 'pageanim.style', 'pageanim.spacing', 'pageanim.bands'}
+                      'qs.panel.pinsize', 'pageanim.style', 'pageanim.spacing', 'pageanim.bands',
+                      # 「音量键遵从翻页直觉」是翻页动画总开关下的子项，总开关默认关，它单独为开不产生效果。
+                      'pageanim.vkey'}
         for line in self.config.read_text().splitlines():
             key,value=line.split('=',1)
             if key not in ('version','revision') and not key.endswith('.value'):
@@ -155,6 +157,9 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         expected={'debug.inkcontrol.sampling=0','debug.inkcontrol.cache=0','debug.eink.lock.dither=stock','debug.eink.video.dither=blue'}
         expected.update('debug.eink.alg.'+scope+'=default' for scope in ('clear','reading','fast','extreme','video'))
         expected.update('debug.eink.hyst.'+scope+'=default' for scope in ('fast','extreme','video'))
+        # 原厂算法总开关与翻页动画融合默认都关：对应属性必须显式写 0。
+        expected.update({'debug.eink.alg.stock=0','debug.inkcontrol.fusion=0','debug.inkcontrol.fusion.drive=0',
+                         'debug.inkcontrol.fusion.armed=0','debug.inkcontrol.fusion.reader=0'})
         self.assertEqual(set(output.splitlines()),expected)
         self.config.write_text(self.config.read_text().replace('display.gpu=0','display.gpu=1').replace('lock.dither=0','lock.dither=1'),encoding='utf-8')
         output=self.shell('setprop() { echo "$1=$2"; }\nic_properties\n')

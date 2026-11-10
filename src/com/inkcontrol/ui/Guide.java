@@ -98,7 +98,7 @@ final class Guide {
                 {"总开关", "pageanim.master"},
                 {"翻页风格", "pageanim.style", "pageanim.spacing"},
                 {"画面细分", "pageanim.bands"},
-                {"翻页操作", "pageanim.touch", "pageanim.keys", "pageanim.vkey", "pageanim.reverse", "pageanim.debounce"},
+                {"翻页操作", "pageanim.vkey", "pageanim.reverse"},
                 {"目标阅读器", "pageanim.readers"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
@@ -255,9 +255,9 @@ final class Guide {
                 .visual(Visual.REFRESH_MODES).option("521", "阅读模式 → 极速模式", "").term("刷新方式", "极速模式", "阅读模式", "残影");
 
         // ── 翻页动画（0.2.5-r23：第三方翻页动画模块并进同一个后端） ──
-        put("pageanim.master").summary("翻页时把新一页分块、分阶段揭示").what("开启 GPU 显示后端时，翻页动画由墨控自己的波形层实现：整屏刷新按选定的风格逐带揭示，与分模式算法、波形动画同时生效，开关与参数实时生效不用重启。融合模式下没有常驻端读触摸，触发范围改由「目标阅读器」名单决定：只有名单里的应用在前台时才播放。未开 GPU 后端时才改挂第三方专用显示库，那一种模式会与 GPU 后端二选一、需要完整重启。")
+        put("pageanim.master").summary("翻页时把新一页分块、分阶段揭示").what("翻页动画由墨控自己的 GPU 波形层实现，需要同时开启 GPU 显示后端：整屏刷新按选定的风格逐带揭示，与分模式算法、波形动画同时生效，开关与参数实时生效不用重启。触发范围由「目标阅读器」名单决定：只有名单里的应用在前台时才播放。GPU 显示后端关闭时翻页动画不生效。")
                 .before("翻页是一次整帧瞬间替换，画面直接跳变。").after("新一页按方向或分块逐步展开，看得出翻页过程。")
-                .cost("融合模式下不额外停用其它功能，但同一应用内的整屏刷新（含滚动与弹窗）也会一起播放；独立库模式下有常驻端读触摸，能区分翻页手势与上下滚动。")
+                .cost("不额外停用其它功能，但同一应用内的整屏刷新（含滚动与弹窗）也会一起播放。")
                 .option("default", "启用翻页动画", "");
         put("pageanim.style").summary("新一页怎么展开").what("横向或纵向整片展开，以及斜向、反斜向、环绕、中心四种分块展开。选完下次翻页生效。")
                 .option("horizontal", "横向展开", "新画面从一侧向另一侧整片推开。")
@@ -282,17 +282,8 @@ final class Guide {
                 .option("32", "32 块", "最细，接近连续展开。");
         put("pageanim.reverse").summary("把展开方向掉个头").what("翻页方向默认跟手势走：左滑或点右半屏＝翻下一页，右滑或点左半屏＝翻上一页。开启这一项会把自动判断的结果反过来。")
                 .option("default", "反转方向", "");
-        put("pageanim.touch").summary("点击与左右滑动当作翻页").what("由常驻端读取触摸事件：点击屏幕左右侧、或横向滑动时触发翻页动画。独立库模式下由它决定是否翻页；融合模式不需要它触发（触发范围看「目标阅读器」名单），但滑动与点边的方向判断照旧生效。")
-                .option("default", "点击与横向滑动翻页", "");
-        put("pageanim.keys").summary("音量键当作翻页键").what("按实体音量上/下键时按翻页处理，适合单手翻页。只在独立库模式生效，融合模式不使用这一项。")
-                .option("default", "实体音量键翻页", "");
         put("pageanim.vkey").summary("音量键翻页按习惯定方向").what("音量键没有「点在哪一边」的信息，方向只能按习惯给：音量+＝上一页、音量-＝下一页。关闭后按键翻页沿用上一次点击或滑动的方向——比如刚在右侧点过，按音量+ 时动画也从右往左，和习惯相反。")
                 .option("default", "遵从翻页直觉", "");
-        put("pageanim.debounce").summary("连续翻页太快时跳过新动画").what("两次翻页间隔小于这个值时，后一次直接按原厂方式切页，不再叠加动画，避免动画互相打断。只在独立库模式生效。")
-                .option("100", "100 毫秒", "几乎不限制。")
-                .option("250", "250 毫秒", "原模块默认值。")
-                .option("500", "500 毫秒", "连续翻页时更稳。")
-                .option("1000", "1 秒", "只给慢速翻页加动画。");
         put("pageanim.readers").summary("只对选中的阅读器生效").what("只有名单里的应用才触发翻页动画；默认不内置任何应用，自己选。融合模式下这是唯一的触发条件：不在名单里的应用（含墨控自己）不会播放，名单留空则完全不触发。")
                 .option(com.inkcontrol.core.FeatureDefinition.PACKAGES_TOKEN, "阅读器名单", "");
 
@@ -444,7 +435,7 @@ final class Guide {
                 .option("default", "统一尺寸", "");
         for (int slot = 1; slot <= 5; slot++) {
             Entry entry = put("qs.panel.btn" + slot)
-                    .summary("第 " + slot + " 个按钮做什么")
+                    .summary("按钮 " + slot + " 做什么")
                     .what("面板底部从左数第 " + slot + " 个按钮的动作。五个位置共用这套动作，换位置就是换顺序。"
                             + "默认顺序是 WiFi、蓝牙、自动刷新、翻页动画、截屏便签，点「恢复默认顺序」可以一键回到这套；"
                             + "五格并排时每格窄一点，长一点的文字会自动缩一档。"

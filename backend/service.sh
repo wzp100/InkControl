@@ -15,12 +15,6 @@ if [ "$(getprop sys.boot_completed)" != 1 ]; then
     exit 1
 fi
 ic_apply_hot || { echo '启动期配置应用失败' > "$IC_STATE/error"; exit 1; }
-# 翻页动画常驻端：读 settings.conf、监听触摸/按键、把翻页事件写进 HWC 注入段。
-# 只在本次开机确实挂了翻页动画 HWC 时拉起；GPU 后端融合模式下这份注入段不存在，
-# 拉起只会空转并污染日志。一个实例由它自己的 resident.lock 保证。
-if [ "$(awk -F= '$1=="pageanim.master" {print $2}' "$IC_BOOT")" = 1 ] && [ ! -f "$MODDIR/system/vendor/lib64/hw/libeinkgpu.so" ] && [ -f "$MODDIR/payload/hwcomposer.pageanim.so" ]; then
-    "$MODDIR/bin/a5pro-resident" </dev/null >>"$IC_STATE/pageanim/resident.log" 2>&1 &
-fi
 if [ -f "$MODDIR/system/vendor/lib64/hw/libeinkgpu.so" ]; then
     for attempt in $(seq 1 90); do
         pid=$(pidof android.hardware.graphics.composer@2.1-service | awk '{print $1}')

@@ -24,7 +24,7 @@
 | [verification.md](verification.md) | 验证口径：静态检查、上机冒烟、重启验证的分级 |
 | [sources.md](sources.md) / [source-provenance.json](source-provenance.json) | 第三方来源与派生文件的权利归属 |
 | [development.md](development.md) / [architecture.md](architecture.md) | 分层（core → ui → platform / features + native + backend）与改动入口 |
-| [localization.md](localization.md) | 中英文案维护约定（英文已停止维护，中文为主） |
+| [localization.md](localization.md) | 中英文案维护约定 |
 | [media/README.md](media/README.md) | 界面截图清单、尺寸与 SHA256 |
 
 ## 知识库

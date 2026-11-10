@@ -11,8 +11,8 @@
 | 桌面 | `原厂桌面主题模块` 最新源码及素材 | 保留三主题，图标／字体／壁纸／组件独立开关，统一 Provider |
 | 系统修复 | `墨水屏修复模块` | 各修复独立开关，证书绑定当前构建；视频原因列表增加停用恢复 |
 | GPU native | `调度与功耗分析/out/lock-motion-v6/source_snapshot` | 复制准确源码基线，uniform 缓存与取图队列增加独立属性门控；不引入 v17 |
-| HWC 派生输入 | `过渡动画模块/out/backend-v0.2-rc3/module/system/vendor/lib64/hw/hwcomposer.ums512.so` | 构建输入（`inputs/`），严格哈希校验；默认空闲代码恢复为原厂8字节 |
-| 原厂 HWC | `墨水屏刷新分析/原版库/hwcomposer.ums512.so.lib64` | 构建输入，原样保留在 `inputs/`；权利归原权利人，见 `NOTICE.md` |
+| HWC 派生输入 | `过渡动画模块/out/backend-v0.2-rc3/module/system/vendor/lib64/hw/hwcomposer.ums512.so` | 私有构建输入（加密于 `ci/private-inputs.zip.enc`），严格哈希校验；默认空闲代码恢复为原厂8字节 |
+| 原厂 HWC | `墨水屏刷新分析/原版库/hwcomposer.ums512.so.lib64` | 私有构建输入（加密，不以明文入库）；权利归原权利人，见 `NOTICE.md` |
 | 条件恢复／守护 | `墨水屏显示套件/module/config_state.sh`、既有 guard 实现 | 独立墨控状态目录和恢复脚本名称，添加重复启停周期管理 |
 | 回归测试 | 过渡动画、EinkFix 与显示套件测试 | 调整包名和路径，重新执行；原厂服务由电脑端替身模拟 |
 
@@ -29,4 +29,4 @@
 
 ## 许可与公开边界
 
-原创部分按 MIT 整理，见根 `LICENSE`。厂商库及 Google 图形不在原创许可范围内，见 `NOTICE.md`。`inputs/` 里的构建输入随仓库保留（权利归原权利人）；签名私钥、个人备份、固件镜像和设备日志不进入公开源码。正式签名从 rc13 开始固定；素材与厂商库的原有权利不因仓库公开而改变。以 GitHub Release 附件判断实际发布状态。
+原创部分按 MIT 整理，见根 `LICENSE`。厂商库及 Google 图形不在原创许可范围内，见 `NOTICE.md`。厂商派生的构建输入只以加密形式存放；签名私钥、未加密 HWC 输入、个人备份、固件镜像和设备日志不进入公开源码。正式签名从 rc13 开始固定；素材与厂商库的原有权利不因仓库公开而改变。以 GitHub Release 附件判断实际发布状态。

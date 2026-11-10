@@ -22,7 +22,7 @@ The project is provided as is, without a promise of fault-free operation, data p
 2. Back up configuration, old APK, and modules. rc13 introduced a new release identity; uninstall the old signed app before migration. Do not re-sign packages merely to force installation.
 3. Open **Install**, check compatibility and old-module conflicts, export this APK's matching Magisk ZIP, and install it.
 4. Framework scopes: System Framework `android`, System UI `com.android.systemui`, stock launcher `com.hmct.vision`.
-5. Restart fully, inspect installation and diagnostic acknowledgements, then enable individual features. All 73 enhancements initially remain off.
+5. Restart fully, inspect installation and diagnostic acknowledgements, then enable individual features. All 74 enhancements initially remain off.
 
 These steps require device-operation authorization; documentation work and CI do not execute them. Do not replace the GPU-fix candidate with the earlier backend embedded in an old rc10 APK.
 

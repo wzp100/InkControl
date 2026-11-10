@@ -1,10 +1,9 @@
 /out/
 /results/
+/inputs/
 /signing/
 /private-inputs/
 /.ci-secrets/
-# 本机临时文件（构建试验脚本、设备备份等），不进提交。
-/temp/
 *.apk
 *.so
 *.zip
@@ -25,17 +24,14 @@ __pycache__/
 *.pyc
 local.properties
 .env
-# IDE
-.idea/
-*.iml
 # 一次路径输入错误产生的空目录；没有源码，不进入归档。
 /02_模块开发/
 # Local historical acceptance reports retain original device evidence and workspace links.
 /docs/20*.md
 /docs/evidence/
 /docs/local-history/
-
-# inputs/ 是构建输入（原厂与社区派生的 HWC / 常驻二进制），允许入库；
-# 权利仍归原权利人，见 NOTICE.md。
-!/inputs/
-!/inputs/**
+# 本机临时文件（构建试验脚本、设备备份等），不进提交。
+/temp/
+# IDE
+.idea/
+*.iml

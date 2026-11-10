@@ -59,10 +59,10 @@ public final class MainActivity extends Activity {
     /** 海信主题字体目录：字体包没有扩展名，靠文件头识别 TTF/OTF。 */
     private static final String FONT_DIR_DEFAULT = "/storage/emulated/0/.hmcttheme/com.hmct.theme/";
     /** 「关于」页里的外链；只跳转浏览器，不在应用里做自动更新或下载。 */
-    private static final String REPO = "https://github.com/liuqianhe/InkControl";
+    private static final String REPO = "https://github.com/wzp100/InkControl";
     private static final String RELEASES = REPO + "/releases";
     private static final String README_URL = REPO + "/blob/main/README.md";
-    private static final String LATEST_API = "https://api.github.com/repos/liuqianhe/InkControl/releases/latest";
+    private static final String LATEST_API = "https://api.github.com/repos/wzp100/InkControl/releases/latest";
     private static final String AUTHOR_URL = "https://github.com/liuqianhe";
     private static final String UPSTREAM_REPO = "https://github.com/wzp100/InkControl";
     private static final String COMMUNITY_NUKU = "http://www.coolapk.com/u/21150263";
@@ -1098,7 +1098,7 @@ public final class MainActivity extends Activity {
         choices.setOrientation(LinearLayout.VERTICAL);
         choices.setBackground(ink.outline(12));
         String[][] picks = {{"pageanim.style", "翻页风格"}, {"pageanim.spacing", "展开速度"},
-                {"pageanim.bands", "分块数量"}, {"pageanim.debounce", "翻页间隔"}};
+                {"pageanim.bands", "分块数量"}};
         for (int i = 0; i < picks.length; i++) {
             if (i > 0) choices.addView(ink.rule(1));
             choices.addView(dropdownRow(FeatureCatalog.get(picks[i][0]), picks[i][1]));
@@ -1109,7 +1109,7 @@ public final class MainActivity extends Activity {
         LinearLayout ops = new LinearLayout(this);
         ops.setOrientation(LinearLayout.VERTICAL);
         ops.setBackground(ink.outline(12));
-        String[] toggles = {"pageanim.reverse", "pageanim.touch", "pageanim.keys", "pageanim.vkey"};
+        String[] toggles = {"pageanim.reverse", "pageanim.vkey"};
         for (int i = 0; i < toggles.length; i++) {
             if (i > 0) ops.addView(ink.rule(1));
             ops.addView(smallToggleRow(toggles[i]));
@@ -2413,7 +2413,7 @@ public final class MainActivity extends Activity {
             // 填了事项却没选日期：该组不会显示（日期为空停用），先明确提示再保存
             for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
                 if (!itemFields[i].getText().toString().trim().isEmpty() && dates[i].isEmpty()) {
-                    Toast.makeText(this, ink.t("第 " + (i + 1) + " 组填了事项但没选日期，该组不会显示"), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, ink.t("事项 " + (i + 1) + " 没选日期，不会显示"), Toast.LENGTH_LONG).show();
                     return;
                 }
             }
@@ -2882,7 +2882,6 @@ public final class MainActivity extends Activity {
         TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
         language.setContentDescription(ink.t("语言 / Language"));
         languageCard.addView(spaced(language, 10));
-        languageCard.addView(spaced(paragraph("英文翻译已停止维护：部分界面文字可能仍显示中文。", 13), 8));
         body.addView(spaced(card(languageCard), 12));
 
         // 操作结果提示条（顶部「已保存…」那行）的停留时长；默认 30 秒自动消失，也可设为不显示。
@@ -2961,8 +2960,8 @@ public final class MainActivity extends Activity {
         // 参考项目单独一张，免得和「谁做的」混在一起。
         // 「版本发布」不再放这里：最下面的「查看更新」里已有「打开发布页」。
         body.addView(aboutSection("作者与来源",
-                linkRow("liuqianhe", "作者 / 维护者 · GitHub 主页", AUTHOR_URL),
-                linkRow("wzp100/InkControl", "上游仓库", UPSTREAM_REPO),
+                linkRow("liuqianhe", "贡献者 · GitHub 主页", AUTHOR_URL),
+                linkRow("wzp100/InkControl", "项目主仓库", UPSTREAM_REPO),
                 linkRow("nuku", "翻页动画作者 · 酷安主页", COMMUNITY_NUKU)));
 
         body.addView(aboutSection("参考项目",

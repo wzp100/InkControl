@@ -27,11 +27,11 @@
 
 **新增功能：** FeatureCatalog 定义有限选项、依赖、作用进程、HOT／REBOOT；处理器消费不可变快照；停用走条件恢复；就绪后回报，失败不能冒充成功。不要手写另一份后端目录或新增独立配置真源。详见[开发示例](../development.md)。
 
-**改 UI 文案：** 以中文源短语为准，只在显示边界翻译；ID、属性、路由与配置协议不随语言变化。**英文界面翻译已停止维护**，`assets/i18n/en.tsv` 现有条目保留、缺失只提示不阻断。改完跑 `python tools/check_i18n.py`，中文文档改动再跑 `check_docs.py`。
+**改 UI 文案：** 中文源短语与 `assets/i18n/en.tsv` 同步，只在显示边界翻译；ID、属性、路由与配置协议不随语言变化。改完跑 `python tools/check_i18n.py`（缺失翻译会阻断），文档改动再跑 `check_docs.py`，云端执行 UI 与文本测试。
 
 **用户说又卡了：** 先读[诊断](operations.md)，保留首故障与保护标记，判断 GPU 计数是否增长；不要先清日志、清停用标记或重启 HWC。`stock` 慢不等于 CPU 回退。
 
-**发版本：** 同步 `AndroidManifest.xml`、`tools/build.py`、`backend/lib/common.sh`、知识索引、中英 README 与发布说明的 versionCode/版本串；已发布版本不覆盖，行为有变才递增。签名 Release 只在 Actions 里对 `main` 手动触发，推送 main 不再自动构建，PR 只跑回归检查。**提交信息可以详细，发布说明与 README 保持精简**；发布说明中文，但必须保留备用机、异地备份、无法开机／数据丢失／可能不可恢复的免责声明。
+**发版本：** 同步 `AndroidManifest.xml`、`tools/build.py`、`backend/lib/common.sh`、知识索引、中英 README 与发布说明的 versionCode/版本串；已发布版本不覆盖，行为有变才递增。推送 main 后签名构建、回归和双语 UI 全部通过才自动 Release，PR 只跑回归检查；版本号必须是 `X.Y.Z` 或 `X.Y.Z-rcN`。**提交信息可以详细，发布说明与 README 保持精简**；发布说明中英双语，必须保留备用机、异地备份、无法开机／数据丢失／可能不可恢复的免责声明。
 
 ## 操作边界与交接
 
@@ -39,4 +39,4 @@
 
 交接至少记录：问题与触发条件、commit/run/版本、改动文件、检查结果、未覆盖范围、设备是否改变、证据位置、恢复方式。状态要区分“已保存”“已回执”“已上机”“用户观感通过”。
 
-知识库**只维护中文**；英文页面保留但不再同步。索引、证据编号与目标名称仍要保持一致，`python tools/check_docs.py` 校验配对、链接、目标名称与版本一致性。
+知识更新同时维护两种语言、索引和证据编号；`python tools/check_docs.py` 校验配对、链接、目标名称与版本一致性。
