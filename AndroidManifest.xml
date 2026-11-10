@@ -1,11 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.inkcontrol" android:versionCode="15" android:versionName="0.1.0-rc15">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.inkcontrol" android:versionCode="28" android:versionName="0.3.0-rc1">
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="29" />
-    <application android:label="@string/app_name" android:localeConfig="@xml/locales_config" android:theme="@style/InkTheme" android:allowBackup="false" android:directBootAware="true" android:usesCleartextTraffic="false" android:icon="@drawable/ic_launcher">
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- 「关于」页手动检测更新访问 GitHub 接口；不会自动联网，也不下载安装包。 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:label="@string/app_name" android:localeConfig="@xml/locales_config" android:theme="@style/InkTheme" android:allowBackup="false" android:requestLegacyExternalStorage="true" android:directBootAware="true" android:usesCleartextTraffic="false" android:icon="@drawable/ic_launcher">
         <activity android:name="com.inkcontrol.ui.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
-        <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" />
+        <activity android:name="com.inkcontrol.ui.PanelToggleActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <!-- 「刷新格言」的无界面入口：桌面快捷方式与 am start 都走它，不会打开墨控主界面。 -->
+        <activity android:name="com.inkcontrol.ui.MottoActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <!-- 外部广播入口：am broadcast -a com.inkcontrol.action.REFRESH_MOTTO -->
+        <receiver android:name="com.inkcontrol.features.lock.MottoReceiver" android:exported="true">
+            <intent-filter><action android:name="com.inkcontrol.action.REFRESH_MOTTO"/></intent-filter>
+        </receiver>
+        <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" android:process=":state" />
+        <service android:name="com.inkcontrol.features.refresh.RefreshService" android:exported="true" android:label="@string/accessibility_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":refresh">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config"/>
+        </service>
+        <service android:name="com.inkcontrol.features.wave.WaveService" android:exported="true" android:label="@string/wave_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":motion">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/wave_accessibility_service_config"/>
+        </service>
+        <activity android:name="com.inkcontrol.features.wave.WaveUnlockActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" android:process=":motion" />
         <meta-data android:name="xposedmodule" android:value="true" />
         <meta-data android:name="xposeddescription" android:value="@string/module_description" />
         <meta-data android:name="xposedminversion" android:value="82" />

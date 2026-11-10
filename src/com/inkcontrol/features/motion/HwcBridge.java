@@ -38,12 +38,16 @@ final class HwcBridge {
         } catch (Throwable t) { return ""; }
     }
 
-    static boolean supports(String style) { return ("," + capabilities() + ",").contains("," + style + ","); }
+    /** 空能力表示“还没读到”（后端未下发）而不是“不支持”：照常发请求，HWC 不认识就忽略，等同瞬切。 */
+    static boolean supports(String style) {
+        String caps = capabilities();
+        return caps.isEmpty() || ("," + caps + ",").contains("," + style + ",");
+    }
     static boolean supportsLock(String style) {
         try {
             String caps = (String) Class.forName("android.os.SystemProperties")
                     .getMethod("get", String.class, String.class).invoke(null, PROP_LOCK_CAP, "");
-            return ("," + caps + ",").contains("," + style + ",");
+            return caps.isEmpty() || ("," + caps + ",").contains("," + style + ",");
         } catch (Throwable t) { return false; }
     }
 
@@ -63,10 +67,19 @@ final class HwcBridge {
         writtenRequest = null;
     }
 
+    /**
+     * 全刷扫过方向。auto 交给 native 按形状决定：横向从左向右、纵向从上向下。
+     * 与「动画擦除方向」互不影响 —— 早先这条策略只写 spread，方向在 native 侧被写死 ltr。
+     */
+    static String gcsweepDir(String dir) {
+        return dir == null || dir.isEmpty() ? "auto" : dir;
+    }
+
     static void configure(Config c) {
         if (Config.GCSWEEP.equals(c.styleFor(Config.GC_CLEAR))) {
             if (originalGc == null) originalGc = get(PROP_GC);
-            writtenGc = "gcsweep " + c.spread;
+            // 格式 "gcsweep <spread> <dir> <style>"；旧的两段格式仍按 ltr + 线性扫过解析。
+            writtenGc = "gcsweep " + c.gcSpread + " " + gcsweepDir(c.gcDir) + " " + c.gcStyle;
             if (!set(PROP_GC, writtenGc)) com.inkcontrol.platform.RuntimeConfig.fail("全刷动画配置未写入");
         } else if (originalGc != null) {
             if (writtenGc.equals(get(PROP_GC))) set(PROP_GC, originalGc);

@@ -20,6 +20,16 @@ static bool inputsReady=false,inputsFailed=false,frontVerified=false;
 // Roles: raw = *VAR_RAW, pending = *VAR_PENDING, prevRaw = previous consumed image.
 static int frontRaw=-1,prevRaw=-1,grayInput=-1;
 static bool frontReady=false,prevValid=false,gpuSource=false,prevArrayStale=false,compared=false;
+// FIX(full-refresh-stale-frame): the raw/pending/prev rotation below assumes every
+// wave gets a fresh SurfaceFlinger frame. A system-driven full refresh (fingerprint
+// / EpdManager.forceClear) has no new composition, so the recycled raw buffer still
+// holds an older image and the refresh redraws the previous page. Track SF publishes
+// via the bridge and, when none arrived since the last consume, reuse the image that
+// is already on the panel instead of the stale recycled buffer.
+static int lastConsumed=-1;
+static uint64_t sfPublishSeq=0,consumedSeq=0;
+// Safety valve: setprop debug.eink.front.reuse 0 restores the old rotation behaviour.
+static bool frontReuseEnabled(){char v[PROP_VALUE_MAX]={};__system_property_get("debug.eink.front.reuse",v);return v[0]!='0';}
 static GLuint frontProgram,rgbaGrayProgram,grayBuffer,diffBuffer;
 static GLint frontCurLoc=-1,frontPrevLoc=-1,frontHasPrevLoc=-1;
 static GLuint inputStatsProgram,inputStatsBuffer,inputWorkProgram,inputWorkBuffer;
@@ -80,8 +90,19 @@ static void hookTranspose(){
     auto*raw=load<uint8_t*>(base+VAR_RAW);uint32_t mode=load<uint32_t>(base+VAR_EPD_MODE);
     int index=inputIndex(raw);frontReady=false;
     if(frontEnabled()&&inputsReady&&index>=0){
-        frontRaw=index;frontMode=mode;
-        frontReady=true;return;
+        // No fresh SurfaceFlinger frame since the last consume means the rotation
+        // handed us a stale buffer: keep displaying the image already on the panel.
+        bool fresh=sfPublishSeq!=consumedSeq;
+        int use=index;
+        if(!fresh&&frontReuseEnabled()&&lastConsumed>=0){
+            use=lastConsumed;
+            VLOG("FRONT_REUSE wave=%llu raw=%d reused=%d",(unsigned long long)waveId,index,use);
+        }
+        if(use<0)use=index;
+        if(use>=0){
+            frontRaw=use;frontMode=mode;
+            frontReady=true;return;
+        }
     }
     if(index>=0&&inputGpuWritten[index])invalidateInput(inputs[index]);
     cpuTranspose(raw,load<uint8_t*>(base+VAR_WORK));
@@ -259,7 +280,13 @@ static void*hookStore(void*dst,const void*src,size_t n){
         // Auto statistics consume the resident grayInput role in hookAutoStats.
         // The consumed image becomes the previous frame; the old previous buffer
         // becomes the next raw target (SurfaceFlinger only fills raw while waiting).
-        storePtr(VAR_RAW,inputs[prevRaw].map);prevRaw=frontRaw;prevValid=true;prevArrayStale=true;frontReady=false;return dst;
+        // When no new frame was consumed (full-refresh reuse) the roles stay as they
+        // are so the recycled target is not exposed as the current image.
+        if(frontRaw!=prevRaw){
+            storePtr(VAR_RAW,inputs[prevRaw].map);prevRaw=frontRaw;
+        }
+        lastConsumed=frontRaw;consumedSeq=sfPublishSeq;
+        prevValid=true;prevArrayStale=true;frontReady=false;return dst;
     }
     frontReady=false;prevValid=false;prevArrayStale=false;return std::memcpy(dst,src,n);
 }
@@ -281,7 +308,7 @@ static int importReserve(void*,einkimport::PublishKind,void*target)noexcept{
     }inputReserved[i]=true;return i;
 }
 static void importRelease(void*,einkimport::PublishKind,int slot,bool commit)noexcept{
-    if(commit){inputGpuWritten[slot]=true;telemetryAdd(T_INPUT_GPU);}
+    if(commit){inputGpuWritten[slot]=true;++sfPublishSeq;telemetryAdd(T_INPUT_GPU);}
     inputReserved[slot]=false;inputRoles.unlock();
 }
 static bool importFallback(void*,const char*reason)noexcept{

@@ -22,7 +22,7 @@ def main():
     build = (ROOT/'tools/build.py').read_text(encoding='utf-8')
     assert "VERSION = '"+version+"'" in build and 'versionCode='+code+'\\n' in build
     assert "= '"+version+"' ]" in (ROOT/'backend/lib/common.sh').read_text(encoding='utf-8')
-    assert (ROOT/'docs/releases'/(version+'.md')).is_file(), 'Missing bilingual release notes'
+    assert (ROOT/'docs/releases'/(version+'.md')).is_file(), 'Missing release notes'
     expected = set()
     for topic in index['topics']:
         for language in ('zh', 'en'):
@@ -48,8 +48,11 @@ def main():
         text = (ROOT/name).read_text(encoding='utf-8')
         if re.search(r'A5\s*Pro\s*CC', text, re.I):
             errors.append(name+': wrong target name')
-        if name in ('README.md', 'README.en.md') and ('Hisense A5 Pro 经典版' not in text or version not in text):
-            errors.append(name+': target/version missing')
+        # 版本号只在 docs/releases/<版本>.md 与 Release 页维护（2026-11-08 定）：
+        # README 不再写当前版本，因此这里只校验产品名，版本一致性由上面
+        # knowledge-index / AndroidManifest / build.py / module.prop / release 文件几处互相咬合。
+        if name in ('README.md', 'README.en.md') and 'Hisense A5 Pro 经典版' not in text:
+            errors.append(name+': target name missing')
         for rid in re.findall(r'\bR\d{2}\b', text):
             if rid not in source_ids: errors.append(name+': unknown source '+rid)
         # Remove fenced/inline code before parsing real Markdown and HTML references.

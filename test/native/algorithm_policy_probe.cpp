@@ -53,7 +53,8 @@ int main(){
             if(g==Group::Clear||g==Group::Reading)
                 CHECK(a==Algorithm::Default||a==Algorithm::Stock||a==Algorithm::Nearest||a==Algorithm::Bayer16);
             else if(g==Group::Fast||g==Group::Extreme)
-                CHECK(a==Algorithm::Default||a==Algorithm::Bayer||a==Algorithm::Blue||a==Algorithm::Threshold);
+                // 快速/极速自 0.3.0 起也可选「原厂」：该模式的像素量化交回原厂 CPU 路径。
+                CHECK(a==Algorithm::Default||a==Algorithm::Stock||a==Algorithm::Bayer||a==Algorithm::Blue||a==Algorithm::Threshold);
         }
     }
     CHECK(parseAlgorithm(Group::Clear,"stock")==Algorithm::Stock);

@@ -20,6 +20,8 @@ public final class HookIntegrationTest {
         Context context=new Context();EpdManagerService s=new EpdManagerService(context);XposedBridge.constructed(s);
         Object stub=s.mService;
         Binder.uid=1000;XposedBridge.call(stub,"begigResumeActivity","video.a","A",false);
+        check("0".equals(android.os.SystemProperties.get("debug.inkcontrol.fusion.reader","unset")),
+                "翻页动画闸门：名单为空时前台应用不放行");
         ActivityRecord a=new ActivityRecord(10001,"video.a","A");
         XposedBridge.call(a,"setState",ActivityRecord.State.RESUMED,"test");s.mHandler.drain();
         Binder.uid=10001;XposedBridge.call(stub,"notifyVideoOn",true,10001);s.mHandler.drain();

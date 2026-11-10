@@ -59,7 +59,6 @@ final class RuntimeStatus implements StatusSource {
             // 热更新回执可确认本轮未改变的启动期选项；实际内容必须仍与本次开机一致。
             if (value != null && applied != null && applied.enabled(feature.id) == value.enabled(feature.id) && applied.value(feature.id).equals(value.value(feature.id))) acknowledged = applied.revision;
             if (!error.isEmpty()) return new Evidence(false, "", error, expectedRevision);
-            if (value != null && value.enabled(feature.id) && feature.id.equals("fix.google") && !"1".equals(fields.get("google_overlay_active"))) return new Evidence(false, "", "图标覆盖未被系统启用", acknowledged);
             if (value != null && value.enabled(feature.id) && feature.id.equals("display.dynamic") && !"0".equals(fields.get("dynamic_current"))) return new Evidence(false, "", "系统值已被独立修改，保留该修改；重新关闭再开启可接管", acknowledged);
             if (value != null && value.enabled("display.gpu") && (feature.id.equals("display.gpu") || feature.dependency.equals("display.gpu"))) {
                 if (!gpu.matches("(?s).*\"helper_loaded\"\\s*:\\s*(true|1).*")) return null;

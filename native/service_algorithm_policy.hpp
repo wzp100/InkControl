@@ -53,7 +53,8 @@ inline Algorithm parseAlgorithm(Group g,const char*v){
         if(equal(v,"bayer"))return Algorithm::Bayer;
         if(equal(v,"blue"))return Algorithm::Blue;
         if(equal(v,"threshold"))return Algorithm::Threshold;
-        if(g==Group::Video&&equal(v,"stock"))return Algorithm::Stock;
+        // 快速/极速也支持「原厂」：该模式像素量化交回原厂 CPU 路径（GPU 二值 shader 无原厂实现）。
+        if(equal(v,"stock"))return Algorithm::Stock;
     }
     return Algorithm::Default;
 }

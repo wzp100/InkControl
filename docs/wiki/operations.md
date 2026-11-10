@@ -34,3 +34,9 @@
 不要盲目卸载顶层挂载、覆盖运行库、套用旧实验脚本的固定基线或把“清保护”当作修复。设备操作须在已授权任务内执行并记录恢复结果。
 
 源码入口：`backend/service.sh`、`backend/lib/gpu_diagnostics.sh`、`native/service_queue_retry.hpp`、`platform/RuntimeStatus.java`。来源：`R03`、`R04`、`R09`。
+
+## 面板开关提示「切换失败」
+
+墨控被系统「强制停止」后，这台机器会禁止 SystemUI 拉起它的 ContentProvider，面板点「自动刷新」「遮挡息屏」等开关会先报目标状态、再报切换失败；日志关键字是 `unable to launch app ... for provider, it's restricted` 与 `Unknown authority com.inkcontrol.state`。这与 App 内开关是否同步无关——配置写在 App 私有目录，只能由墨控自己的进程落盘并调 root。
+
+0.2.5-r23 起 `PanelHook` 在 provider 不可用时启动透明页 `PanelToggleActivity` 拉起墨控进程完成切换（显示约半秒即结束，焦点不离开当前界面），不需要手动打开 App。若仍出现失败提示，先到「诊断」页确认作用域与模块启用状态，再打开一次墨控后重试。

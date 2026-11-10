@@ -18,7 +18,7 @@ flowchart LR
 
 ## 版本与不可覆盖
 
-当前候选 `0.1.0-rc15`；新版本通过后自动创建 `v<version>` tag 和 Release，固定到已验证的准确 commit。`-rcN` 自动标为预发布，不标记 Latest；稳定版本标记 Latest。候选状态由版本决定，云端通过不等于实机稳定版。
+当前候选 `0.3.0-rc1`；新版本通过后自动创建 `v<version>` tag 和 Release，固定到已验证的准确 commit。`-rcN` 自动标为预发布，不标记 Latest；稳定版本标记 Latest。候选状态由版本决定，云端通过不等于实机稳定版。
 
 版本递增同步 `AndroidManifest.xml`、`tools/build.py`、`backend/lib/common.sh`、App/模块 versionCode、发布说明及知识索引。仅文档提交可以保留版本；已发布同版本直接跳过，不修改 tag、说明或附件。代码／资源行为变化必须新版本。
 
@@ -39,6 +39,10 @@ flowchart LR
 | `RELEASE_NOTES.md` | 中英文变更与实际验证边界 |
 
 Actions 原始测试、UI PNG/XML 等 artifacts 保留七天；Release 附件按版本公开留存。失败的检查与 unsigned 不发布；发布器限定目标仓库身份及 Actions/main，并拒绝其他仓库。
+
+`tools/build.py` 的本地输出目录只保留可交付文件：APK、后端 ZIP、`SHA256SUMS`、`build-manifest.json` 与 `cert.der`。aapt2 / javac / d8 / zipalign 逐段产生的中间文件（资源包、未对齐 APK、classes、dex、模块目录等）不再堆在输出目录里，需要排查时加 `--keep-intermediates` 收进 `work/`。签名不生成 `.idsig`（v4 增量签名）——交付与安装都用不到它。
+
+逐段编译结果按内容寻址缓存在 `out/.build-cache/`：源码、工具链与编译参数不变时直接复用上次的 javac / d8 / clang / aapt2 产物，缓存条目与 `work/` 之间用硬链接，不重复占盘；只改部分源码时仅重建受影响的那几段，构建尾部会打印命中了几项。`--no-cache` 强制全量重编，缓存目录也可随时删除，删掉只影响下次构建速度。缓存按输入哈希失效，不参与交付、不进 Release、不进源码归档。
 
 ## 签名与私有输入
 

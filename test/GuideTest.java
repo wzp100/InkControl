@@ -17,24 +17,45 @@ public final class GuideTest {
         Class<?> type = Class.forName("com.inkcontrol.ui.Guide");
         Field categoriesField = type.getDeclaredField("CATEGORIES"); categoriesField.setAccessible(true);
         Map<?, ?> categories = (Map<?, ?>) categoriesField.get(null);
+        Field internalField = type.getDeclaredField("INTERNAL"); internalField.setAccessible(true);
+        Set<String> INTERNAL = (Set<String>) internalField.get(null);
         Set<String> navigation = new HashSet<>();
-        for (Object category : categories.values()) for (String[] section : (String[][]) field(category, "sections")) {
-            for (int i = 1; i < section.length; i++) {
-                check(navigation.add(section[i])); FeatureCatalog.get(section[i]);
+        // 收在子页里、不在分类列表出现的功能（「显示信息修改」页里的四项显示开关）
+        Set<String> nested = new HashSet<>();
+        for (Object category : categories.values()) {
+            for (String[] section : (String[][]) field(category, "sections")) {
+                for (int i = 1; i < section.length; i++) {
+                    check(navigation.add(section[i])); FeatureCatalog.get(section[i]);
+                }
+            }
+            for (String id : (String[]) field(category, "nested")) {
+                check(!navigation.contains(id)); nested.add(id); FeatureCatalog.get(id);
             }
         }
+        check(nested.containsAll(Arrays.asList("lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane")));
+        // 面板长按「自动刷新 / 遮挡息屏」拿 FeatureCatalog 的 group 当分类名跳大功能页。
+        // MainActivity 只放行真实存在的分类；这两个名字一旦改了而没同步 Guide，长按就会静默失效。
+        check(categories.containsKey(FeatureCatalog.get("refresh.master").group));
+        check(categories.containsKey(FeatureCatalog.get("wave.lock").group));
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             Object entry = call(type, "get", feature.id);
             check(!field(entry, "summary").toString().isEmpty());
-            check(!field(entry, "what").toString().isEmpty());
+            // 「锁屏主题」详情页只留样式大图与选项，「快捷面板按钮」页本身就是编辑器：
+            // 这两处说明文字按需求删掉，是允许 what 为空的条目。
+            if (!"lock.style".equals(feature.id) && !"qs.panel".equals(feature.id))
+                check(!field(entry, "what").toString().isEmpty());
             Map<?, ?> options = (Map<?, ?>) field(entry, "options");
-            if (!options.keySet().equals(new HashSet<>(feature.values)))
+            // 纯占位取值（@path / @font）的功能是页内选择器，不写死选项说明
+            boolean tokensOnly = true;
+            for (String value : feature.values) if (!value.startsWith("@")) tokensOnly = false;
+            if (!tokensOnly && !options.keySet().equals(new HashSet<>(feature.values)))
                 throw new AssertionError(feature.id + " guide options " + options.keySet() + " != " + feature.values);
             checks++;
             for (Object option : options.values()) check(!field(option, "name").toString().isEmpty());
             for (String[] term : (List<String[]>) field(entry, "terms")) check(term[1] != null && !term[1].isEmpty());
             String destination = (String) call(type, "destination", feature.id);
-            check(navigation.contains(destination));
+            // 只有数据/页内操作的功能没有独立入口，不要求出现在分类小节里
+            if (!INTERNAL.contains(feature.id) && !nested.contains(feature.id)) check(navigation.contains(destination));
         }
         check(!navigation.contains("experiment.video"));
         for (String scope : DisplayAlgorithms.SCOPES) {

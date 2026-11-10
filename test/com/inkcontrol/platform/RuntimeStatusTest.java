@@ -31,10 +31,6 @@ public final class RuntimeStatusTest {
         status.update(state(gpu,gpu,"").replace("backend_version=test-version","backend_version=wrong"),new Bundle(),gpu.revision); check(status.evidence(backend)==null);
         status.update(state(gpu,gpu,"").replace("applied_boot=abc","applied_boot=old"),new Bundle(),gpu.revision); check(status.evidence(backend)==null);
         status.invalidate("Root拒绝"); check(status.evidence(theme)==null); check(status.evidence(backend)==null);
-        FeatureDefinition google = FeatureCatalog.get("fix.google"); Configuration icons = off.change("fix.google", true, "default");
-        status.update(state(icons,icons,""),new Bundle(),icons.revision); check(!status.evidence(google).error.isEmpty());
-        status.update("google_overlay_active=0\n"+state(icons,icons,""),new Bundle(),icons.revision); check(!status.evidence(google).error.isEmpty());
-        status.update("google_overlay_active=1\n"+state(icons,icons,""),new Bundle(),icons.revision); check(status.evidence(google).enabled);
         System.out.println("runtime status checks passed: " + checks);
     }
 }

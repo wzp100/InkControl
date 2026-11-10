@@ -11,6 +11,8 @@ public final class Config {
 
     // 动画（与预览页 STYLES 的 id 相同）
     public static final String INSTANT = "instant", GC16 = "gc16";
+    /** 目录里的「无」：明确表示这个场景不加动画，等于原厂的瞬间切换。 */
+    public static final String NONE = "none";
     public static final String KWIPE = "kwipe", KIRIS = "kiris";
     public static final String INK = "ink", DOTS = "dots", SCAN = "scan", BLIND = "blind", GCSWEEP = "gcsweep";
 
@@ -33,6 +35,8 @@ public final class Config {
     public String origin = "touch";
     /** 擦除方向：auto = 前进/打开从右侧开始，后退/关闭从左侧开始 */
     public String wipeDir = "auto";
+    /** 全刷扫过方向：auto = 沿用原厂习惯「从左向右」。与「擦除方向」分开，避免互相牵制。 */
+    public String gcDir = "auto";
     /** 去掉对话框背后的变暗层（和动画总开关无关） */
     public boolean noDim = false;
     /**
@@ -42,6 +46,10 @@ public final class Config {
     public float appAnimScale = -1f;
     /** 波形层：起跑时间错开幅度，单位是扫描帧（11.65ms） */
     public int spread = 12;
+    /** 全刷扫过自己的错开幅度；未单独设置时沿用 {@link #spread} */
+    public int gcSpread = 12;
+    /** 全刷扫过自己的形状（horizontal/vertical/diag/antidiag/ring/center），默认横向 */
+    public String gcStyle = "horizontal";
     /** 每次保存时更新，用来确认 system_server 已经读到 */
     public long rev;
     /** 在 logcat（标签 EinkMotion）里记录每次过渡 */
@@ -79,7 +87,10 @@ public final class Config {
         result.enabled = config.enabled("motion.master");
         for (int i = 0; i < SCENES.length; i++) {
             String id = "motion." + SCENES[i];
-            result.styles[i] = config.enabled(id) && (!FeatureService.needsWaveBackend(id, config.value(id)) || config.enabled("display.gpu")) ? config.value(id) : nativeStyle(i);
+            String value = config.value(id);
+            boolean usable = config.enabled(id) && (!FeatureService.needsWaveBackend(id, value) || config.enabled("display.gpu"));
+            // 「无」显式回到原厂：照常记着这个取值，但运行参数按本场景的原厂样式处理。
+            result.styles[i] = usable ? (NONE.equals(value) ? nativeStyle(i) : value) : nativeStyle(i);
         }
         result.noDim = config.enabled("motion.dim");
         result.steps = config.enabled("motion.steps") ? Integer.parseInt(config.value("motion.steps")) : 2;
@@ -88,7 +99,10 @@ public final class Config {
         result.holdMs = result.holdCurve == null ? Integer.parseInt(hold) : 0;
         result.origin = config.enabled("motion.origin") ? config.value("motion.origin") : "touch";
         result.wipeDir = config.enabled("motion.direction") ? config.value("motion.direction") : "auto";
+        result.gcDir = config.enabled("motion.gc_direction") ? config.value("motion.gc_direction") : "auto";
         result.spread = config.enabled("motion.spread") ? Integer.parseInt(config.value("motion.spread")) : 12;
+        result.gcSpread = config.enabled("motion.gc_speed") ? Integer.parseInt(config.value("motion.gc_speed")) : result.spread;
+        result.gcStyle = config.enabled("motion.gc_style") ? config.value("motion.gc_style") : "horizontal";
         result.appAnimScale = config.enabled("motion.scale") ? Float.parseFloat(config.value("motion.scale")) : -1;
         result.debug = false;
         result.rev = config.revision;
@@ -99,6 +113,7 @@ public final class Config {
         StringBuilder b = new StringBuilder(enabled ? "on" : "off");
         for (int i = 0; i < SCENES.length; i++) b.append(' ').append(SCENES[i]).append('=').append(styles[i]);
         b.append(" steps=").append(steps).append(" hold=").append(holdCurve != null ? "curve" + java.util.Arrays.toString(holdCurve) : holdMs == 0 ? "auto" : holdMs + "ms");
+        b.append(" spread=").append(spread).append(" gc_spread=").append(gcSpread).append(" gc_style=").append(gcStyle);
         b.append(" no_dim=").append(noDim).append(" app_anim=").append(appAnimScale < 0 ? "keep" : String.valueOf(appAnimScale));
         return b.toString();
     }

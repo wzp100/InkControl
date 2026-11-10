@@ -2,6 +2,7 @@
 MODDIR=${0%/bin/inkctl}
 IC_LIB=$MODDIR/lib
 . "$IC_LIB/common.sh"
+. "$IC_LIB/sysbackup.sh"
 [ "$(id -u)" = 0 ] || { echo '需要Root授权' >&2; exit 1; }
 mkdir -p "$IC_STATE" || exit 1
 chmod 700 "$IC_STATE"
@@ -18,7 +19,6 @@ case "$1" in
         echo "abi=$(getprop ro.product.cpu.abi)"
         echo "firmware=$(getprop ro.build.display.id)"
         echo "dynamic_current=$(settings get global dynamic_refresh_mode)"
-        echo "google_overlay_active=$(cmd overlay list --user 0 2>/dev/null | awk '$1=="[x]" && $2=="com.inkcontrol.overlay.google" {active=1} END {print active+0}')"
         ic_ready && echo 'ready=1' || echo 'ready=0'
         echo "hwc=$(sha256sum "$IC_VENDOR/hwcomposer.ums512.so" | cut -d' ' -f1)"
         echo "boot_id=$(cat /proc/sys/kernel/random/boot_id)"
@@ -46,5 +46,43 @@ case "$1" in
         mv "$IC_STATE/configuration.pending" "$IC_CONFIG" || exit 1
         ic_apply_hot || { echo '配置已保存，部分应用失败；请检查诊断后重试' >&2; exit 1; }
         echo '配置已应用，启动期选项等待完整重启' ;;
-    *) echo '仅支持 status/apply' >&2; exit 2 ;;
+    applyfont)
+        # 路径从 stdin 读一行（App 侧白名单校验后再传入），也接受第二个参数
+        IFS= read -r src || true
+        [ -n "$src" ] || src=$2
+        ic_apply_font "$src" ;;
+    fontlist)
+        # 目录从 stdin 读一行，也接受第二个参数；输出「文件名<TAB>字节数<TAB>绝对路径」
+        IFS= read -r dir || true
+        [ -n "$dir" ] || dir=$2
+        ic_list_fonts "$dir" ;;
+    restorefont)
+        ic_restore_font ;;
+    sysapp)
+        # 子动作 state|remove|restore，包名从第三个参数或 stdin 读（App 侧先校验格式，这里再校验一次）
+        action=$2
+        pkg=$3
+        [ -n "$pkg" ] || IFS= read -r pkg || true
+        case "$action" in
+            state) ic_sysapp_state "$pkg" ;;
+            remove) ic_sysapp_remove "$pkg" ;;
+            restore) ic_sysapp_restore "$pkg" ;;
+            *) echo '仅支持 state/remove/restore' >&2; exit 2 ;;
+        esac
+        exit $? ;;
+    sysbackup)
+        # 系统设置快照：list 列出、save 拍一张、restore/delete 针对某个编号。
+        # 编号只从 stdin 或第三个参数读，格式在后端再校验一次（不接受任何路径字符）。
+        action=$2
+        sid=$3
+        case "$action" in
+            list) ic_backup_list ;;
+            save) ic_backup_save ;;
+            restore|delete)
+                [ -n "$sid" ] || IFS= read -r sid || true
+                if [ "$action" = restore ]; then ic_backup_restore "$sid"; else ic_backup_delete "$sid"; fi ;;
+            *) echo '仅支持 list/save/restore/delete' >&2; exit 2 ;;
+        esac
+        exit $? ;;
+    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont/sysapp/sysbackup' >&2; exit 2 ;;
 esac

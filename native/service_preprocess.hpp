@@ -27,6 +27,13 @@ static unsigned videoDither(){
     if(std::strcmp(last,v)){std::strcpy(last,v);LOG("VIDEO_DITHER value='%s' n=%d",v,n);}
     return !std::strcmp(v,"stock")?0u:!std::strcmp(v,"bayer")?2u:1u;
 }
+// 「改用原厂显示算法」总开关（后端下发 debug.eink.alg.stock=1）。
+// 优先级高于 GPU 后端的一切算法接管：A2/DU 二值候选与灰阶（含 stock16）全部让位，
+// 像素量化走原厂 CPU 路径；全刷复用、取帧与触摸响应不受影响。
+static bool stockOverride(){
+    char v[PROP_VALUE_MAX]={};__system_property_get("debug.eink.alg.stock",v);
+    return v[0]=='1'&&v[1]=='\0';
+}
 struct PixelPolicy {
     einkalg::Group group=einkalg::Group::None;
     einkalg::Algorithm algorithm=einkalg::Algorithm::Default;
@@ -34,6 +41,24 @@ struct PixelPolicy {
 };
 // 每波只读一次选择属性；候选 BW 路径和 stockVideo 回退使用同一个快照。
 static PixelPolicy pixelPolicy;
+// 快速/极速模式选了「原厂」：本波像素量化交回原厂 CPU 路径（GPU 二值 shader 没有原厂实现）。
+// 只影响该模式；清晰模式的 GC16 波形（全刷扫过）不受影响。
+static bool modeStock=false,modeStockLogged=false;
+// 外部模式号 → 这个模式是否选了「原厂」。必须按 **外部模式** 判断：
+// Group::None（自动选 A2、过渡、空白等五个命名组之外的波）同样会被自研 shader 接管，
+// 只看命名组会漏掉它们，浅灰底上照样出方格。
+static bool modeStockFor(int mode){
+    if(mode&0x400)return false;                       // 视频场景保持自有语义
+    unsigned ext=unsigned(mode)&255u;
+    // ext==1 是「A2 局部刷新」入口（切页、滚动主要走它），不归属五个命名模式。
+    // 滑动时系统会自动切到「均衡模式」（阅读），实测这条路径就落在 ext==1，
+    // 所以它跟随阅读模式的选择，不能错绑到快速。
+    const char*key=(ext==1||ext==3||ext==4||ext==5)?"debug.eink.alg.reading":
+        ext==6?"debug.eink.alg.fast":ext==9?"debug.eink.alg.extreme":nullptr;
+    if(!key)return false;
+    char v[PROP_VALUE_MAX]={};__system_property_get(key,v);
+    return std::strcmp(v,"stock")==0;
+}
 static PixelPolicy readPixelPolicy(void*ctl,int mode,int selected){
     PixelPolicy p;
     p.group=einkalg::group({unsigned(mode),unsigned(selected),field<uint8_t>(ctl,0x15c),
@@ -199,6 +224,8 @@ static inline void bridgePreparedGrayLevels(void*ctl,bool includeMixed=false){
 // DU/A2/REGAL selection and all transitions remain the main integrator's job.
 static inline bool prepareGrayLevels(void*ctl,int mode,int selected,void*rgba){
     preparedGray={};
+    if(stockOverride())return false;   // 原厂算法总开关：灰阶量化交回原厂 CPU 路径
+    if(modeStock)return false;         // 本模式选了「原厂」：同样不接管
     if((!gpuSource&&(!rgba||configuredMode<2))||gpuFailed||field<int>(ctl,0xbc)!=1440||field<int>(ctl,0xc0)!=720||
        field<int>(ctl,0x280)!=0)return false;
     unsigned internal=field<uint8_t>(ctl,0x15c),algorithm=unsigned(selected)&255u;
@@ -276,16 +303,29 @@ static inline void commitPreparedGrayLevels(void*ctl){
     require(preparedGray.ready&&preparedGray.wave==waveId&&ctl==pixelCtl,"gray commit ownership");
     oldIndex^=1;cpuOldDirty=true;oldGpuValid=true;shadowValid=false;preparedGray={};
 }
+// 诊断直通：debug.eink.bypass=1 时墨控完全不介入这一波（等同原厂库），
+// 用来判断某个现象到底来自补丁库本身还是我们的钩子。
+static bool bypassAll(){char v[PROP_VALUE_MAX]={};__system_property_get("debug.eink.bypass",v);
+    return v[0]=='1'&&v[1]=='\0';}
 static int hookPreprocess(void*rgba,void*ctl,int mode,int selected){
     fullPixelWave=false;pixelCtl=ctl;pixelRgba=rgba;preparedGray={};
-    if(configuredMode>=2&&!gpuFailed&&field<int>(ctl,0xbc)==1440&&field<int>(ctl,0xc0)==720&&
+    // 本波是否整条交回原厂 CPU：必须在空白帧分支之前判定，
+    // 否则空白/过渡帧仍由 GPU 生成波形索引，物理屏上照样留下规则格子。
+    modeStock=modeStockFor(mode);
+    if(modeStock!=modeStockLogged){modeStockLogged=modeStock;
+        LOG("MODE_STOCK wave=%llu mode=%d stock=%d",(unsigned long long)waveId,mode,modeStock?1:0);}
+    {static int seen[16]={};static int seenCount=0;bool known=false;
+     for(int i=0;i<seenCount;i++)if(seen[i]==mode)known=true;
+     if(!known&&seenCount<16){seen[seenCount++]=mode;LOG("MODE_SEEN %d stock=%d",mode,modeStock?1:0);}}
+    if(bypassAll())return 0;
+    if(configuredMode>=2&&!gpuFailed&&!modeStock&&!stockOverride()&&field<int>(ctl,0xbc)==1440&&field<int>(ctl,0xc0)==720&&
        field<int>(ctl,0x280)!=0&&field<int>(ctl,0x270)==0&&field<int>(ctl,0x278)==0&&
        field<uint32_t>(ctl,0x160)<einkwave::MaxLiveFrames){
         // Stock blank scan ignores image levels and never commits them. Retain
         // the resident history and skip unused image preprocessing/mixing.
         fullPixelWave=true;VLOG("GPU_BLANK_PRE wave=%llu",(unsigned long long)waveId);return 1;
     }
-    if(frontReady&&!gpuSource&&!gpuFailed){
+    if(!modeStock&&!stockOverride()&&frontReady&&!gpuSource&&!gpuFailed){
         try{runFront();gpuSource=true;grayInput=frontRaw;}
         catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("PRE_FRONT_FALLBACK reason=%s",e.what());
             cpuInputWork(frontRaw,rgba);gpuFailed=true;frontReady=false;}
@@ -296,7 +336,7 @@ static int hookPreprocess(void*rgba,void*ctl,int mode,int selected){
     // DU4 takeover moves the DU wave class to the real four-level path below
     // (hookMixRegal integrator); the binary A2 candidate must not grab it.
     bool du4Takeover=du4Enabled()&&field<uint8_t>(ctl,0x15c)==1&&(unsigned(selected)&255u)==1u;
-    bool candidate=configuredMode>=2&&!gpuFailed&&field<int>(ctl,0xbc)==1440&&field<int>(ctl,0xc0)==720&&
+    bool candidate=configuredMode>=2&&!gpuFailed&&!stockOverride()&&!modeStock&&field<int>(ctl,0xbc)==1440&&field<int>(ctl,0xc0)==720&&
         ((field<uint8_t>(ctl,0x15c)==8&&(unsigned(selected)&255u)==8u)||
          (field<uint8_t>(ctl,0x15c)==1&&(unsigned(selected)&255u)==1u&&!du4Takeover))&&
         field<int>(ctl,0x270)==0&&field<int>(ctl,0x280)==0&&

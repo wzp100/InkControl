@@ -65,7 +65,7 @@ def main():
             change('motion.master', True)
             for id in ('app_open','app_close','in_app_forward','in_app_back','dialog','gc_clear','lock','unlock','steps','hold','origin','direction','spread'):
                 change('motion.'+id, True)
-            # 保留子项选择并关闭父级，应显示依赖未满足。
+            # 关闭总开关后场景应显示依赖未满足；重新打开恢复已生效。
             r = change('motion.master', False)
             assert '依赖' in r['statuses']['motion.app_open'], r['statuses']['motion.app_open']
             r = change('motion.master', True)

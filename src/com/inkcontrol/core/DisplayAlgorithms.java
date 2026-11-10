@@ -33,12 +33,15 @@ public final class DisplayAlgorithms {
         }
     }
     public static String algorithmProperty(String scope) { validateScope(scope); return "debug.eink.alg." + scope; }
+    /** 「改用原厂显示算法」总开关：接管优先级低于该开关，开时五个模式一律回退原厂。 */
+    public static boolean stock(Configuration config) { return config.enabled("display.alg.stock"); }
     public static String hysteresisProperty(String scope) {
         if (gray(scope)) throw new IllegalArgumentException("灰阶模式没有独立迟滞");
         return "debug.eink.hyst." + scope;
     }
     public static String algorithmOverride(Configuration config, String scope) {
         validateScope(scope);
+        if (stock(config)) return "default";
         String id = "display.alg." + scope;
         return config.enabled(id) ? config.value(id) : "default";
     }
@@ -50,16 +53,20 @@ public final class DisplayAlgorithms {
         return config.enabled("experiment.video") ? config.value("experiment.video") : "blue";
     }
     public static String algorithm(Configuration config, String scope) {
+        validateScope(scope);
+        // 原厂算法总开关开启时不接管，界面按“原厂”呈现，也不再回落到 GPU 的默认算法
+        if (stock(config)) return "stock";
         String value = algorithmOverride(config, scope);
         return value.equals("default") ? baselineAlgorithm(config, scope) : value;
     }
     public static boolean supportsHysteresis(Configuration config, String scope) {
-        if (gray(scope)) return false;
+        if (gray(scope) || stock(config)) return false;
         String value = algorithm(config, scope);
         return value.equals("bayer") || value.equals("blue") || value.equals("threshold");
     }
     public static String hysteresisOverride(Configuration config, String scope) {
         hysteresisProperty(scope);
+        if (stock(config)) return "default";
         String id = "display.hyst." + scope;
         return config.enabled(id) ? config.value(id) : "default";
     }

@@ -51,6 +51,19 @@ public class Hook implements IXposedHookLoadPackage {
     private static Method sRefreshMethod;
     private static Context sContext;
     private static Handler sHandler;
+    private static ClassLoader sLoader;
+
+    /** 应用里点「换一条格言」时发出的广播；本 Hook 收到后让原厂的 MottoHelper 跳到下一条。 */
+    public static final String ACTION_MOTTO_NEXT = "com.inkcontrol.action.LOCK_MOTTO_NEXT";
+
+    /**
+     * 手动换来的那一条格言。原厂 {@code setMotto} 是按它自己记的序号出图，
+     * {@code getNextMotto()} 不一定立刻反映到下一次出图上，所以这里先兜住返回值，
+     * 由 {@link LockData#motto} 优先使用；锁屏画过一次之后再交回原厂。
+     */
+    private static volatile String sNextMotto;
+    private static volatile long sNextMottoAt;
+    private static final long MOTTO_HOLD_MS = 10 * 60 * 1000;
 
     private static volatile String sLyric;
     private static volatile long sLyricTime;
@@ -60,6 +73,10 @@ public class Hook implements IXposedHookLoadPackage {
     private static boolean sHadVisual;
 
     private static int getSetting(String key, int def) {
+        // 调试开关不在功能配置里，直接读 Settings.Global（settings put global einklyric_debug_capture 1）
+        if ("einklyric_debug_capture".equals(key)) {
+            return sContext == null ? def : Settings.Global.getInt(sContext.getContentResolver(), key, def);
+        }
         return LockSettings.read(key, def);
     }
 
@@ -84,6 +101,7 @@ public class Hook implements IXposedHookLoadPackage {
             return;
         }
         sHooked = true;
+        sLoader = cl;
 
         XposedHelpers.findAndHookMethod(MOTTO_HELPER, cl, "setMotto",
                 Context.class, TextView.class, new XC_MethodHook() {
@@ -143,6 +161,11 @@ public class Hook implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             XposedBridge.log(TAG + "lock style hook failed: " + t);
         }
+        try {
+            LockNotifications.hook(cl);
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + "notification hook failed: " + t);
+        }
         XposedBridge.log(TAG + "hooked SystemUI");
     }
 
@@ -158,6 +181,8 @@ public class Hook implements IXposedHookLoadPackage {
             boolean active = RuntimeConfig.enabled("lock.lyric") || RuntimeConfig.enabled("lock.style");
             requestRefresh(sHadVisual && !active);
             sHadVisual = active;
+            // 切到「天气App」后立即取一次，下一次出图就有数据
+            if (appWeather()) MojiWeatherSource.prefetch(sContext);
         });
         sHandler = new Handler(Looper.getMainLooper());
         sRefreshMethod = findRefreshMethod(controller.getClass());
@@ -187,10 +212,87 @@ public class Hook implements IXposedHookLoadPackage {
                 }
             }
         }, new IntentFilter("Lyric_Data"), null, sHandler);
+        // 应用「锁屏主题」里点「换一条格言」→ 这里替用户手动把原厂格言往前跳一条。
+        context.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context c, Intent intent) { nextMotto(c); }
+        }, new IntentFilter(ACTION_MOTTO_NEXT), null, sHandler);
         if (com.inkcontrol.platform.BuildInfo.DEBUG) SystemLockStyles.registerDebug(context, controller, sHandler);
         RuntimeConfig.markReady();
         MediaLyric.start(context, sHandler);
+        if (appWeather()) MojiWeatherSource.prefetch(context);
         XposedBridge.log(TAG + "receiver registered");
+    }
+
+    /**
+     * 让原厂格言换到下一条。{@code MottoHelper.getNextMotto()} 返回的正文会先兜在这里，
+     * 锁屏下次出图优先用它；原厂自己记的序号一般也会跟着往前走。
+     */
+    private static void nextMotto(Context context) {
+        String next = null;
+        try {
+            Class<?> helper = Class.forName(MOTTO_HELPER, false, sLoader != null ? sLoader : context.getClassLoader());
+            Object instance = helper.getConstructor(Context.class).newInstance(context);
+            Object value = callNextMotto(helper, instance);
+            if (value instanceof String) next = ((String) value).trim();
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + "next motto failed: " + t);
+        }
+        if (next == null || next.isEmpty()) { toast("格言没换成：系统没有给出下一条"); return; }
+        sNextMotto = next;
+        sNextMottoAt = SystemClock.uptimeMillis();
+        int nl = next.indexOf('\n');
+        toast("已换到下一条格言：" + (nl > 0 ? next.substring(0, nl).trim() : next));
+    }
+
+    /**
+     * 原厂 {@code getNextMotto} 的签名在不同固件上不一样（无参 / 带 Context / 只返回资源 id），
+     * 逐个试一遍；都对不上就把实际方法名记进日志，便于按固件补一条。
+     */
+    private static Object callNextMotto(Class<?> helper, Object instance) throws Exception {
+        try {
+            return helper.getMethod("getNextMotto").invoke(instance);
+        } catch (Throwable first) {
+            XposedBridge.log(TAG + "motto getMethod: " + first);
+            // 原厂类不一定对当前进程可见（非 public 成员），直接声明查找并放开访问再来一次。
+            try {
+                Method method = helper.getDeclaredMethod("getNextMotto");
+                method.setAccessible(true);
+                return method.invoke(instance);
+            } catch (Throwable second) {
+                XposedBridge.log(TAG + "motto getDeclaredMethod: " + second);
+            }
+        }
+        try {
+            return helper.getMethod("getNextMotto", Context.class).invoke(instance, sContext);
+        } catch (Throwable ignored) { }
+        StringBuilder names = new StringBuilder();
+        for (Method method : helper.getDeclaredMethods()) {
+            if (method.getParameterTypes().length > 1) continue;
+            if (names.length() > 0) names.append(", ");
+            names.append(method.getName()).append('/').append(method.getParameterTypes().length);
+        }
+        XposedBridge.log(TAG + "motto methods: " + names);
+        return null;
+    }
+
+    /** 手动换来的格言：只兜 10 分钟，够用户锁一次屏看到，之后交回原厂。 */
+    static String pendingMotto() {
+        if (sNextMotto == null || SystemClock.uptimeMillis() - sNextMottoAt > MOTTO_HOLD_MS) return null;
+        return sNextMotto;
+    }
+
+    private static void toast(String text) {
+        if (sHandler == null) return;
+        sHandler.post(() -> {
+            try {
+                android.widget.Toast.makeText(sContext, text, android.widget.Toast.LENGTH_SHORT).show();
+            } catch (Throwable t) { XposedBridge.log(TAG + "motto toast failed: " + t); }
+        });
+    }
+
+    /** 锁屏天气选了「天气App」＝直接读系统预装的墨迹天气，而不是原厂桌面小组件那条链路。 */
+    private static boolean appWeather() {        return RuntimeConfig.enabled("lock.weather") && "moji".equals(RuntimeConfig.value("lock.weather"));
     }
 
     private static Method findRefreshMethod(Class<?> c) {

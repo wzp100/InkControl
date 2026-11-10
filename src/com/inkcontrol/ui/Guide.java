@@ -43,7 +43,14 @@ final class Guide {
     static final class Category {
         final String name, intro;
         final String[][] sections;
-        Category(String name, String intro, String[][] sections) { this.name = name; this.intro = intro; this.sections = sections; }
+        /**
+         * 收在子页里、不在分类列表直接出现的功能（「显示信息修改」页里的四项显示开关）。
+         * 它们照样算这个分类的开关数，所以单独列出来，分类卡上的「已开启/总数」才准。
+         */
+        final String[] nested;
+        Category(String name, String intro, String[][] sections, String[] nested) {
+            this.name = name; this.intro = intro; this.sections = sections; this.nested = nested;
+        }
     }
 
     /** 名词表；功能页引用，首页“名词解释”页列出全部。 */
@@ -65,36 +72,83 @@ final class Guide {
         TERMS.put("抖动", "把灰色转换成黑白小点的方法。点排得越均匀，远看越像平滑的灰；排得不好会出现条纹或雪花闪烁。");
         TERMS.put("迟滞", "利用上一帧的黑白结果，让亮度只有小变化的像素保持原状态，减少静止区域闪点。可能增加拖尾。独立开关仅适用于 Bayer、蓝噪声和固定阈值；原厂误差扩散自带历史处理，不由此开关控制。");
         TERMS.put("完整重启", "关机再开机（不是只锁屏）。替换系统文件的功能要在开机过程中才能装载。");
+        TERMS.put("磁贴", "下拉快捷设置面板里的一格按钮（Wi-Fi、蓝牙、手电筒等）。装了磁贴的第三方应用会注册一个磁贴服务，系统在「编辑磁贴」里把它列出来，拖到面板上才能用。");
         TERMS.put("作用域", "框架（如 Vector/LSPosed）里给模块勾选的、允许它进入的系统进程。墨控需要：系统框架、系统界面、桌面。");
+        TERMS.put("近距离传感器", "屏幕顶部的一个小传感器，检测正前方是否有物体靠近。手或布料遮住它时，手机判断“被覆盖”。");
+        TERMS.put("无障碍服务", "系统里授权给辅助应用的一种常驻服务：能读到界面上的操作、按键，也能代你执行锁屏等全局动作（设置 → 无障碍）。墨控的「墨控体感」「墨控自动刷新」就是两个这样的服务，开关打开时由后端自动加进这张清单，关闭后撤掉。");
+        TERMS.put("三大金刚键", "屏幕最下面那一排键：返回、主屏、最近任务；本机右端还有一个菜单键。它们的背景与图标都是「系统界面」自己画的。");
+        TERMS.put("系统界面", "负责画状态栏、锁屏、通知和底部导航栏的系统进程。墨控的一部分改动（锁屏样式、导航栏颜色）都跑在这个进程里。");
     }
 
     static final Map<String, Category> CATEGORIES = new LinkedHashMap<>();
     static {
         cat("显示", "按清晰、阅读、快速、极速和视频分别选算法，调整触摸响应。", new String[][]{
-                {"核心", "display.gpu"},
+                {"核心", "display.gpu", "display.alg.stock"},
                 {"原厂四模式 · 算法", "display.alg.clear", "display.alg.reading", "display.alg.fast", "display.alg.extreme"},
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
+        cat("锁屏显示", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词与格言相关设置。", new String[][]{
+                {"样式", "lock.style", "lock.weather"},
+                {"拓展显示", "lock.notify", "lock.ext", "lock.ext.edit"},
+                {"倒数日", "lock.countdown"},
+                {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
+                {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}},
+                new String[]{"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"});
+        cat("翻页动画", "翻页时把新一页分块、分阶段揭示。", new String[][]{
+                {"总开关", "pageanim.master"},
+                {"翻页风格", "pageanim.style", "pageanim.spacing"},
+                {"画面细分", "pageanim.bands"},
+                {"翻页操作", "pageanim.vkey", "pageanim.reverse"},
+                {"目标阅读器", "pageanim.readers"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
-                {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.lock", "motion.unlock", "motion.gc_clear"},
+                {"全刷扫过", "motion.gc_clear", "motion.gc_style", "motion.gc_direction", "motion.gc_speed"},
+                {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.lock", "motion.unlock"},
                 {"动画节奏", "motion.steps", "motion.hold", "motion.spread", "motion.origin", "motion.direction"},
                 {"其他", "motion.dim", "motion.scale"}});
-        cat("锁屏", "锁屏样式、天气、歌词，以及锁屏时用哪种刷新方式。", new String[][]{
-                {"样式", "lock.style", "lock.weather"}, {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"},
-                {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"}});
-        cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
-                {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
-        cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新。", new String[][]{
+        cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
+                {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
+                {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
+                {"应用名单", "refresh.apps"}});
+        cat("字体", "把系统字体换成目录里的任意 TTF/OTF。", new String[][]{
+                {"字体", "font.dir"}});
+        cat("体感", "实现类似合盖息屏、翻盖亮屏的功能，因使用距离传感器，启用会自动打开相关无障碍服务", new String[][]{
+                {"行为", "wave.lock", "wave.coverDelay", "wave.wake"}});
+        cat("桌面", "原厂桌面的主题、图标、壁纸与组件；不改动图标位置和布局。", new String[][]{
+                {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.wallpaper", "desktop.widget"}});
+        cat("系统增强", "修复原厂服务的几个问题，放开快捷磁贴、导航栏与密码框的限制。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
-                {"安全", "fix.permissions"}, {"外观", "fix.google"}});
+                {"安全", "fix.permissions", "fix.safeime"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"},
+                {"备份", "sys.backup"}});
+        cat("快捷面板修改", "把系统的E-Ink刷新面板换成一些自定义功能", new String[][]{
+                {"按钮", "qs.panel"}},
+                new String[]{"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3", "qs.panel.btn4", "qs.panel.btn5",
+                        "qs.panel.close", "qs.panel.pinsize"});
+        // 独立界面（不走功能开关列表），sections 留空；渲染由 MainActivity 特判。
+        // 放默认顺序最后：首页里它是唯一会动系统应用的入口，不该夹在常用分类中间。
+        cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可还原；系统分区文件保留。常驻组件不在此列。", new String[][]{});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
     }
-    private static void cat(String name, String intro, String[][] sections) { CATEGORIES.put(name, new Category(name, intro, sections)); }
+    private static void cat(String name, String intro, String[][] sections) {
+        CATEGORIES.put(name, new Category(name, intro, sections, new String[0]));
+    }
+    private static void cat(String name, String intro, String[][] sections, String[] nested) {
+        CATEGORIES.put(name, new Category(name, intro, sections, nested));
+    }
 
     private static final Map<String, Entry> ENTRIES = new LinkedHashMap<>();
-    static Entry get(String id) { Entry e = ENTRIES.get(id); return e == null ? new Entry() : e; }
+    static Entry get(String id) {
+        Entry e = ENTRIES.get(id);
+        return e == null ? new Entry() : e;
+    }
     private static Entry put(String id) { Entry e = new Entry(); ENTRIES.put(id, e); return e; }
+
+    /**
+     * 没有独立入口、只作为数据或页内操作存在的功能：内容并进了上一页（倒数日事项并进「锁屏倒数日」），
+     * 或是那一页里的选择器记录（最近应用的字体、文件选择器记录）。它们不出现在分类小节里。
+     */
+    static final java.util.Set<String> INTERNAL = new java.util.HashSet<>(Arrays.asList(
+            "lock.countdowns", "font.pick", "font.saf"));
 
     /** 迟滞内嵌在算法页；旧视频入口只跳到新页，配置仍可解析。 */
     static String destination(String id) {
@@ -113,12 +167,23 @@ final class Guide {
         Option o = get(f.id).options.get(value);
         if (o != null) return o.name;
         if (com.inkcontrol.core.FeatureDefinition.curve(value) != null) return "自定义曲线";
+        // 手动输入的值不在预设档位里：按预设的写法显示，末尾标明是自定义，
+        // 紧凑页下拉和详情页按钮都用同一个名字（如「4次(自定义)」）。
+        if (com.inkcontrol.core.FeatureDefinition.number(value) != null) return value + numberUnit(f).trim() + "(自定义)";
         int i = f.values.indexOf(value);
         return i < 0 ? value : f.labels.get(i);
     }
 
-    private static final String SCENE_COMMON = "选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端。";
+    /** 自定义数值的单位：合并间隔／遮挡延时按毫秒，周期性刷新按分钟，其余按次。 */
+    static String numberUnit(com.inkcontrol.core.FeatureDefinition f) {
+        if (f.id.equals("refresh.debounce") || f.id.equals("wave.coverDelay")) return " 毫秒";
+        if (f.id.equals("refresh.period")) return " 分钟";
+        return " 次";
+    }
+
+    private static final String SCENE_COMMON = "选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端，并关闭「改用原厂显示算法」。";
     private static void styles(Entry e, boolean transitions, boolean lock) {
+        e.option("none", "无", "保持原厂：不加任何过渡，画面直接切换，也不额外刷新。");
         if (transitions) {
             e.option("kiris", "方形展开", "新画面从你点的位置以方块形状分几步扩开。关键帧动画，不需要 GPU 后端。");
             e.option("kwipe", "关键帧擦除", "新画面像翻页一样，从一侧分几步推过来。关键帧动画，不需要 GPU 后端。");
@@ -141,7 +206,9 @@ final class Guide {
                             ? "沿用旧视频选择；没有旧覆盖时是蓝噪声。迟滞单独设置。" : "沿用 Bayer。迟滞单独设置，默认关闭。")
                     .term("刷新方式", "抖动");
             if (gray) {
-                e.option("stock", "原厂误差扩散", "明确使用原厂16级灰阶误差扩散；会覆盖该模式的锁屏细线算法选择。")
+                e.option("stock", "原厂误差扩散", scope.equals("reading")
+                        ? "像素量化严格交回系统原厂 CPU 路径，白底、灰底不再出现规则网点；滑动时系统会自动切到均衡模式，那条 A2 局部刷新路径也跟随这里的选择，所以这一项同时决定滚动、切页时的网点样式。代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。"
+                        : "明确使用原厂16级灰阶误差扩散；会覆盖该模式的锁屏细线算法选择。")
                         .option("nearest", "点量化", "就近取16级灰阶，不向相邻像素传播误差。")
                         .option("bayer16", "16级 Bayer", "固定有序网点，保留16级灰阶；纹理需实屏观察。");
             } else {
@@ -150,6 +217,7 @@ final class Guide {
                         .option("threshold", "固定阈值", "直接按亮度取黑或白，不保留灰色网点；可独立控制迟滞。")
                         .term("迟滞");
                 if (scope.equals("video")) e.option("stock", "原厂误差扩散", "内部自带历史处理，不支持独立迟滞开关。当前 GPU 实现逐行依赖较多，视频可能较慢。");
+                else e.option("stock", "原厂算法", "像素量化交回系统原厂处理，白底、灰底不再出现规则方格；代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。");
                 put("display.hyst." + scope).summary(DisplayAlgorithms.name(scope) + "内的独立历史稳定开关")
                         .what("仅对本场景的 Bayer、蓝噪声、固定阈值生效。与算法选择独立保存；切到不适用算法时保留选择并隐藏开关。")
                         .cost("可能增加拖尾；原厂误差扩散自带历史处理，此开关不能启停它。")
@@ -163,6 +231,9 @@ final class Guide {
                 .cost("会替换系统显示库，开关后需要完整重启。墨控持续监测 GPU 运行状态，一旦出错会自动停用，下次重启即回到原厂显示库。")
                 .bars("每次刷新的 CPU 处理时间（实测）", new Bar("原厂", 45.5f, "45 ms"), new Bar("开启后", 3f, "3 ms"))
                 .option("default", "启用 GPU 显示后端", "").term("显示后端", "GPU 显示后端", "完整重启");
+        put("display.alg.stock").summary("一键退回原厂算法，优先级高于 GPU 后端").what("清晰、阅读、快速、极速、视频五个模式都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，触摸响应加速与全刷复用照常可用，但所有像素量化都走原厂路径。")
+                .cost("打开时各模式自己保存的算法与迟滞只保留在配置里、不生效，关掉立刻按原设置恢复。适合对照排查「换了算法之后残影变重」这类问题。本开关不需要先开启 GPU 显示后端；但开启期间波形动画（墨迹/网点/扫描线/百叶窗）与「全刷扫过」都无法生效，因为 GPU 的逐像素波形时序会被一并停用。")
+                .option("default", "使用原厂算法", "").term("抖动", "迟滞", "显示后端");
         put("display.sampling").summary("触摸后画面更快开始变化，约快 50 毫秒").what("屏幕正在刷新时，显示服务会提前取走下一张画面排队。等真正轮到它上屏，内容已经过时将近 0.1 秒。开启后改为等队列快空时才取最新的画面。")
                 .before("从手指触摸到画面开始变化约 98 毫秒。").after("缩短到约 45 毫秒，滑动和点按更跟手。")
                 .cost("连续快速滑动时，每秒刷新次数会略少一点（约 5.9 → 5.6 次）。")
@@ -183,6 +254,39 @@ final class Guide {
                 .cost("只改原本是阅读模式的应用；关闭时逐个恢复原值，你自己单独改过的应用不会被动。需要完整重启。")
                 .visual(Visual.REFRESH_MODES).option("521", "阅读模式 → 极速模式", "").term("刷新方式", "极速模式", "阅读模式", "残影");
 
+        // ── 翻页动画（0.2.5-r23：第三方翻页动画模块并进同一个后端） ──
+        put("pageanim.master").summary("翻页时把新一页分块、分阶段揭示").what("翻页动画由墨控自己的 GPU 波形层实现，需要同时开启 GPU 显示后端：整屏刷新按选定的风格逐带揭示，与分模式算法、波形动画同时生效，开关与参数实时生效不用重启。触发范围由「目标阅读器」名单决定：只有名单里的应用在前台时才播放。GPU 显示后端关闭时翻页动画不生效。")
+                .before("翻页是一次整帧瞬间替换，画面直接跳变。").after("新一页按方向或分块逐步展开，看得出翻页过程。")
+                .cost("不额外停用其它功能，但同一应用内的整屏刷新（含滚动与弹窗）也会一起播放。")
+                .option("default", "启用翻页动画", "");
+        put("pageanim.style").summary("新一页怎么展开").what("横向或纵向整片展开，以及斜向、反斜向、环绕、中心四种分块展开。选完下次翻页生效。")
+                .option("horizontal", "横向展开", "新画面从一侧向另一侧整片推开。")
+                .option("vertical", "纵向展开", "新画面从上往下或从下往上整片推开。")
+                .option("diag", "斜向分块", "沿对角线把画面切成若干条依次揭示。")
+                .option("antidiag", "反斜向分块", "与斜向相反的对角线方向。")
+                .option("ring", "环绕分块", "从四周向中间或从中间向四周逐圈揭示。")
+                .option("center", "中心展开", "以画面中心为起点向两侧展开。");
+        put("pageanim.spacing").summary("展开快慢").what("阶段越少越快、越接近瞬间切换；越多展开越明显，一次翻页也更慢。")
+                .option("6", "6 阶段（更快）", "几乎一闪而过，适合不想拖慢翻页。")
+                .option("8", "8 阶段", "轻微展开感。")
+                .option("12", "12 阶段（均衡）", "原模块默认值，速度与观感比较平衡。")
+                .option("16", "16 阶段", "展开更连贯。")
+                .option("24", "24 阶段", "明显变慢，适合演示。")
+                .option("40", "40 阶段（最明显）", "最慢，仅建议对照效果用。");
+        put("pageanim.bands").summary("新画面切成多少块").what("块数越多，展开的颗粒越细、边界越不明显；分块类风格会自动调整到 4 的倍数。")
+                .option("4", "4 块", "原模块默认，块感最明显。")
+                .option("8", "8 块", "略细。")
+                .option("12", "12 块", "默认，中等。")
+                .option("16", "16 块", "较细。")
+                .option("24", "24 块", "很细。")
+                .option("32", "32 块", "最细，接近连续展开。");
+        put("pageanim.reverse").summary("把展开方向掉个头").what("翻页方向默认跟手势走：左滑或点右半屏＝翻下一页，右滑或点左半屏＝翻上一页。开启这一项会把自动判断的结果反过来。")
+                .option("default", "反转方向", "");
+        put("pageanim.vkey").summary("音量键翻页按习惯定方向").what("音量键没有「点在哪一边」的信息，方向只能按习惯给：音量+＝上一页、音量-＝下一页。关闭后按键翻页沿用上一次点击或滑动的方向——比如刚在右侧点过，按音量+ 时动画也从右往左，和习惯相反。")
+                .option("default", "遵从翻页直觉", "");
+        put("pageanim.readers").summary("只对选中的阅读器生效").what("只有名单里的应用才触发翻页动画；默认不内置任何应用，自己选。融合模式下这是唯一的触发条件：不在名单里的应用（含墨控自己）不会播放，名单留空则完全不触发。")
+                .option(com.inkcontrol.core.FeatureDefinition.PACKAGES_TOKEN, "阅读器名单", "");
+
         put("motion.master").summary("原厂没有过渡动画；开启后各场景可分别设置").what("原厂为了墨水屏把窗口动画全部关闭，打开应用、返回时画面直接跳变。开启后，可以在下面每个场景选一种专为墨水屏设计的过渡效果。")
                 .before("所有切换都是瞬间跳变，很难看出画面从哪来、到哪去。").after("切换有方向感：从点的地方展开、从一侧推入等。")
                 .cost("关键帧动画每多一张中间画面就多一次刷新；波形动画几乎不增加时间。关闭总开关后所有场景恢复原厂，各场景的选择会保留。")
@@ -191,12 +295,21 @@ final class Guide {
                 {"in_app_back", "在应用里返回上一页。"}, {"dialog", "对话框、弹出菜单出现和收起时。"}, {"lock", "按电源键锁屏时。"}, {"unlock", "唤醒屏幕时。"}};
         for (String[] scene : scenes) {
             Entry e = put("motion." + scene[0]).summary(scene[1].replace("。", "") + "的过渡效果").what(scene[1] + SCENE_COMMON).visual(Visual.MOTION_SCENE)
-                    .cost("关闭此场景即恢复原厂的瞬间切换。");
+                    .cost("选「无」或关闭此场景，都恢复原厂的瞬间切换。");
             styles(e, !scene[0].equals("lock") && !scene[0].equals("unlock"), true);
         }
-        put("motion.gc_clear").summary("去残影全刷不再整屏同时闪黑").what("系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端。")
-                .before("整屏同时变黑再变回，比较刺眼。").after("黑色光带从左扫到右，过程柔和，去残影效果相同。")
+        put("motion.gc_clear").summary("去残影全刷不再整屏同时闪黑").what("系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端，并关闭「改用原厂显示算法」。")
+                .before("整屏同时变黑再变回，比较刺眼。").after("黑色光带扫过一屏，过程柔和，去残影效果相同。形状、方向与快慢分别在“全刷扫过风格”“全刷扫过方向”“全刷扫过速度”里设置。")
                 .visual(Visual.MOTION_SCENE).option("gcsweep", "全刷扫过", "黑色光带从一侧扫过屏幕。").term("清晰全刷", "残影", "波形动画");
+        put("motion.gc_style").summary("全刷扫过的光带是什么形状").what("按翻页动画那套分块展开的思路，让整屏刷新按不同形状依次开始：横向一条带、纵向一条带、斜向分块、反斜向分块、从中心向外的一圈圈，或者从中心平滑扩开。")
+                .cost("只改变“谁先开始刷新”，波形与去残影效果不变；斜向、环绕、中心展开不使用“全刷扫过方向”。")
+                .option("horizontal", "横向展开", "光带左右扫过，最接近原厂整屏刷新。")
+                .option("vertical", "纵向展开", "光带上下扫过。")
+                .option("diag", "斜向分块", "从左上角向右下角斜着铺开，像翻页动画的斜向分块。")
+                .option("antidiag", "反斜向分块", "从右上角向左下角斜着铺开。")
+                .option("ring", "环绕分块", "从屏幕中心向外一圈圈扩散，分成 12 圈。")
+                .option("center", "中心展开", "从屏幕中心均匀扩开，没有分圈痕迹。")
+                .term("清晰全刷", "波形动画");
         put("motion.dim").summary("弹窗时背后不再变成满屏颗粒").what("弹出对话框时，系统会把背后的画面调暗。墨水屏显示不了半透明灰，变暗层会被转成满屏颗粒点，弹出和关闭时都要整屏重刷。开启后背后保持原样。")
                 .before("每次弹窗，整屏先变成颗粒灰，关闭时再整屏刷回来。").after("只刷新对话框区域，背后不动，更快也更干净。")
                 .option("default", "移除背景变暗", "").term("抖动");
@@ -213,23 +326,55 @@ final class Guide {
                 .option("@curve", "自定义曲线", "在温度曲线编辑器中逐温区调整。")
                 .visual(Visual.HOLD_CURVE).term("关键帧", "温度自适应", "扫描帧");
         put("motion.spread").summary("波形动画的快慢：最早和最晚开始刷新的像素相差多久").what("波形动画让屏幕上不同位置的像素错开一点时间开始刷新。这一项决定错开的总幅度：数值越大，动画越慢、过程越明显；越小越接近瞬间切换。")
-                .cost("不开启时为 12 帧。").visual(Visual.MOTION_SPREAD)
+                .cost("不开启时为 12 帧。全刷扫过有自己的“全刷扫过速度”，不受这一项影响。").visual(Visual.MOTION_SPREAD)
                 .option("1", "1 帧（约 0.01 秒）", "几乎看不出动画。").option("6", "6 帧（约 0.07 秒）", "轻快。").option("12", "12 帧（约 0.14 秒）", "默认，过程清楚又不拖沓。")
                 .option("18", "18 帧（约 0.21 秒）", "舒缓。").option("24", "24 帧（约 0.28 秒）", "最慢，动画感最强。").term("波形动画", "扫描帧");
         put("motion.origin").summary("展开类动画从哪里开始").what("方形展开和墨迹晕开从屏幕的哪个位置开始扩散。").cost("不开启时从触摸位置开始。").visual(Visual.MOTION_ORIGIN)
                 .option("touch", "触摸位置", "从你刚点的图标或按钮处展开，最直观。").option("center", "屏幕中心", "总是从正中间展开，更整齐。");
-        put("motion.direction").summary("擦除、扫描线、百叶窗从哪一侧开始").what("关键帧擦除、扫描线和百叶窗从屏幕的哪一侧开始。").cost("不开启时为自动。").visual(Visual.MOTION_DIRECTION)
+        put("motion.direction").summary("动画擦除方向：从哪一侧开始").what("关键帧擦除、扫描线和百叶窗从屏幕的哪一侧开始；只影响这三类动画，全刷扫过另有自己的方向与风格。").cost("不开启时为自动。").visual(Visual.MOTION_DIRECTION)
                 .option("auto", "自动", "打开和前进从右往左推、关闭和后退从左往右；扫描线从上往下。符合“前进/后退”的直觉。")
                 .option("ltr", "从左向右", "").option("rtl", "从右向左", "").option("ttb", "从上向下", "").option("btt", "从下向上", "");
+        put("motion.gc_direction").summary("全刷扫过从哪一侧开始").what("系统做“清晰全刷”去残影时，那道黑色光带从屏幕的哪一侧开始扫。").cost("只在“全刷扫过”启用时生效，与“动画擦除方向”互不影响；不开启时横向从左向右、纵向从上向下。").visual(Visual.MOTION_DIRECTION)
+                .option("auto", "自动", "沿用原厂习惯：从左向右扫过。")
+                .option("ltr", "从左向右", "").option("rtl", "从右向左", "").option("ttb", "从上向下", "").option("btt", "从下向上", "");
+        put("motion.gc_speed").summary("全刷扫过这道光带走多快").what("光带扫完整屏时，屏幕上不同位置的像素错开多久开始刷新。帧数越少，光带越宽、走得越快，1 帧几乎等于整屏同时刷新（也就是原厂的整屏闪黑）；帧数越多，光带越窄、过程越明显，但整段会稍微变长。")
+                .cost("只在“全刷扫过”启用时生效，与上面的“波形动画速度”互不影响；不开启时跟随“波形动画速度”。整段仍是原厂一次清晰全刷，去残影效果不变。")
+                .option("1", "极快（1 帧）", "几乎整屏同时刷新，和原厂全刷一样快，只留一点扫过的痕迹。")
+                .option("4", "快（4 帧）", "光带很宽，扫得很快。")
+                .option("8", "适中（8 帧）", "光带宽度与速度都比较均衡。")
+                .option("12", "原厂节奏（12 帧）", "与之前跟随波形动画速度时相同。")
+                .option("18", "慢（18 帧）", "光带最窄，过程最清楚，整段略长。")
+                .term("清晰全刷", "扫描帧");
         put("motion.scale").summary("应用自己的小动画：水波纹、回弹、页面内切换").what("应用内部也有很多小动画，例如按钮水波纹、列表回弹、标签页切换。原厂固定为正常速度，在墨水屏上它们会变成一串拖影和多余刷新。")
                 .before("点按钮会看到几次灰色水波纹刷新，列表滚到头会回弹几下。").after("可以完全关闭（直接显示结果），或缩短为一半时长。")
                 .option("0", "关闭动画", "直接显示动画结束的样子，刷新最少。").option("0.5", "半速时长", "保留动画，但时长减半。").option("1", "原时长", "与原厂相同。");
 
-        put("lock.style").summary("四套专为墨水屏设计的锁屏").what("替换原厂锁屏画面，显示时间、日期、天气和正在播放的音乐。").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
-                .option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("5", "编辑排版", "杂志式衬线大字，像一页报纸。")
-                .option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。").option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。");
-        put("lock.weather").summary("在自定义锁屏上显示天气").what("在锁屏卡片上显示当前天气、温度和图标。数据来自原厂桌面已经下载的天气，墨控不额外联网。")
-                .option("default", "天气与图标", "");
+        put("lock.style").summary("五套专为墨水屏设计的锁屏").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
+                .option("5", "编辑排版", "杂志式衬线大字，像一页报纸。").option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。")
+                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "横版构图，横转手机阅读：大号时间加方框，右侧倒数日框，右下电池与通知，左下格言。").option("10", "编辑排版-横-逆", "编辑排版-横 旋转 180°，适合手机反向横转阅读。");
+        put("lock.weather").summary("在自定义锁屏上显示天气").what("在锁屏卡片上显示当前天气、温度和图标。原厂锁屏的天气来自桌面时钟/天气小组件，桌面上没放那个小组件时它就没有数据。选择「天气App」后，墨控直接读取系统预装的天气软件（墨迹天气）已经下载的天气，不需要桌面小组件，仍然不额外联网。")
+                .cost("「天气App」用的是天气软件最后一次下载的结果；开机后没打开过天气软件、长期不打开它、或把它冻结，都可能取不到，此时自动退回原厂数据。")
+                .option("default", "原厂桌面组件", "沿用原厂锁屏天气，数据来自桌面时钟/天气小组件；没有放小组件时通常取不到。")
+                .option("moji", "天气App", "直接读取系统预装的天气软件（墨迹天气）已下载的数据，不需要桌面小组件。");
+        put("lock.notify").summary("锁屏底部显示通知条").what("锁屏倒数日下方那一块位置只有一处，本页是「显示通知」这个总开关。开启后在来源里选：系统通知、微信未读，或者「不显示」把这块留空。关闭则整块都不画：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。")
+                .cost("只影响显示，通知照常统计；关掉再打开马上恢复，不用等新的通知。想在那块位置显示无线、蓝牙等开关情况，请开启「显示设备状态」——两者互斥，开一个会自动关掉另一个。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
+                .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。")
+                .option("none", "不显示", "开关保持开启，但锁屏底部不画通知条；不用为了留空先去关总开关。");
+        put("lock.ext").summary("锁屏底部改显示设备开关状态").what("同一块位置（倒数日下方、上滑解锁提示上方）改画设备状态：无线网络、蓝牙、声音模式、飞行模式是否开启。要显示哪几项，到「显示信息修改」里逐个开关；关掉的项不再占位，其余各项自动均分宽度。本页选的是画成什么样：跟随样式、图标版还是文字版。")
+                .cost("只读显示，不会改动无线、蓝牙、飞行模式或铃声音量。与「显示通知」互斥：开启本项会自动关闭「显示通知」，反之亦然；两项都关时那块位置留空。像素样式是英文标牌（ON / OFF），固定用图标版；瑞士网格本身就是纯文字排版，选「跟随样式」时用文字版。")
+                .option("auto", "跟随样式", "编辑排版、横版用图标版，瑞士网格用文字版，与各样式原本的观感一致。")
+                .option("icon", "图标版", "左侧一个线描图标、右侧「开 / 关 / 静音 / 有声」。")
+                .option("text", "文字版", "「无线|开」这类类型加竖线加状态，两边同字号同基线，没有图标。");
+        put("lock.ext.edit").summary("选择设备状态里显示哪几项").what("锁屏底部那块位置宽度固定，项越多每格越窄。这里逐项决定画不画：无线网络、蓝牙、声音模式、飞行模式。关掉的项直接不占位，剩下的自动均分宽度；四项全关时那块位置留空。")
+                .cost("四项开关只影响显示，不会改变无线、蓝牙、飞行模式或铃声音量本身。四个都是默认显示：新装或升级后不用先来这里设置；关掉某一项才需要记住。画成图标还是文字在上一页「显示设备状态」里选。");
+        put("lock.ext.wifi").summary("设备状态里是否显示无线网络").what("关掉后锁屏设备状态条里不再出现无线这一格，其余各项自动补位。默认显示；只影响这一格，不会关闭无线网络。").option("default", "显示无线", "");
+        put("lock.ext.bt").summary("设备状态里是否显示蓝牙").what("关掉后锁屏设备状态条里不再出现蓝牙这一格。默认显示；只影响这一格，不会关闭蓝牙。").option("default", "显示蓝牙", "");
+        put("lock.ext.audio").summary("设备状态里是否显示声音模式").what("关掉后锁屏设备状态条里不再出现声音这一格（其余样式里是「静音 / 有声」，像素样式里是喇叭的 ON / OFF）。默认显示；只读铃声音量模式，不会改音量。").option("default", "显示声音", "");
+        put("lock.ext.airplane").summary("设备状态里是否显示飞行模式").what("关掉后锁屏设备状态条里不再出现飞行这一格。默认显示；只读飞行模式状态，不会改变它。").option("default", "显示飞行", "");
+        put("lock.countdown").summary("一个开关管显示，本页直接编辑事项").what("打开后在锁屏上显示事项倒数日：最多三个，每组一个事项和日期，多个按目标日先后排列。下方就是事项编辑器——事项名可留空；日期为空该组停用。")
+                .cost("关闭后锁屏不再显示倒数日，已填的事项和日期仍保留，再打开即恢复。").option("default", "显示倒数日", "");
+        put("lock.countdowns").summary("倒数日事项的数据存储位置").what("最多三个倒数日，每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。编辑入口已并入上一页「锁屏倒数日」，这里是它的数据保存位置，旧配置继续有效。")
+                .option("@countdowns", "编辑事项", "每组一个事项和日期，在「锁屏倒数日」页下方编辑。");
         put("lock.lyric").summary("锁屏和息屏画面显示当前一句歌词").what("播放音乐时，在锁屏画面和息屏显示区显示当前这一句歌词，随播放逐句更新。支持在媒体信息里带歌词的播放器，以及 Lyric Getter。")
                 .cost("每换一句歌词都要刷新一次锁屏，刷新方式见“歌词的刷新方式”。").option("default", "显示歌词", "");
         put("lock.statusbar").summary("状态栏左侧滚动显示歌词").what("播放音乐时，在状态栏左侧显示当前歌词。停止播放或关闭本项后，通知图标恢复显示。").option("default", "显示歌词", "");
@@ -253,10 +398,12 @@ final class Guide {
                 .before("锁屏背景、卡片阴影处偶尔出现水平细线。").after("细线消失，画面更干净。").cost("灰色渐变的层次会少一些，字体边缘的灰阶需要你实际看一看是否满意。需要 GPU 显示后端。")
                 .option("nearest", "点量化", "").term("抖动", "GPU 显示后端");
 
-        put("desktop.theme").summary("三套配套的桌面外观").what("给原厂桌面换一套完整的外观。下面的图标、字体、壁纸、组件可以分别开关；图标位置和桌面布局保持不变。").visual(Visual.DESKTOP_THEME)
+        put("desktop.theme").summary("三套配套的桌面外观").what("给原厂桌面换一套完整的外观。下面的图标、壁纸、组件可以分别开关；图标位置和桌面布局保持不变。").visual(Visual.DESKTOP_THEME)
                 .option("glass", "流光玻璃", "浅色玻璃质感卡片，细线图标。").option("paper", "纸间", "纸张质感与衬线字体，像一本笔记本。").option("ink", "墨构", "黑底反白、高对比，粗线条图标。");
         put("desktop.icons").summary("应用图标换成主题配套的黑白图标").what("把常用应用的图标换成与主题匹配的黑白图标（覆盖 39 个常用应用），在墨水屏上比彩色图标清晰得多。").cost("关闭后立即恢复原厂图标。").option("default", "主题图标", "");
-        put("desktop.font").summary("桌面图标文字换成主题字体").what("桌面上图标下方的名称改用主题配套的字体。").cost("关闭后恢复原厂字体。").option("default", "主题字体", "");
+        put("font.dir").summary("换掉系统正在用的字体").what("填字体所在目录（默认是海信主题字体目录，也可以填 TF 卡上的文件夹，或点「选择目录」从文件管理器挑），目录里的 TTF/OTF 会逐个列出来，可用搜索框按名字过滤；墨控按文件头识别，文件不用改扩展名。点某个字体右侧的「应用」，字体文件会以独立路径写进 /data/fonts、把 HmctFont.ttf 与 persist.sys.font* 指过去，并微扰 font_scale 让所有界面立即重建——照海信主题商店做法复刻的全局热切换，状态栏、锁屏、桌面与正在运行的应用立刻一起换字，不用重启。目录读不到时，可用「从文件选择」直接挑一个字体文件。").cost("字体缺少中文字形时部分界面会出现方块，点「恢复原厂字体」即可退回系统默认字体。全局替换，桌面应用字体也会一起换。");
+        put("font.pick").summary("记录上次应用的字体").what("只保存最近一次应用成功的字体名，用于在页面上标出「上次已应用」，不单独出现在分类里。");
+        put("font.saf").summary("从文件管理器选中的字体记录").what("兼容旧版本：用系统文件选择器挑过字体时会写在这里。功能已经合并到「字体文件」一页，不再单独显示。");
         put("desktop.wallpaper").summary("桌面显示主题底纹").what("在桌面背景显示主题配套的底纹材质。只改变显示，不替换你的壁纸文件。").option("default", "主题材质", "");
         put("desktop.widget").summary("原厂时钟插件位置换成主题组件").what("把原厂时钟插件所在位置换成主题风格的组件。").visual(Visual.DESKTOP_WIDGET)
                 .option("clock", "时钟", "大字时间与日期。").option("weather", "天气", "当前天气与温度。").option("music", "音乐", "正在播放的歌曲，可直接控制播放。");
@@ -272,14 +419,82 @@ final class Guide {
                 .cost("个别依赖这个漏洞的第三方墨水屏工具可能失效。").option("default", "调用方校验", "");
         put("guard.config").summary("刷新配置损坏时自动还原，避免卡开机").what("每应用刷新配置文件一旦损坏，原厂会在开机时崩溃、无法进入系统。开启后每次开机前检查该文件，发现损坏就用最近一次正常的备份还原；运行中每 6 小时备份一次。")
                 .cost("需要完整重启后开始保护。").option("default", "配置守护", "").term("完整重启");
-        put("fix.google").summary("Google 设置的彩色图标换成黑色").what("Google 设置的彩色“G”图标在墨水屏上会变成一团灰，开启后替换成清晰的黑色图标。")
-                .note("当前固件的 Google 服务把这个图标放在拆分安装包里，系统暂时无法套用替换，本项在本机尚未生效。").option("default", "黑色图标", "").term("完整重启");
+        put("qs.extend").summary("快捷设置里能选到第三方应用的磁贴").what("原厂在「编辑磁贴」的候选列表里塞了一个开关，只枚举自家磁贴，装有磁贴的第三方应用（VPN、下载、清理等）一个都不列。开启后按原厂自己的枚举流程再补一遍，这些应用的磁贴就会出现在可添加列表里。")
+                .before("不开启时：可添加列表只有系统与海信自带磁贴。").after("开启后：再打开一次「编辑磁贴」即可看到第三方应用，长按拖动就能加到面板上。")
+                .cost("只改候选列表的枚举，不碰系统安全特性，也不要重启。个别应用自带的磁贴本身有问题时，加到面板上仍会显示成占位图标。").option("default", "列出第三方磁贴", "").term("磁贴");
+        put("navbar.white").summary("底部三大金刚键改成白底黑键").what("原厂把导航栏背景写死在系统界面的代码里，不读资源，换主题或用界面设置都改不动，所以底部一直是黑条配白键。开启后墨控在系统界面画完这一帧之后把它盖成白色，导航键同步改成纯黑。")
+                .before("不开启时：黑底白键。").after("开启后：白底黑键；锁屏与通话界面维持原厂配色。")
+                .cost("只改系统界面自己画的那一条；全屏应用自己隐藏导航栏时不受影响。切换开关立即生效，不用重启系统界面。")
+                .option("default", "白底黑键", "").term("三大金刚键", "系统界面");
+        // 说明文字按需求整段去掉：这一页自身就是编辑器，按钮顺序与两个开关一眼能看懂。
+        put("qs.panel").summary("在刷新面板底部补上自己的按钮").what("")
+                .option("default", "加入按钮", "");
+        put("qs.panel.close").summary("点完按钮就收起面板").what("面板盖住屏幕下半部分，点完不收会一直挡着后面的界面；开启后点完就收，回到刚才那一屏。")
+                .option("default", "点完收起", "");
+        put("qs.panel.pinsize").summary("原厂「截屏便签」缩到和补上的按钮一样大").what("原厂那个按钮按整块面板的尺寸画，图标和文字都比补上来的大一圈；开启后按同样的 28dp 图标、12sp 文字重画，并排的按钮看起来才齐平。")
+                .option("default", "统一尺寸", "");
+        for (int slot = 1; slot <= 5; slot++) {
+            Entry entry = put("qs.panel.btn" + slot)
+                    .summary("按钮 " + slot + " 做什么")
+                    .what("面板底部从左数第 " + slot + " 个按钮的动作。五个位置共用这套动作，换位置就是换顺序。"
+                            + "默认顺序是 WiFi、蓝牙、自动刷新、翻页动画、截屏便签，点「恢复默认顺序」可以一键回到这套；"
+                            + "五格并排时每格窄一点，长一点的文字会自动缩一档。"
+                            + "墨控自己的几项（自动刷新、遮挡息屏、翻页动画、全刷扫过）点一下就地开关，长按跳到对应的设置页；"
+                            + "锁屏主题点一下等同于长按，直接去挑样式，免得误触把整套锁屏关掉；"
+                            + "刷新格言点一下就让锁屏格言换下一条，长按跳到「锁屏显示」页。");
+            for (String[] action : com.inkcontrol.core.FeatureCatalog.PANEL_ACTIONS) entry.option(action[0], action[1], "");
+            entry.option(com.inkcontrol.core.FeatureCatalog.PANEL_NONE, "无", "这个位置不显示按钮，后面的往前挪")
+                    .option(com.inkcontrol.core.FeatureDefinition.PACKAGE_TOKEN, "某个应用", "从已安装应用里挑一个，点它直接打开");
+        }
+        put("sys.backup").summary("把系统设置存成快照，需要时写回去").what("只备份系统设置本身：息屏时长、锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、显示模式、开发者选项开关。快照存在 /data/adb/inkcontrol/backup 里（清除应用数据也不会丢），恢复出厂或换回原样时逐条写回。")
+                .cost("不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。恢复不会覆盖系统文件，也不会让「设置」打不开——它是逐条写设置项，失败的那条跳过、其它的照写，恢复前还会先给当前状态拍一张，写坏了能退回去。少数临时状态项（下次闹钟、是否有更新）和无障碍服务清单会跳过，那几项由系统和墨控自己维护。");
+        put("fix.safeime").summary("冻结安全输入服务后，密码框仍能正常输入").what("原厂在密码输入框里一律强制切到「安全输入服务」，却不检查这个输入法是否还在。冻结它之后，系统服务找不到对应组件就会抛错，设置的密码界面直接崩溃：隐藏应用进不去、想临时删掉密码也做不到；应用锁的解锁界面被系统强制结束后，反而直接放行应用，等于没锁。开启后墨控把原厂自己留的总开关置 0，密码框改用你当前在用的输入法；关闭开关时还原原来的值。")
+                .before("冻结安全输入服务后：隐藏应用密码框打不开，加了应用锁的应用不输密码就能进。")
+                .after("开启后：密码框正常弹出，隐藏应用与应用锁都按密码校验。")
+                .cost("密码会经过你当前选中的输入法，不再走原厂安全键盘；在意这一点就不要冻结安全输入服务，保持原厂行为。切换开关立即生效，不用重启。只改这一个系统设置项，不动输入法本身，也不解冻任何应用。")
+                .option("default", "恢复密码输入", "");
         put("experiment.cache").summary("显示后端少做几次重复查询").what("GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结果缓存起来。")
                 .cost("只是局部优化，日常几乎感觉不到差别。需要 GPU 显示后端。").option("default", "缓存参数位置", "").term("GPU 显示后端");
         put("experiment.video").summary("旧版视频选择，已归入显示分类").what("旧配置继续保留。「显示 → 视频场景算法」选保持现状时沿用这里的选择；新页面明确选择算法时优先使用新选择。")
                 .before("不开启时：默认使用蓝噪声与迟滞。").after("选“原厂误差扩散”时：使用与原厂对应的网点算法。当前 GPU 后端也有它的实现，逐行依赖较多，本机视频对照中明显更慢。")
                 .cost("需要 GPU 显示后端。原厂算法只建议短时间对比画质。")
                 .option("blue", "蓝噪声与迟滞", "推荐，也是不开启时的默认。均匀网点，静止区域不闪。").option("stock", "原厂误差扩散", "用于画质对照，速度取决于实际场景。").term("抖动", "GPU 显示后端");
+
+        put("refresh.master").summary("点击、按键或阅读时自动刷新，减少残影").what("墨水屏在点击、翻页、按键后若长时间不刷新会积累残影。开启后，墨控统计你的操作次数，达到设定次数时触发一次清晰刷新；触发方式、次数、延时和周期可在下面分别调整。")
+                .cost("每次触发都会完整刷新一次，画面会短暂闪动，耗电略增。本功能依赖墨控自己的后端，需要安装并完整重启。")
+                .option("default", "启用自动刷新", "").term("残影", "清晰全刷", "完整重启");
+        put("refresh.touch").summary("点击或滑动后计数").what("监听屏幕上的点击与滑动手势，累计到设定的触发次数后刷新。")
+                .option("default", "响应点击", "");
+        put("refresh.key").summary("音量键、翻页键计数").what("按下音量键或方向键等实体按键后计数；电源键、返回键和主页键不计入。")
+                .option("default", "响应按键", "");
+        put("refresh.reading").summary("阅读界面自动刷新").what("识别到整屏以文字为主的界面（如阅读器）时，把翻页也计入刷新，改善翻页残影。")
+                .option("default", "识别阅读界面", "");
+        put("refresh.interval").summary("累计多少次操作后刷新一次").what("操作次数达到这个数值时触发一次刷新，然后重新计数。")
+                .cost("数值越小刷新越频繁，残影越少但闪动越多。")
+                .option("5", "5次", "最频繁，残影最少。").option("10", "10次", "默认，平衡。").option("15", "15次", "较省电。").option("20", "20次", "更省电。").option("30", "30次", "最省电。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 之间的次数。");
+        put("refresh.debounce").summary("连续操作多久算一次").what("滑动往往一次就上报很多次，按键也可能连按。间隔内的重复操作只算一次，避免比设定的触发次数更早刷新。")
+                .cost("间隔越大越不容易被连续滑动误触发，代价是快速连点也可能被合并成一次。")
+                .option("1000", "1秒", "推荐：一次滑动大致只算一次。").option("500", "500毫秒", "更灵敏，适合慢速逐次操作。").option("2000", "2秒", "更迟钝，基本按手势次数计。").option("0", "关闭", "不合并，逐次计数。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 0–999 毫秒。");
+        put("refresh.delay").summary("最后一次操作后多久刷新").what("达到触发次数后，等待这段时间再刷新，避免连续操作时打断你。")
+                .option("0", "立即", "达到次数后马上刷新。").option("300", "300毫秒", "稍等片刻。").option("500", "500毫秒", "默认。").option("1000", "1000毫秒", "等操作完全停下。");
+        put("refresh.apps").summary("只在指定应用里计入刷新").what("开启后按这里的名单过滤：白名单只统计名单内应用的操作，其它应用不计入；黑名单跳过名单内应用的操作。关闭时对所有应用生效。")
+                .cost("只影响点击、滑动、按键和阅读界面的计数；周期性刷新不受名单限制，仍按设定时间执行。")
+                .note("白名单与黑名单各自保存，互不影响。名单以包名保存，卸载或停用应用后条目会保留，可再次进入列表取消勾选。")
+                .option(com.inkcontrol.core.FeatureDefinition.APPS_TOKEN, "黑白名单", "");
+        put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")
+                .cost("关闭独立开关后不再周期刷新。")
+                .option("300", "5分钟", "默认。").option("60", "1分钟", "").option("600", "10分钟", "").option("1800", "30分钟", "最省电。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 之间的分钟数。");
+
+        put("wave.lock").summary("遮挡一段时间后息屏").what("近距离传感器被持续遮挡达到「遮挡延时」设定的时间后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。开关打开时墨控会自动启用「墨控体感」无障碍服务，关闭后自动撤掉。").option("default", "遮挡息屏", "").term("无障碍服务", "近距离传感器");
+        put("wave.wake").summary("移开遮挡后唤醒").what("遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。开关打开时墨控会自动启用「墨控体感」无障碍服务，关闭后自动撤掉。").option("default", "移开唤醒", "").term("无障碍服务", "近距离传感器");
+        put("wave.coverDelay").summary("遮挡持续多久才息屏").what("传感器短暂被碰一下不会立刻息屏，只有持续遮挡超过这个时间才锁定屏幕，避免误触。")
+                .cost("数值越小越灵敏，越大越不容易误触。")
+                .option("1000", "1秒", "默认，平衡灵敏与误触。").option("500", "0.5秒", "更灵敏，适合稳定遮挡场景。")
+                .option("2000", "2秒", "较迟钝，明显减少误触。").option("3000", "3秒", "最迟钝，仅在明确遮挡时息屏。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 毫秒。");
     }
 
     private Guide() {}

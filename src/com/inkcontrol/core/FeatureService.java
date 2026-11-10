@@ -24,8 +24,38 @@ public final class FeatureService {
         store.save(after);
         executor.apply(before, after);
     }
+    /**
+     * 只改取值、不动开关：总开关关着时用它在「先配参数、回头再开」的场景下保存，
+     * 既不触发依赖校验（「请先开启…」），也不会把这一项顺手打开或关掉。
+     */
+    public synchronized void changeValue(String id, String value) throws Exception {
+        Configuration before = store.load();
+        FeatureCatalog.get(id).validate(value);
+        Configuration after = before.change(id, before.requested(id), value);
+        store.save(after);
+        executor.apply(before, after);
+    }
+    /**
+     * 一次改多组取值（拖动换顺序用）：只落盘一次、只跑一次应用。
+     * 逐条 {@link #change} 时每格都要重新应用一遍，四格排一次要等十几秒。
+     */
+    public synchronized void changeAll(java.util.LinkedHashMap<String, String> values) throws Exception {
+        if (values.isEmpty()) return;
+        Configuration before = store.load(), after = before;
+        for (java.util.Map.Entry<String, String> entry : values.entrySet()) {
+            FeatureCatalog.get(entry.getKey()).validate(entry.getValue());
+            after = after.change(entry.getKey(), true, entry.getValue());
+        }
+        store.save(after);
+        executor.apply(before, after);
+    }
     public synchronized void disableAll() throws Exception {
         Configuration before = store.load(), after = before.disableAll();
+        store.save(after);
+        executor.apply(before, after);
+    }
+    public synchronized void restoreGroup(String group) throws Exception {
+        Configuration before = store.load(), after = before.restoreGroup(group);
         store.save(after);
         executor.apply(before, after);
     }
@@ -36,6 +66,9 @@ public final class FeatureService {
         boolean wanted = config.enabled(id);
         if (config.requested(id) && !wanted) return "依赖未满足";
         if (wanted && needsWaveBackend(id, config.value(id)) && !config.enabled("display.gpu")) return "依赖未满足";
+        // 波形动画与全刷扫过都靠 GPU 逐像素波形时序实现；「改用原厂显示算法」要求像素量化全部交回原厂
+        // CPU 路径，GPU 波形管线随之停用，这两类效果不可能同时生效，必须如实标出来。
+        if (wanted && needsWaveBackend(id, config.value(id)) && config.enabled("display.alg.stock")) return "依赖未满足";
         String runtimeDependency = needsWaveBackend(id, config.value(id)) ? "display.gpu" : feature.dependency;
         if (wanted && !runtimeDependency.isEmpty()) {
             FeatureDefinition dependency = FeatureCatalog.get(runtimeDependency);
@@ -52,6 +85,8 @@ public final class FeatureService {
         return wanted ? "等待运行确认" : evidence != null && evidence.enabled ? "等待停用确认" : "关闭";
     }
     public static boolean needsWaveBackend(String id, String value) {
+        // 「无」等于原厂瞬间切换，不需要 GPU 波形管线，也不该因 GPU 关闭被判「依赖未满足」。
+        if ("none".equals(value)) return false;
         return id.startsWith("motion.") && (id.equals("motion.lock") || id.equals("motion.unlock")
                 || id.equals("motion.gc_clear") || value.equals("ink") || value.equals("dots") || value.equals("scan") || value.equals("blind"));
     }

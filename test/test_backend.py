@@ -34,9 +34,18 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         return result.stdout
     def test_all_defaults_disabled(self):
         self.shell('ic_validate "$IC_CONFIG"\n')
+        # 四个设备状态显示开关是 defaultOn（配置里没有这个键就按显示处理），
+        # 「截屏便签对齐尺寸」同样是 defaultOn（不缩的话原厂那一格比补上来的按钮大一圈）；
+        # 翻页动画的风格／速度／分块数是必选参数，没有开关、恒为开启。
+        # 所以它们在默认配置里就写 1；其余开关仍必须全部是 0。
+        default_on = {'lock.ext.wifi', 'lock.ext.bt', 'lock.ext.audio', 'lock.ext.airplane',
+                      'qs.panel.pinsize', 'pageanim.style', 'pageanim.spacing', 'pageanim.bands',
+                      # 「音量键遵从翻页直觉」是翻页动画总开关下的子项，总开关默认关，它单独为开不产生效果。
+                      'pageanim.vkey'}
         for line in self.config.read_text().splitlines():
             key,value=line.split('=',1)
-            if key not in ('version','revision') and not key.endswith('.value'): self.assertEqual(value,'0')
+            if key not in ('version','revision') and not key.endswith('.value'):
+                self.assertEqual(value, '1' if key in default_on else '0', key)
     def test_conflicting_module_blocks_only_while_enabled(self):
         modules=self.root/'modules'; (modules/'eink_display').mkdir(parents=True)
         prefix='IC_MODULES='+shlex.quote(posix(modules))+'\n'
@@ -50,6 +59,17 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         for invalid in [original+'evil=1\n',original+'version=1\n',original.replace('revision=0','revision=-1'),original.replace('display.gpu.value=default','display.gpu.value=$(id)'),original.replace('display.gpu=0\n','')]:
             self.config.write_text(invalid,encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_pageanim_readers_accepts_plain_package_list(self):
+        # 「目标阅读器」存纯包名逗号列表，不是白／黑名单三段值；占位符与注入字符都要被拒。
+        original = self.config.read_text()
+        key = 'pageanim.readers.value='
+        self.assertIn(key, original)
+        for good in ('', 'io.legado.app.release,com.example.reader'):
+            self.config.write_text(original.replace(key, 'pageanim.readers.value='+good), encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('$(id)', 'com..a', '@packages', 'com.a;com.b'):
+            self.config.write_text(original.replace(key, 'pageanim.readers.value='+bad), encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_hold_curve_validation(self):
         original=self.config.read_text()
         good=original.replace('motion.hold.value=0','motion.hold.value=curve:420,400,360,320,280,230,210,175,150')
@@ -59,6 +79,71 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
         self.config.write_text(original.replace('motion.steps.value=2','motion.steps.value=curve:1,2,3,4,5,6,7,8,9'),encoding='utf-8')
         self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_refresh_interval_accepts_custom_number(self):
+        original=self.config.read_text()
+        for good in ('3','1','42','999'):
+            self.config.write_text(original.replace('refresh.interval.value=5','refresh.interval.value='+good),encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('0','1000','abc','-1','@number','@curve','3.5',' 3'):
+            self.config.write_text(original.replace('refresh.interval.value=5','refresh.interval.value='+bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        for key,value in (('refresh.delay','3'),('motion.hold','3')):
+            self.config.write_text(original.replace(key+'.value=0',key+'.value='+value),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        # refresh.period 选项含 @number：任意 1–999 合法，范围外/非数字仍拒（默认档随选项表变化，读当前值）
+        period=[l.split('=',1)[1] for l in original.splitlines() if l.startswith('refresh.period.value=')][0]
+        for good in ('3','1','60','300','600','1800','999'):
+            self.config.write_text(original.replace('refresh.period.value='+period,'refresh.period.value='+good),encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('0','1000','abc','-1','@number','@curve','3.5',' 3'):
+            self.config.write_text(original.replace('refresh.period.value='+period,'refresh.period.value='+bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_countdown_list_accepts_both_formats(self):
+        original=self.config.read_text()
+        def with_value(value):
+            return original.replace('lock.countdowns.value=','lock.countdowns.value='+value)
+        # 旧 6 段「事项;日期」×3
+        for good in ('','考试;2026-11-27;;;;',';2026-11-27;;;;','a;2026-11-27;b;2026-12-20;c;2027-01-01'):
+            self.config.write_text(with_value(good),encoding='utf-8'); self.shell('ic_validate "$IC_CONFIG"\n')
+        # 新 12 段「事项;日期;农历;显示」×3（空组也带标志位）
+        new_good=(';'.join(['考试','2026-11-27','0','1','','','0','1','春节','2027-01-01','1','1']),
+                  ';'.join(['生日','2026-12-20','1','0','','','0','1','','','0','1']))
+        for good in new_good:
+            self.config.write_text(with_value(good),encoding='utf-8'); self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('a;2026-11-27',                                     # 段数不对
+                    ';'.join(['a','2026-11-27','2','1','','','','','','','','']),   # 农历标志非 0/1
+                    ';'.join(['a','2026-11-27','0','2','','','','','','','','']),   # 显示标志非 0/1
+                    ';'.join(['a','2026-11-31','1','1','','','','','','','','']),   # 农历月最大 30 天
+                    ';'.join(['a','2026-02-30','0','1','','','','','','','','']),   # 公历 2 月无 30 日
+                    ';'.join(['a','not-a-date','0','1','','','','','','','','']),
+                    ';'.join(['a','2026-11-27','0','1','','','','','','','']),      # 11 段
+                    '事项名特别长超过十二个字符;2026-11-27;0;1;;;;'):
+            self.config.write_text(with_value(bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_refresh_debounce_accepts_custom_number_and_is_optional(self):
+        original=self.config.read_text()
+        for good in ('1000','500','2000','0','250','999'):
+            self.config.write_text(original.replace('refresh.debounce.value=1000','refresh.debounce.value='+good),encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('abc','-1','@number','@curve','3.5','5000',' 3'):
+            self.config.write_text(original.replace('refresh.debounce.value=1000','refresh.debounce.value='+bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        stripped='\n'.join(line for line in original.splitlines() if not line.startswith('refresh.debounce'))
+        self.config.write_text(stripped+'\n',encoding='utf-8')
+        self.shell('ic_validate "$IC_CONFIG"\n')
+    def test_refresh_app_filter(self):
+        original=self.config.read_text()
+        for good in ('','whitelist','blacklist','whitelist:com.tencent.mm','blacklist:com.a,android,com.b_c.d1',
+                     'whitelist;;','whitelist;com.a;','blacklist;com.a,android;com.b_c.d1','whitelist;com.a;com.b'):
+            self.config.write_text(original.replace('refresh.apps.value=','refresh.apps.value='+good),encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('com.a,',',com.a','com a','@apps','com.a/com.b','com..a','.com.a','com.a.','junk;$x','green:com.a','whitelist:com..a','whitelist:com.a,',
+                    'whitelist;com.a','whitelist;com.a;com.b;com.c','green;com.a;com.b','whitelist;com..a;','whitelist;;com.a,','whitelist;com.a;com.b,'):
+            self.config.write_text(original.replace('refresh.apps.value=','refresh.apps.value='+bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        stripped='\n'.join(line for line in original.splitlines() if not line.startswith('refresh.apps'))
+        self.config.write_text(stripped+'\n',encoding='utf-8')
+        self.shell('ic_validate "$IC_CONFIG"\n')
     def test_service_waits_for_boot_before_hot_apply(self):
         service=(ROOT/'backend/service.sh').read_text(encoding='utf-8')
         self.assertLess(service.index('sys.boot_completed'),service.index('ic_apply_hot'))
@@ -72,6 +157,9 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         expected={'debug.inkcontrol.sampling=0','debug.inkcontrol.cache=0','debug.eink.lock.dither=stock','debug.eink.video.dither=blue'}
         expected.update('debug.eink.alg.'+scope+'=default' for scope in ('clear','reading','fast','extreme','video'))
         expected.update('debug.eink.hyst.'+scope+'=default' for scope in ('fast','extreme','video'))
+        # 原厂算法总开关与翻页动画融合默认都关：对应属性必须显式写 0。
+        expected.update({'debug.eink.alg.stock=0','debug.inkcontrol.fusion=0','debug.inkcontrol.fusion.drive=0',
+                         'debug.inkcontrol.fusion.armed=0','debug.inkcontrol.fusion.reader=0'})
         self.assertEqual(set(output.splitlines()),expected)
         self.config.write_text(self.config.read_text().replace('display.gpu=0','display.gpu=1').replace('lock.dither=0','lock.dither=1'),encoding='utf-8')
         output=self.shell('setprop() { echo "$1=$2"; }\nic_properties\n')
@@ -114,7 +202,9 @@ ic_supported
         for changed in (fake.replace('echo 29','echo 30'),fake.replace('echo HLTE203T','echo OTHER'),fake.replace('echo L1732.6.01.02','echo L1732.6.16.00')): self.shell(changed,1)
     def test_no_arbitrary_root_or_automatic_phone_operations(self):
         root=(ROOT/'src/com/inkcontrol/platform/RootBridge.java').read_text(encoding='utf-8')
-        self.assertIn('status|apply")',root)
+        # 白名单必须逐条列死：新增命令要同时改这里，避免悄悄放宽成「什么都能跑」
+        self.assertIn('status|apply|applyfont|fontlist|restorefont|sysapp (state|remove|restore)'
+                      '|sysbackup (list|save|restore|delete)")',root)
         for file in (ROOT/'src/com/inkcontrol/ui').glob('*.java'):
             text=file.read_text(encoding='utf-8'); self.assertNotIn('ProcessBuilder',text); self.assertNotIn('Settings.Global',text)
         for file in (ROOT/'src/com/inkcontrol/core').glob('*.java'):

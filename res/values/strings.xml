@@ -2,4 +2,8 @@
 <resources>
     <string name="app_name">InkControl</string>
     <string name="module_description">InkControl: display, animation, lock-screen and desktop enhancements; all off by default</string>
+    <string name="accessibility_service_label">InkControl auto refresh</string>
+    <string name="accessibility_service_description">Counts taps, key presses and reading actions, then refreshes the e-ink screen through the InkControl backend.</string>
+    <string name="wave_service_label">InkControl gestures</string>
+    <string name="wave_service_description">Uses the proximity sensor to turn the screen off when covered and wake it when uncovered; requires the InkControl accessibility service.</string>
 </resources>

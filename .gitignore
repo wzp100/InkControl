@@ -30,3 +30,8 @@ local.properties
 /docs/20*.md
 /docs/evidence/
 /docs/local-history/
+# 本机临时文件（构建试验脚本、设备备份等），不进提交。
+/temp/
+# IDE
+.idea/
+*.iml

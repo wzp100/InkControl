@@ -34,6 +34,9 @@ public class Hook implements IXposedHookLoadPackage {
     private static boolean sHooked;
     private static int sSkipped;
     private static final Map<Object, RuntimeState> STATES = new WeakHashMap<>();
+    /** 最近一次写过闸门的前台包名；null 表示还没写过，保证首次必写一次。 */
+    private static String readerPackage;
+    private static Method setProperty;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
@@ -99,6 +102,9 @@ public class Hook implements IXposedHookLoadPackage {
         // Serialize the whole stock resume operation, including its mode changes.
         hook(cl, SERVICE + "$1", "begigResumeActivity", new XC_MethodHook() {
             @Override protected void beforeHookedMethod(MethodHookParam param) {
+                // 翻页动画融合：分带揭示只该在「目标阅读器」前台时出现。
+                // 这里与 fix.video 无关，所以放在门控之前，关掉修复项也照常更新。
+                updateFusionReader((String) param.args[0]);
                 if (!RuntimeConfig.enabled("fix.video")) return;
                 try {
                     Object service = XposedHelpers.getObjectField(param.thisObject, "this$0");
@@ -217,6 +223,36 @@ public class Hook implements IXposedHookLoadPackage {
         return bytes;
     }
 
+    /**
+     * 翻页动画融合的白名单闸门。
+     *
+     * <p>原版翻页动画由常驻端判断「前台应用在不在目标阅读器名单里」，不在名单就不武装。
+     * 融合路线没有常驻端，所以改由这里在每次前台切换时比对 {@code pageanim.readers}，
+     * 结果写进 {@code debug.inkcontrol.fusion.reader} 给 composer HAL 读。
+     *
+     * <p>名单为空时按原版语义就是「不触发」，因此空名单写 0 而不是放行。
+     * 只在前台包名变化时写一次，避免在 system_server 主线程上反复写属性。
+     */
+    private static void updateFusionReader(String pkg) {
+        String name = pkg == null ? "" : pkg;
+        if (name.equals(readerPackage)) return;
+        readerPackage = name;
+        boolean allowed = false;
+        if (!name.isEmpty()) {
+            String list = RuntimeConfig.value("pageanim.readers");
+            for (String item : list.split(",")) {
+                if (item.trim().equals(name)) { allowed = true; break; }
+            }
+        }
+        try {
+            if (setProperty == null) setProperty =
+                    Class.forName("android.os.SystemProperties").getMethod("set", String.class, String.class);
+            setProperty.invoke(null, "debug.inkcontrol.fusion.reader", allowed ? "1" : "0");
+        } catch (Throwable t) {
+            Log.e(TAG, "fusion reader property failed", t);
+        }
+    }
+
     private static RuntimeState state(Object service) {
         synchronized (STATES) {
             RuntimeState state = STATES.get(service);
@@ -243,6 +279,8 @@ public class Hook implements IXposedHookLoadPackage {
 
     @SuppressWarnings("unchecked")
     private static void configurationChanged() {
+        // 名单可能刚改过：把缓存清掉，下一次前台切换时按新名单重算。
+        readerPackage = null;
         if (RuntimeConfig.enabled("fix.video")) return;
         synchronized (STATES) {
             for (Map.Entry<Object, RuntimeState> entry : STATES.entrySet()) {

@@ -11,6 +11,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import com.inkcontrol.platform.RuntimeConfig;
+
 import java.io.File;
 import java.io.FileOutputStream;
 
@@ -181,10 +183,10 @@ final class SystemLockStyles {
                 int style = intent.getIntExtra("style", -1);
                 boolean sample = intent.getBooleanExtra("sample", false);
                 int[] styles = style >= 0 ? new int[]{style}
-                        : new int[]{LockStyle.EDITORIAL, LockStyle.SWISS, LockStyle.PIXEL, LockStyle.GLASS};
+                        : new int[]{LockStyle.EDITORIAL, LockStyle.SWISS, LockStyle.PIXEL, LockStyle.GLASS, LockStyle.EDITORIAL_LAND, LockStyle.EDITORIAL_LAND_R};
                 for (int s : styles) {
                     try {
-                        LockData data = sample ? LockData.sample() : LockData.live(context, controller);
+                        LockData data = sample ? LockData.sample(RuntimeConfig.snapshot()) : LockData.live(context, controller);
                         Bitmap b = LockCanvas.render(context, s, data, 720, 1440);
                         File f = new File(context.getCacheDir(), "einklock-" + s + ".png");
                         try (FileOutputStream out = new FileOutputStream(f)) {

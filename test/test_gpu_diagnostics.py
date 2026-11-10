@@ -39,12 +39,14 @@ class GpuDiagnosticsTest(unittest.TestCase):
         write(self.boot, BOOT + "\n")
         write(self.state / "boot.txt", "display.gpu=1\nguard.config=0\n")
         write(self.state / "configuration.txt", "display.gpu=0\n")
-        write(self.state / "runtime.json", '{"helper_loaded":true,"gpu_errors":1}\n')
+        write(self.state / "runtime.json", '{"helper_loaded":true,"gpu_errors":3}\n')
         write(self.module / "lib/gpu_diagnostics.sh", LIB.read_text(encoding="utf-8"))
         write(self.module / "service.sh", (ROOT / "backend/service.sh").read_text(encoding="utf-8"))
         write(self.module / "lib/common.sh", 'IC_BOOT=$IC_STATE/boot.txt\nic_apply_hot() { :; }\n')
         write(self.module / "lib/guard.sh", "backup_now() { :; }\n")
-        self.executable(self.module / "bin/eink_status", """printf '%s\\n' '{"helper_loaded":true,"gpu_errors":1}'
+        # 运行监测只在本次开机确实挂载了 libeinkgpu 时工作；连续回退达到 3 次才触发保护。
+        write(self.module / "system/vendor/lib64/hw/libeinkgpu.so", "fake\n")
+        self.executable(self.module / "bin/eink_status", """printf '%s\\n' '{"helper_loaded":true,"gpu_errors":3}'
 """)
         self.executable(self.bin / "logcat", r"""printf '%s\n' "$*" >> "$FAKE_CALLS"
 dump=0; file=
@@ -124,7 +126,14 @@ done
 getprop() {{ echo 1; }}
 pidof() {{ echo $$; }}
 setprop() {{ printf '%s %s\\n' "$1" "$2" >> "$IC_STATE/properties"; }}
+grep() {{
+    # 加载检查读的是 composer 进程的 maps；替身进程里没有真库，这里视为已稳定加载。
+    case "$*" in *libeinkgpu.so*/proc/*/maps*) return 0 ;; esac
+    command grep "$@"
+}}
 sleep() {{
+    # 只把运行监测循环的 60 秒周期计入轮次；加载检查阶段的短等待直接跳过。
+    [ "$1" = 60 ] || return 0
     ticks=$((${{ticks:-0}} + 1))
     [ "$ticks" -lt {loops} ] || touch "${{0%/*}}/disable"
 }}
@@ -199,7 +208,7 @@ sleep() {{
         write(self.state / "runtime.json", "changed\n")
         self.run_shell("FAKE_TOKEN=second; export FAKE_TOKEN\nic_gpu_diagnostics_first_fault 99999\n")
         self.assertEqual({p.name: p.read_bytes() for p in fault.iterdir()}, before)
-        self.assertIn(b'"gpu_errors":1', before["runtime.json"])
+        self.assertIn(b'"gpu_errors":3', before["runtime.json"])
         self.assertIn(b"main/system/crash: first", before["logcat.txt"])
         self.assertRegex(before["identity.txt"].decode(), r"hwc_pid=\d+\nhwc_starttime=\d+")
         self.assertRegex(before["identity.txt"].decode(), r"service_pid=\d+\nservice_starttime=\d+")

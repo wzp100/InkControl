@@ -11,14 +11,12 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -55,10 +53,7 @@ public final class Hook implements IXposedHookLoadPackage {
     private static final class Original {
         Drawable icon,styled;
         Object script;
-        Typeface font;
-        float textSize;
-        int color,padding,shadowColor,day;
-        float shadowRadius,shadowDx,shadowDy;
+        int day;
         String title,theme;
     }
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p)throws Throwable{
@@ -72,6 +67,7 @@ public final class Hook implements IXposedHookLoadPackage {
         XposedHelpers.findAndHookMethod("com.hmct.vision.Launcher",loader,"onResume",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){activity=new WeakReference<>((Activity)m.thisObject);handler.post(Hook::refresh);}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.Launcher",loader,"onDestroy",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){if(activity.get()==m.thisObject){widgets.clear();originals.clear();activity.clear();}}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.BubbleTextView",loader,"onDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam m){if(enabled)style((TextView)m.thisObject);}});
+        popupBudget();
         XposedHelpers.findAndHookMethod("com.hmct.vision.plugin.PluginView",loader,"addRemoteView",View.class,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){View remote=findClock((View)m.args[0]);if(remote!=null)addWidget((ViewGroup)m.thisObject,remote);}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.DragLayer",loader,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam m){if(!enabled||!RuntimeConfig.enabled("desktop.wallpaper"))return;View v=(View)m.thisObject;Bitmap b=Assets.bitmap("wallpaper-"+theme+".png");if(b!=null)((Canvas)m.args[0]).drawBitmap(b,null,new Rect(0,0,v.getWidth(),v.getHeight()),new Paint(3));}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.FolderIcon",loader,"dispatchDraw",Canvas.class,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){if(!enabled||!RuntimeConfig.enabled("desktop.icons"))return;try{
@@ -82,14 +78,69 @@ public final class Hook implements IXposedHookLoadPackage {
         }catch(Throwable ignored){}}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.LauncherPreferenceActivity",loader,"onCreate",Bundle.class,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){
             PreferenceActivity a=(PreferenceActivity)m.thisObject;if(a.getPreferenceScreen()==null)return;
-            Preference pref=new Preference(a);pref.setKey("einkthemes_theme");pref.setTitle("桌面主题与小组件");pref.setSummary("流光玻璃 · 纸间 · 墨构");pref.setOrder(-100);pref.setPersistent(false);
+            // 未启用桌面主题时不注入入口，原厂桌面设置保持原样，避免被误认为已修改。
+            if(!RuntimeConfig.enabled("desktop.theme"))return;
+            Preference pref=new Preference(a);pref.setKey("einkthemes_theme");pref.setTitle("桌面主题与小组件");pref.setSummary(themeSummary());pref.setOrder(-100);pref.setPersistent(false);
             pref.setOnPreferenceClickListener(x->{a.startActivity(new Intent().setClassName("com.inkcontrol","com.inkcontrol.ui.MainActivity"));return true;});a.getPreferenceScreen().addPreference(pref);
         }});
         XposedBridge.log("EinkThemes: launcher hooks installed pid="+android.os.Process.myPid());
     }
+    /**
+     * 长按菜单的条目预算。
+     *
+     * <p>原厂 {@code popup.PopupPopulator.a(List ids, List system)} 里写的是
+     * {@code size = Math.min(4, 快捷方式数 + 系统项数)}：先把整行铺成「快捷方式」类型，
+     * 再把末尾几个槽位改成系统项（分享 / 冻结 / 卸载）。这台机的系统项正好占 3 个，
+     * 于是无论应用注册几条动态快捷方式，都只剩 1 个槽位 —— 这就是「海信桌面只显示 1 条」的真正原因，
+     * 与快捷方式的内容、标签长度都无关。
+     *
+     * <p>两行本来就是各自独立的容器（{@code ShortcutsItemView} 和 {@code SystemShortcutsItemView}），
+     * 所以按「快捷方式最多 4 个 + 系统项照原样」重算数组长度即可：快捷方式占前面几格，
+     * 系统项仍落在末尾，各行数量互不影响。只对墨控自己的快捷方式（id 以 {@code feature:} 开头）生效。
+     */
+    private static void popupBudget(){
+        try{
+            XposedHelpers.findAndHookMethod("com.hmct.vision.popup.b",loader,"a",List.class,List.class,new XC_MethodHook(){
+                @Override protected void afterHookedMethod(MethodHookParam m){
+                    try{
+                        Object result=m.getResult();
+                        if(!(result instanceof Object[]))return;
+                        List<?> ids=(List<?>)m.args[0];
+                        if(ids==null)return;
+                        boolean ours=false;
+                        for(Object id:ids)if(String.valueOf(id).startsWith("feature:")){ours=true;break;}
+                        if(!ours)return;
+                        List<?> system=(List<?>)m.args[1];
+                        int keep=system==null?0:system.size();
+                        int deep=Math.min(4,ids.size());
+                        int total=deep+keep;
+                        Object[] original=(Object[])result;
+                        if(total<=original.length)return;
+                        Class<?> type=original.getClass().getComponentType();
+                        Object[] expanded=(Object[])java.lang.reflect.Array.newInstance(type,total);
+                        Object shortcut=type.getField("a").get(null);
+                        Object single=type.getField("b").get(null);
+                        Object multi=type.getField("c").get(null);
+                        for(int i=0;i<deep;i++)expanded[i]=shortcut;
+                        for(int i=0;i<keep;i++)expanded[total-1-i]=keep==1?single:multi;
+                        m.setResult(expanded);
+                    }catch(Throwable failed){XposedBridge.log("EinkThemes: popup budget skipped "+failed.getClass().getSimpleName());}
+                }
+            });
+        }catch(Throwable missing){XposedBridge.log("EinkThemes: popup budget hook unavailable "+missing.getClass().getSimpleName());}
+    }
     private static void attach(Context c){if(initialized)return;initialized=true;context=c;handler=new Handler(c.getMainLooper());RuntimeConfig.listen(Hook::refresh);
         handler.post(()->{try{Assets.init(c);c.getContentResolver().registerContentObserver(ThemeProvider.URI,true,new ContentObserver(handler){@Override public void onChange(boolean self,android.net.Uri uri){
             if(uri!=null&&uri.getPath()!=null&&uri.getPath().endsWith("weather"))return;refresh();}});refresh();RuntimeConfig.markReady();}catch(Throwable t){RuntimeConfig.failInitialization("桌面初始化失败："+t.getClass().getSimpleName());XposedBridge.log("EinkThemes: initialization failed "+t);}});
+    }
+    /** 启用桌面主题时，设置页摘要显示当前主题名；入口本身只在启用时才注入。 */
+    static String themeSummary(){
+        try{
+            com.inkcontrol.core.FeatureDefinition feature=com.inkcontrol.core.FeatureCatalog.get("desktop.theme");
+            String value=RuntimeConfig.value("desktop.theme");int index=feature.values.indexOf(value);
+            String label=index>=0&&index<feature.labels.size()?feature.labels.get(index):value;
+            return "使用中：" + label;
+        }catch(Throwable t){return "";}
     }
     static Object field(Object object,String name){if(object==null)return null;for(Class<?> c=object.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(name);f.setAccessible(true);return f.get(object);}catch(Exception ignored){}return null;}
     private static void setField(Object object,String name,Object value)throws Exception{for(Class<?> c=object.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(name);f.setAccessible(true);f.set(object,value);return;}catch(NoSuchFieldException ignored){}throw new NoSuchFieldException(name);}
@@ -128,16 +179,16 @@ public final class Hook implements IXposedHookLoadPackage {
         String title=v.getText()==null?"":v.getText().toString();if(title.isEmpty()){Object label=field(v.getTag(),"t");if(label!=null)title=label.toString();else if(v.getContentDescription()!=null)title=v.getContentDescription().toString();}Drawable current=(Drawable)field(v,"H");Original o=originals.get(v);
         int day=java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR);
         if(o!=null&&theme.equals(o.theme)&&title.equals(o.title)&&current==o.styled&&(!"日历".equals(title)||o.day==day))return;
-        if(o==null){o=new Original();o.icon=current;o.script=field(v,"K");o.font=v.getTypeface();o.textSize=v.getTextSize();o.color=v.getCurrentTextColor();o.padding=v.getCompoundDrawablePadding();o.shadowRadius=v.getShadowRadius();o.shadowDx=v.getShadowDx();o.shadowDy=v.getShadowDy();o.shadowColor=v.getShadowColor();originals.put(v,o);}
+        if(o==null){o=new Original();o.icon=current;o.script=field(v,"K");originals.put(v,o);}
         else if(current!=o.styled){o.icon=current;Object script=field(v,"K");if(script!=null)o.script=script;}
-        o.title=title;o.theme=theme;o.day=day;if(RuntimeConfig.enabled("desktop.font")){v.setTypeface(Assets.face(theme,false));v.setTextColor(Color.rgb(17,17,17));v.setShadowLayer(0,0,0,0);v.setTextSize(TypedValue.COMPLEX_UNIT_PX,"paper".equals(theme)?25:24);v.setCompoundDrawablePadding(15);}
+        o.title=title;o.theme=theme;o.day=day;
         Bitmap b=RuntimeConfig.enabled("desktop.icons")?Assets.icon(title,theme):null;
         if(b!=null&&current!=null){int size=Math.max(80,Math.min(160,current.getIntrinsicWidth()));if(size<=0)size=112;Bitmap scaled=Bitmap.createScaledBitmap(b,size,size,true);
             Drawable drawable=(Drawable)loader.loadClass("com.hmct.vision.w").getConstructor(Bitmap.class).newInstance(scaled);setField(v,"K",null);v.getClass().getMethod("setIcon",Drawable.class).invoke(v,drawable);o.styled=drawable;
         }else o.styled=current;
     }catch(Throwable t){XposedBridge.log("EinkThemes: icon styling unavailable "+t.getClass().getSimpleName());}}
     private static void restore(TextView v){Original o=originals.remove(v);if(o==null)return;try{
-        v.setTypeface(o.font);v.setTextColor(o.color);v.setTextSize(TypedValue.COMPLEX_UNIT_PX,o.textSize);v.setCompoundDrawablePadding(o.padding);v.setShadowLayer(o.shadowRadius,o.shadowDx,o.shadowDy,o.shadowColor);setField(v,"K",o.script);if(o.icon!=null)v.getClass().getMethod("setIcon",Drawable.class).invoke(v,o.icon);
+        setField(v,"K",o.script);if(o.icon!=null)v.getClass().getMethod("setIcon",Drawable.class).invoke(v,o.icon);
     }catch(Throwable t){XposedBridge.log("EinkThemes: native icon restore unavailable "+t.getClass().getSimpleName());}}
     static void diagnostic(){try{if(context==null)return;JSONObject j=new JSONObject();j.put("pid",android.os.Process.myPid());j.put("theme",theme);j.put("kind",kind);j.put("enabled",enabled);j.put("styled_views",originals.size());j.put("clock_plugins",widgets.size());j.put("weather_available",!state.getString("temperature","").isEmpty());j.put("media_available",state.getBoolean("mediaAvailable"));
         File f=new File(context.getFilesDir(),"einkthemes-state.json");try(FileOutputStream out=new FileOutputStream(f)){out.write(j.toString(2).getBytes("UTF-8"));}

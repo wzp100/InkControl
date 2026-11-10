@@ -23,7 +23,11 @@ def main():
     paths = [ROOT/'src/com/inkcontrol'/p for p in SOURCES]
     paths.extend((ROOT/'src/com/inkcontrol/platform').glob('*.java'))
     for path in paths:
-        for match in re.finditer(r'"(?:[^"\\]|\\.)*"', path.read_text(encoding='utf-8')):
+        source = path.read_text(encoding='utf-8')
+        # 先把字符字面量抹平（'a'、'\''、'"'）：里面的引号不是字符串边界，
+        # 不处理会让后面的字符串匹配从字符字面量处错位，把代码当成未翻译文案。
+        source = re.sub(r"'(?:\\.|[^'\\\n])'", "''", source)
+        for match in re.finditer(r'"(?:[^"\\]|\\.)*"', source):
             text = json.loads(match.group())
             if re.search('[\u3400-\u9fff]', text) and text not in pairs and text not in ('中 / EN', '语言 / Language'):
                 missing.append((path.relative_to(ROOT).as_posix(), text))

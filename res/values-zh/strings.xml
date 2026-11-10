@@ -2,4 +2,8 @@
 <resources>
     <string name="app_name">墨控</string>
     <string name="module_description">墨控：显示、动画、锁屏与桌面增强；全部默认关闭</string>
+    <string name="accessibility_service_label">墨控自动刷新</string>
+    <string name="accessibility_service_description">统计点击、按键与阅读操作，通过墨控后端刷新墨水屏。</string>
+    <string name="wave_service_label">墨控体感</string>
+    <string name="wave_service_description">用近距离传感器在遮挡时息屏、移开时唤醒；需在系统无障碍中启用「墨控体感」服务。</string>
 </resources>

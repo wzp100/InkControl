@@ -21,6 +21,8 @@ final class MotionDemo extends View {
     private static final int TICK = 100;
     private final Ink ink;
     private String scene = "app_open", style = "kiris", origin = "touch", direction = "auto";
+    /** 全刷扫过的形状（horizontal/vertical/diag/antidiag/ring/center）；空＝按方向线性扫过。 */
+    private String variant = "";
     private int steps = 2, spread = 12;
     private boolean thumbnail;
     private Bitmap from, to, frame;
@@ -54,6 +56,13 @@ final class MotionDemo extends View {
         return this;
     }
 
+    /** 全刷扫过的形状；只在 scene=gc_clear 时有用。 */
+    MotionDemo variant(String value) {
+        this.variant = value == null ? "" : value;
+        if ("gc_clear".equals(scene)) { build(); invalidate(); }
+        return this;
+    }
+
     void play() {
         if (isInstant()) return;
         started = System.currentTimeMillis();
@@ -68,12 +77,13 @@ final class MotionDemo extends View {
         setMeasuredDimension(width, width * 2);
     }
 
-    private boolean isInstant() { return "instant".equals(style) || "gc16".equals(style); }
+    private boolean isInstant() { return "instant".equals(style) || "gc16".equals(style) || "none".equals(style); }
     private boolean wave() { return "ink".equals(style) || "dots".equals(style) || "scan".equals(style) || "blind".equals(style) || "gcsweep".equals(style); }
 
     /** 演示时长：波形按错开幅度缩放，关键帧按步数；均已放慢以便看清。 */
     private long duration() {
-        if (wave()) return "gcsweep".equals(style) ? 2000 : Math.max(500, Math.min(3200, 1600L * spread / 12));
+        // 全刷扫过按自己的速度档缩放：帧数越少，光带走得越快。
+        if (wave()) return "gcsweep".equals(style) ? 1100 + Math.max(1, spread) * 60L : Math.max(500, Math.min(3200, 1600L * spread / 12));
         return 700L * steps;
     }
 
@@ -117,7 +127,8 @@ final class MotionDemo extends View {
 
     private float[] startMap() {
         float[] s = new float[W * H];
-        String dir = "auto".equals(direction) || "gcsweep".equals(style) ? ("gcsweep".equals(style) ? "ltr" : "ttb") : direction;
+        // 方向保持原值：auto 在下面的公式里自然落到「横向从左」「纵向从上」。
+        String dir = "auto".equals(direction) ? "auto" : direction;
         float maxD = 0;
         for (float[] c : new float[][]{{0, 0}, {W, 0}, {0, H}, {W, H}}) maxD = Math.max(maxD, (float) Math.hypot(c[0] - tapX, c[1] - tapY));
         float[] noise = "ink".equals(style) ? inkNoise() : null;
@@ -136,6 +147,18 @@ final class MotionDemo extends View {
                 if (dir.equals("rtl") || dir.equals("btt")) p = len - 1 - p;
                 int band = Math.max(4, len / 12);
                 v = (p % band) / (float) band;
+            } else if ("gcsweep".equals(style) && !variant.isEmpty()) {
+                // 与 native buildMotionMap 的 gcsweep 形状公式一一对应。
+                float fx = x / (float) (W - 1), fy = y / (float) (H - 1);
+                if ("vertical".equals(variant)) v = dir.equals("btt") ? 1f - fy : fy;
+                else if ("diag".equals(variant)) v = (fx + fy) / 2f;
+                else if ("antidiag".equals(variant)) v = ((1f - fx) + fy) / 2f;
+                else if ("ring".equals(variant) || "center".equals(variant)) {
+                    double half = 0.5 * Math.hypot(W, H);
+                    double d = Math.hypot(x - W / 2.0, y - H / 2.0) / half;
+                    if ("ring".equals(variant)) d = (Math.floor(d * 12) + 0.5) / 12;
+                    v = (float) Math.min(1, d);
+                } else v = dir.equals("rtl") ? 1f - fx : fx;
             } else {
                 v = dir.equals("btt") ? (H - 1 - y) / (float) H : dir.equals("ltr") ? x / (float) W : dir.equals("rtl") ? (W - 1 - x) / (float) W : y / (float) H;
             }
