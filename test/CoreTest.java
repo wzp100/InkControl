@@ -403,7 +403,13 @@ public final class CoreTest {
         check(Versions.compare("0.2.6-r26", "0.2.5-r23") > 0);
         check(Versions.compare("0.2.5-r23", "0.2.6-r26") < 0);
         check(Versions.compare("0.2.6-r26", "v0.2.6-r26") == 0);
-        check(Versions.compare("0.2.6", "0.2.6-r0") == 0);
+        // 正式版比同号候选新；候选之间按候选号比较。
+        check(Versions.compare("0.2.6", "0.2.6-r0") > 0);
+        check(Versions.compare("0.3.0", "0.3.0-rc1") > 0);
+        check(Versions.compare("0.3.0-rc1", "0.3.0") < 0);
+        check(Versions.compare("0.3.0-rc2", "0.3.0-rc1") > 0);
+        check(Versions.compare("v0.3.0", "0.3.0") == 0);
+        check(Versions.compare("0.3.1-rc1", "0.3.0") > 0);
         check(Versions.compare("0.3.0-r1", "0.2.9-r99") > 0);
         check(Versions.compare("1.0.0-r26", "0.99.99-r999") > 0);
         check(Versions.compare("0.2.6-r27", "0.2.6-r26") > 0);
