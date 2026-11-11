@@ -25,10 +25,9 @@ def main():
         config=module.read('lib/defaults.txt').decode()
         flags=[line for line in config.splitlines() if '=' in line and not line.split('=')[0].endswith('.value') and line.split('=')[0] not in ('version','revision')]
         schema=module.read('lib/features.tsv').decode().splitlines()
-        # 默认开启的只有这几项：必选参数（无开关）与总开关默认关闭时不产生效果的子项。
-        # 其余增强必须全部默认关闭；这张表变化即默认配置变化，必须显式评审。
-        default_on={'lock.ext.wifi','lock.ext.bt','lock.ext.audio','lock.ext.airplane','qs.panel.pinsize',
-                    'pageanim.style','pageanim.spacing','pageanim.bands','pageanim.vkey'}
+        # 默认开启项来自功能目录导出的 features.tsv 第五列（确切名单由 CoreTest 固定）；
+        # 默认配置必须与它逐项一致，其余增强全部默认关闭。
+        default_on={row.split('\t')[0] for row in schema if row.split('\t')[4]=='1'}
         assert len(flags)==len(schema) and all(line.endswith(('=0','=1')) for line in flags)
         assert {line.split('=')[0] for line in flags if line.endswith('=1')}==default_on
         assert {line.split('=')[0] for line in flags}=={line.split('\t')[0] for line in schema}

@@ -34,14 +34,9 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         return result.stdout
     def test_all_defaults_disabled(self):
         self.shell('ic_validate "$IC_CONFIG"\n')
-        # 四个设备状态显示开关是 defaultOn（配置里没有这个键就按显示处理），
-        # 「截屏便签对齐尺寸」同样是 defaultOn（不缩的话原厂那一格比补上来的按钮大一圈）；
-        # 翻页动画的风格／速度／分块数是必选参数，没有开关、恒为开启。
-        # 所以它们在默认配置里就写 1；其余开关仍必须全部是 0。
-        default_on = {'lock.ext.wifi', 'lock.ext.bt', 'lock.ext.audio', 'lock.ext.airplane',
-                      'qs.panel.pinsize', 'pageanim.style', 'pageanim.spacing', 'pageanim.bands',
-                      # 「音量键遵从翻页直觉」是翻页动画总开关下的子项，总开关默认关，它单独为开不产生效果。
-                      'pageanim.vkey'}
+        # 默认开启项由功能目录导出（features.tsv 第五列），确切名单在 CoreTest 里固定。
+        default_on = {row.split('\t')[0] for row in (SCHEMA/'features.tsv').read_text(encoding='utf-8').splitlines() if row.split('\t')[4]=='1'}
+        self.assertTrue(default_on)
         for line in self.config.read_text().splitlines():
             key,value=line.split('=',1)
             if key not in ('version','revision') and not key.endswith('.value'):
@@ -59,6 +54,22 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         for invalid in [original+'evil=1\n',original+'version=1\n',original.replace('revision=0','revision=-1'),original.replace('display.gpu.value=default','display.gpu.value=$(id)'),original.replace('display.gpu=0\n','')]:
             self.config.write_text(invalid,encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_only_baseline_keys_are_mandatory(self):
+        rows=[row.split('\t') for row in (SCHEMA/'features.tsv').read_text(encoding='utf-8').splitlines()]
+        baseline={row[0] for row in rows if row[3]=='1'}
+        self.assertIn('display.gpu',baseline); self.assertNotIn('wave.lock',baseline); self.assertNotIn('lock.notify',baseline)
+        original=self.config.read_text()
+        for row in rows:
+            key=row[0]
+            without='\n'.join(l for l in original.splitlines() if l.split('=',1)[0] not in (key,key+'.value'))+'\n'
+            self.config.write_text(without,encoding='utf-8')
+            if key in baseline: self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+            else: self.shell('ic_validate "$IC_CONFIG"\n')
+        # 只留基线键的配置（上一个公开版本的形状）必须能通过，升级安装才不会被拒。
+        old='\n'.join(l for l in original.splitlines() if l.split('=',1)[0].replace('.value','') in baseline|{'version','revision'})+'\n'
+        self.config.write_text(old,encoding='utf-8'); self.shell('ic_validate "$IC_CONFIG"\n')
+        # 新增功能只写一半仍然无效。
+        self.config.write_text(old+'wave.lock=1\n',encoding='utf-8'); self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_retired_keys_come_from_catalog_and_are_tolerated(self):
         retired=(SCHEMA/'retired.txt').read_text(encoding='utf-8').split()
         self.assertIn('pageanim.touch',retired); self.assertIn('fix.google',retired)

@@ -64,6 +64,7 @@ public final class RuntimeConfig {
             Bundle result = context.getContentResolver().call(ConfigProvider.URI, "readConfig", null, null);
             if (result == null) throw new IllegalStateException("Provider未就绪");
             snapshot = Configuration.parse(result.getString("text", ""));
+            HookText.language(result.getBoolean("english", false));
             attempts = 0;
             failure = initializationFailure;
             if ("systemui".equals(role)) SettingsEffects.apply(context);

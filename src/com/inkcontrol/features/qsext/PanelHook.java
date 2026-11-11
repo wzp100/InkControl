@@ -664,7 +664,7 @@ public class PanelHook implements IXposedHookLoadPackage {
     /** 请求没被受理时别提示「已打开」，那会骗人（典型是权限被系统收走）。 */
     private static void toast(Context context, String text) {
         try {
-            Toast toast = Toast.makeText(context, text, Toast.LENGTH_SHORT);
+            Toast toast = Toast.makeText(context, com.inkcontrol.platform.HookText.t(context, text), Toast.LENGTH_SHORT);
             // 用系统默认位置（底部居中）。这里不再手动 setGravity 抬到顶部：
             // 面板虽是 type=0x7d9、比 Toast 高一层，但点完会先收面板（见 click / toggle），
             // 提示落到底部时面板已经没了，不会被压住。

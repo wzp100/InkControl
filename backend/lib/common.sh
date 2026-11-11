@@ -116,7 +116,8 @@ ic_validate() {
       }
       # 已下线的键由功能目录导出（lib/retired.txt），与 App 的解析共用同一张表。
       BEGIN { while ((getline line < retired_file) > 0) if (line != "") retired[line]=1; close(retired_file) }
-      NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
+      # features.tsv：ID、候选值、依赖、是否基线键（必须成对出现）、默认是否开启。
+      NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; baseline[s[1]]=(s[4]=="1"); n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
@@ -136,19 +137,9 @@ ic_validate() {
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
-          # 旧版配置没有分模式选项、自动刷新项、设备状态总开关与后来新增的开关；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          # lock.ext 是「显示设备状态」总开关、lock.ext.wifi/bt/audio/airplane 是它的四项显示开关，
-          # lock.ext.edit 是收着这四项的页面（@panel，值恒为空串）；
-          # 旧配置里都没有，缺省按「关」（总开关）/「显示」（四项，App 侧 defaultOn）处理。
-          # qs.extend（控制中心拓展）只在 SystemUI 里生效，旧配置里没有，缺省按「关」处理。
-          # navbar.white（三大金刚键漂白）同理，旧配置里没有，缺省按「关」处理。
-          # fix.safeime（冻结安全输入服务后能输密码）、qs.panel（快捷面板按钮）、qs.panel.close（点完收起面板）、
-          # qs.panel.pinsize（截屏便签对齐尺寸）、qs.panel.btn1–5（五个位置的按钮动作）是后来新增的，
-          # 旧配置里没有，缺省按「关」处理（pinsize 在 App 侧 defaultOn，缺省按开）。
-          # 翻页动画是 0.2.5-r23 新加的一整组，旧配置里整组都没有，缺省按「关」处理。
-          # motion.gc_direction / motion.gc_speed / motion.gc_style 是后加的三项，
-          # 旧配置里没有，缺省按「自动」/跟随「波形动画速度」/「横向展开」处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
+          # 基线键（首个公开版本就有的）必须成对出现；之后新增的功能整对缺省时按默认处理，
+          # 只写了一半仍然是损坏配置。哪些是基线键由功能目录导出，不在这里手写名单。
+          optional=!baseline[key]
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }

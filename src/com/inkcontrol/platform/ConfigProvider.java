@@ -36,6 +36,7 @@ public final class ConfigProvider extends ContentProvider {
         return true;
     }
     private boolean self() { return Binder.getCallingUid() == Process.myUid(); }
+    private String localized(String text) { HookText.language(HookText.english(getContext())); return HookText.t(getContext(), text); }
     private int uid(String name) {
         try { return getContext().getPackageManager().getApplicationInfo(name, 0).uid; }
         catch (Exception ignored) { return -1; }
@@ -65,6 +66,8 @@ public final class ConfigProvider extends ContentProvider {
             if ("readConfig".equals(method)) {
                 Bundle result = new Bundle();
                 result.putString("text", store.load().text());
+                // 被注入进程的提示文字跟随应用界面语言（见 HookText）。
+                result.putBoolean("english", HookText.english(getContext()));
                 return result;
             }
             if ("reportStatus".equals(method)) {
@@ -184,7 +187,7 @@ public final class ConfigProvider extends ContentProvider {
         String name = FeatureCatalog.get(id).title;
         String reason = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
         new android.os.Handler(getContext().getMainLooper()).post(() ->
-                android.widget.Toast.makeText(getContext(), name + "切换失败：" + reason,
+                android.widget.Toast.makeText(getContext(), localized(name + "切换失败：" + reason),
                         android.widget.Toast.LENGTH_LONG).show());
     }
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String order) { throw new UnsupportedOperationException(); }
