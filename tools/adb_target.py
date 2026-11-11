@@ -11,11 +11,13 @@
 -----------------------------------
 1. 环境变量 `INK_DEVICE` 显式指定（原样返回，不做校验）；
 2. **有线**上状态为 `device`、且型号是 HLTE203T / 海信 的目标；
-3. **无线** `192.168.2.25:5555`（海信静态 IP）且状态为 `device`；
+3. 环境变量 `INK_WIRELESS` 指定的无线目标（形如 `<IP>:5555`）且状态为 `device`；
 4. 任意状态下为 `device`、型号是 HLTE203T 的无线目标。
 
 即：**同时有线无线在线时优先走有线**；有线上挂的是别的设备时，
-自动退回无线；多条无线里固定用 192.168.2.25。
+自动退回无线；多条无线里优先用 `INK_WIRELESS` 指定的那一个。
+
+adb 本体按 环境变量 `ADB` > PATH 里的 `adb` 的顺序找，脚本里不写任何本机路径或地址。
 
 用法
 ----
@@ -26,12 +28,13 @@
 
 import os
 import re
+import shutil
 import subprocess
 
-ADB = os.environ.get("ADB", r"C:\Paths\adbtools-platform-tools-latest-windows\adb.exe")
+ADB = os.environ.get("ADB") or shutil.which("adb") or "adb"
 
-# 海信的静态 IP（无线调试固定用这个）
-WIRELESS = "192.168.2.25:5555"
+# 无线调试目标（<IP>:5555）；不设置就只在已连接的设备里挑
+WIRELESS = os.environ.get("INK_WIRELESS", "").strip()
 # 设备型号白名单：HLTE203T = A5 Pro 经典版
 MODELS = ("HLTE203T", "A5Pro", "HLTE203")
 ENV_OVERRIDE = "INK_DEVICE"
@@ -88,9 +91,9 @@ def resolve():
     for d in devices:
         if d["usb"] and _is_hisense(d):
             return d["serial"]
-    # 3. 无线固定 IP
+    # 3. 指定的无线目标
     for d in devices:
-        if d["serial"] == WIRELESS:
+        if WIRELESS and d["serial"] == WIRELESS:
             return d["serial"]
     # 4. 任意无线海信
     for d in devices:
@@ -100,9 +103,9 @@ def resolve():
 
 
 def ensure(connect_retries=3):
-    """挑目标；如果没有任何可用目标，先试 adb connect 静态 IP 再挑。"""
+    """挑目标；如果没有任何可用目标且设置了 INK_WIRELESS，先试 adb connect 再挑。"""
     serial = resolve()
-    if serial:
+    if serial or not WIRELESS:
         return serial
     for _ in range(connect_retries):
         _run(["connect", WIRELESS], timeout=25)

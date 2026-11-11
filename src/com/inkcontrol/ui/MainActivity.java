@@ -454,7 +454,7 @@ public final class MainActivity extends Activity {
         }
         if (isHome) {
             // 标题「墨控」右侧隔开一段距离显示版本号（原来在副标题里，附带的
-            // 「墨水屏增强 · 全部默认关闭」说明已删除——62 项默认关闭写入 README 即可）。
+            // 「墨水屏增强 · 全部默认关闭」说明已删除，默认关闭的口径写在 README 与发布说明里）。
             LinearLayout brand = new LinearLayout(this);
             brand.setGravity(Gravity.CENTER_VERTICAL);
             brand.addView(ink.text(title, 30, Ink.BOLD));

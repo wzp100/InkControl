@@ -15,12 +15,12 @@ einklock-posted.png）。本工具就是「开开关 → 息屏触发 → 取出
 
 用法：
     python eink_lock_capture.py                      # 自动选设备，存到 ./einklock-<时间戳>.png
-    python eink_lock_capture.py -s 192.168.2.25:5555 # 指定设备（无线/序列号均可）
+    python eink_lock_capture.py -s <IP>:5555 # 指定设备（无线/序列号均可）
     python eink_lock_capture.py -o out.png --rotate  # 指定输出并旋转出阅读图
     python eink_lock_capture.py --wait 15            # 息屏后多等一会儿（默认 12s）
 
 前置条件：
-    1. adb 可用（PATH 或 C:\\Paths\\adbtools-platform-tools-latest-windows\\adb.exe）；
+    1. adb 可用（PATH 里，或用环境变量 ADB 指定）；
     2. 设备已 root（Magisk），adb 有 su 授权（首次会在手机上弹框）；
     3. 设备装有墨控模块且 LSPosed 已启用（钩子挂在 SystemUI 进程）。
 
@@ -33,21 +33,17 @@ import argparse
 import shutil
 import subprocess
 import sys
+import os
 import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
 
-ADB_CANDIDATES = [
-    "adb",
-    r"C:\Paths\adbtools-platform-tools-latest-windows\adb.exe",
-    r"C:\Paths\Android_Path\platform-tools\adb.exe",
-]
-JDK_CANDIDATES = [
-    r"C:\Paths\java_jdk\jdk17\bin\java.exe",
-    r"C:\Paths\java_jdk\jdk21\bin\java.exe",
-    r"C:\Paths\java_jdk\jdk11\bin\java.exe",
-]
+# adb 与 java 都只从环境变量和 PATH 里找，脚本里不写本机路径。
+ADB_CANDIDATES = [c for c in (os.environ.get("ADB"), "adb") if c]
+JDK_CANDIDATES = [c for c in (
+    os.path.join(os.environ["JAVA_HOME"], "bin", "java") if os.environ.get("JAVA_HOME") else None,
+    "java") if c]
 REMOTE_RAW = "/data/user_de/0/com.android.systemui/cache/einklock-posted.png"
 # su 看不到 /storage/emulated/0（FUSE 隔离），中转用 /data/local/tmp
 REMOTE_STAGE = "/data/local/tmp/einklock-capture.png"

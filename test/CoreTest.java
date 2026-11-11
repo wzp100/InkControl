@@ -400,6 +400,18 @@ public final class CoreTest {
         reject(() -> Integrity.verifySha256(new java.io.ByteArrayInputStream(new byte[]{97,98,100}), sha));
         reject(() -> Integrity.verifySha256(new java.io.ByteArrayInputStream(new byte[0]), "invalid"));
         // 「检测更新」按版本号比大小，不是比字符串：线上停在旧版时不能报成新版本。
+        // 已下线的键：旧配置里残留时解析必须容忍并丢弃，未知键仍然拒绝。
+        String base = new Configuration().text();
+        for (String id : FeatureCatalog.RETIRED) {
+            Configuration kept = Configuration.parse(base + id + "=1\n" + id + ".value=default\n");
+            check(!kept.text().contains(id + "="));
+            boolean unknown = false;
+            try { FeatureCatalog.get(id); } catch (RuntimeException expected) { unknown = true; }
+            check(unknown);
+        }
+        boolean rejected = false;
+        try { Configuration.parse(base + "not.a.feature=1\n"); } catch (IllegalArgumentException expected) { rejected = true; }
+        check(rejected);
         check(Versions.compare("0.2.6-r26", "0.2.5-r23") > 0);
         check(Versions.compare("0.2.5-r23", "0.2.6-r26") < 0);
         check(Versions.compare("0.2.6-r26", "v0.2.6-r26") == 0);

@@ -7,7 +7,7 @@ import shutil
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-DIRECTORIES = ('src', 'native', 'backend', 'overlay', 'assets', 'res', 'stubs', 'tools', 'test', 'docs', '.github', 'ci')
+DIRECTORIES = ('src', 'native', 'backend', 'assets', 'res', 'stubs', 'tools', 'test', 'docs', '.github', 'ci')
 FILES = ('AndroidManifest.xml', 'README.md', 'README.en.md', 'NOTICE.md', 'NOTICE.en.md', 'LICENSE', '.gitignore', '.gitattributes', 'AGENTS.md', 'CONTRIBUTING.md', 'CONTRIBUTING.en.md', 'llms.txt')
 
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -38,7 +38,7 @@ def main():
     if args.device_report and (report.get('device') != 'HLTE203T' or report.get('final_state') != 'all-off-stock-backend'): raise ValueError('缺少目标设备与最终恢复状态')
     # 任何运行源码与构建快照不同，均拒绝把旧 APK 配上新源码。
     for name, expected in manifest['sources'].items():
-        if (name == 'AndroidManifest.xml' or name.startswith(('src/', 'native/', 'backend/', 'assets/', 'res/', 'overlay/', 'stubs/'))) and digest(ROOT/name) != expected: raise ValueError('构建后源码变动，请重建：'+name)
+        if (name == 'AndroidManifest.xml' or name.startswith(('src/', 'native/', 'backend/', 'assets/', 'res/', 'stubs/'))) and digest(ROOT/name) != expected: raise ValueError('构建后源码变动，请重建：'+name)
     for name, expected in manifest['artifacts'].items():
         if digest(args.build/name) != expected: raise ValueError('产物校验失败：'+name)
         with zipfile.ZipFile(args.build/name) as archive:

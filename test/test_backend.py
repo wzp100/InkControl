@@ -59,6 +59,20 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         for invalid in [original+'evil=1\n',original+'version=1\n',original.replace('revision=0','revision=-1'),original.replace('display.gpu.value=default','display.gpu.value=$(id)'),original.replace('display.gpu=0\n','')]:
             self.config.write_text(invalid,encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_retired_keys_come_from_catalog_and_are_tolerated(self):
+        retired=(SCHEMA/'retired.txt').read_text(encoding='utf-8').split()
+        self.assertIn('pageanim.touch',retired); self.assertIn('fix.google',retired)
+        original=self.config.read_text()
+        for key in retired:
+            self.config.write_text(original+key+'=1\n'+key+'.value=default\n',encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+            # 已下线的开关仍只接受 0/1，取值不能夹带 shell 元字符。
+            self.config.write_text(original+key+'=2\n',encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+            self.config.write_text(original+key+'.value=$(id)\n',encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        self.config.write_text(original+'not.retired=1\n',encoding='utf-8')
+        self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_pageanim_readers_accepts_plain_package_list(self):
         # 「目标阅读器」存纯包名逗号列表，不是白／黑名单三段值；占位符与注入字符都要被拒。
         original = self.config.read_text()

@@ -12,18 +12,18 @@
 
 ## 前置条件
 
-- 电脑有 adb（PATH 里，或脚本顶部列出的 `C:\Paths\adbtools-platform-tools-latest-windows\adb.exe` 等候选路径）。
+- 电脑有 adb（PATH 里，或用环境变量 `ADB` 指定）。
 - 设备已 root（Magisk），adb 拿到过 su 授权（首次会在手机上弹框）。
 - 无线调试在设备息屏时会掉线，排查前先确认在线；`svc power stayon true` 可以避免长测试中途熄屏。
 - 锁屏截图额外要求墨控模块已注入 SystemUI（LSPosed 作用域含 `com.android.systemui`）。
 
 ## 设备选择
 
-`adb_target.py` 按优先顺序挑一台设备：环境变量 `INK_DEVICE` > 有线海信 > 无线 `192.168.2.25:5555` > 任意无线海信；`offline` 的历史连接一律排除，避免命令打到别的手机上。
+`adb_target.py` 按优先顺序挑一台设备：环境变量 `INK_DEVICE` > 有线海信 > 环境变量 `INK_WIRELESS` 指定的无线目标 > 任意无线海信；`offline` 的历史连接一律排除，避免命令打到别的手机上。
 
 ```bash
 python tools/adb_target.py                                   # 打印所有目标与最终选择
-INK_DEVICE=192.168.2.25:5555 python tools/unlock_device.py state
+INK_DEVICE=<IP>:5555 python tools/unlock_device.py state
 ```
 
 ## 怎么填 PIN（仓库里没有任何真实密码）

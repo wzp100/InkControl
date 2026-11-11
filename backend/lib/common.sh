@@ -17,7 +17,7 @@ ic_enabled() {
     [ -z "$dependency" ] || [ "$(ic_get "$dependency")" = 1 ]
 }
 ic_validate() {
-    awk -F= '
+    awk -F= -v retired_file="$IC_LIB/retired.txt" '
       function curve(choices, value,   n, parts, i) {
         if (index("," choices ",", ",@curve,")==0 || substr(value,1,6)!="curve:") return 0
         n=split(substr(value,7), parts, ",")
@@ -114,6 +114,8 @@ ic_validate() {
         if (!legacy && index("," choices ",", ",@path,")==0 && index("," choices ",", ",@font,")==0) return 0
         return fontpath(value)
       }
+      # 已下线的键由功能目录导出（lib/retired.txt），与 App 的解析共用同一张表。
+      BEGIN { while ((getline line < retired_file) > 0) if (line != "") retired[line]=1; close(retired_file) }
       NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
@@ -129,8 +131,8 @@ ic_validate() {
       # 旧配置的 lock.notify.value=ext 也照旧放行（ext 是纯字母，走 fontpath 兜底即通过）；
       # App 侧解析时会把它迁成 lock.ext=1 并在下次保存时重写。
       # 容忍旧配置里的残留键，升级不卡开机
-      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch|pageanim\.(touch|keys|debounce))$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@packages" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !pkgs(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !freeform(key, choices[key], legacy, $2))) bad=1}
-       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch|pageanim\.(touch|keys|debounce))$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
+      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key in retired) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@packages" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !pkgs(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !freeform(key, choices[key], legacy, $2))) bad=1}
+       else {legacy=(key in retired) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
@@ -160,7 +162,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.3.0-rc1' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.3.0-rc2' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。

@@ -23,7 +23,7 @@
     python tools/reboot_safe.py --dry-run          # 只打印电源状态与探针，不重启
     python tools/reboot_safe.py                   # 唤醒 → 重启 → 等到开机完成
     python tools/reboot_safe.py --timeout 45      # 每轮等待秒数（默认 60）
-    INK_DEVICE=192.168.2.25:5555 python tools/reboot_safe.py
+    INK_DEVICE=<IP>:5555 python tools/reboot_safe.py
 
 退出码：0 = 已确认重启并开机（含「最终复核」的延迟确认）；
         2 = 两轮都没重启（需人工按一次电源键）；3 = 找不到设备。
