@@ -8,9 +8,11 @@ All compilation and build tests run on GitHub-hosted Ubuntu 24.04. Local work is
 
 ## Version policy
 
-Current candidate: `0.3.0-rc1`. A successful new version creates `v<version>` and a Release at the exact verified commit. `-rcN` becomes a prerelease without Latest; stable versions become Latest. Cloud success is not device-stability acceptance.
+Current candidate: `0.3.0-rc1` (versions must match `X.Y.Z` or `X.Y.Z-rcN`, enforced by the publisher). A successful new version creates `v<version>` and a Release at the exact verified commit. `-rcN` becomes a prerelease without Latest; stable versions become Latest. Cloud success is not device-stability acceptance.
 
 Synchronize `AndroidManifest.xml`, `tools/build.py`, `backend/lib/common.sh`, app/module versionCode, notes, and the knowledge index when changing versions. Documentation-only pushes can retain a version. An existing published version is skipped without changing its tag, notes, or assets. Behavioral/resource changes require a new version.
+
+`tools/build.py` keeps only deliverables in its output directory: the APK, backend ZIP, `SHA256SUMS`, `build-manifest.json` and `cert.der`. Intermediate aapt2 / javac / d8 / zipalign files go to a scratch directory that is removed after the build (`--keep-intermediates` retains them), and no `.idsig` (v4 signature) is produced. Per-stage results are cached by content under `out/.build-cache/`; `--no-cache` forces a full rebuild, and the cache never enters deliverables, Releases or source archives.
 
 Publishing creates a draft, uploads all assets, verifies remote hashes, then publishes. Interrupted drafts resume only for the same commit and matching existing assets. Uploads never use overwrite. Main pipelines serialize publication; only the release job receives `contents:write`.
 
@@ -30,7 +32,7 @@ The publisher verifies this run/attempt's repository, commit, trusted certificat
 
 Raw Actions test/UI artifacts last seven days. Versioned Release assets are publicly retained. Failed checks and unsigned builds cannot publish. Publication is restricted to the expected repository and Actions/main; foreign repositories are rejected.
 
-The fixed signing identity starts at rc13. The public certificate is tracked; private keys/passwords stay local and in Actions secrets. Old signed-app migration requires backup and uninstall; future updates retain the new key. Overlay and app are signed in sequence; outer-APK-only signing is insufficient.
+The fixed signing identity starts at rc13. The public certificate is tracked; private keys/passwords stay local and in Actions secrets. Old signed-app migration requires backup and uninstall; future updates retain the new key. The backend ZIP hash is embedded before the app is signed; outer-APK-only signing is insufficient.
 
 The two HWC inputs are encrypted in `ci/private-inputs.zip.enc`, decrypted and validated only in temporary runner storage, then cleaned. No private key, password, backup, or plaintext input is attached. Device deployment and acceptance archival remain separate tasks.
 

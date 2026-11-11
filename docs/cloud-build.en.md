@@ -2,7 +2,7 @@
 
 [简体中文](cloud-build.md)
 
-The repository is public. All Java, native, resource, Dex, Overlay, Magisk ZIP, and APK compilation runs on GitHub-hosted Ubuntu 24.04 through `.github/workflows/build.yml`. Low-level build tools remain for reproducibility but are no longer run locally.
+The repository is public. All Java, native, resource, Dex, Magisk ZIP, and APK compilation runs on GitHub-hosted Ubuntu 24.04 through `.github/workflows/build.yml`. Low-level build tools remain for reproducibility but are no longer run locally.
 
 Pushes to main produce signed candidates. Actions → Cloud build → Run workflow defaults to signed; unsigned remains available for build investigation. Pull requests run translation, Java/backend regression, native policy/queue, and software GLES tests without private firmware or signing secrets. The workflow does not use pull_request_target.
 
@@ -16,13 +16,13 @@ Vendor binaries are outside the MIT license. Public APK/ZIP downloads contain th
 
 ## Signing
 
-`ci/trusted-certificate.der` is the new release public certificate used from rc13 onward, not a private key. Unsigned candidates have `-unsigned` names; both the app and Overlay are unsigned and cannot be installed.
+`ci/trusted-certificate.der` is the new release public certificate used from rc13 onward, not a private key. Unsigned candidates have `-unsigned` names; the app is unsigned and cannot be installed.
 
 Signed builds require `INKCONTROL_KEYSTORE_BASE64`, `INKCONTROL_STORE_PASSWORD`, `INKCONTROL_KEY_PASSWORD`, and `INKCONTROL_KEY_ALIAS` Actions secrets. Configure these using GitHub settings or standard input, never repository files, command arguments, or logs. At the maintainer's explicit request, a new long-term release key was generated and all four secrets configured on 2026-10-17. It uses JKS, RSA-4096, SHA256withRSA, a 10000-day validity period, and alias `inkcontrol-release`. Local `signing/release-20261017/` holds the keystore, random password instructions, public certificate, and rotation metadata. This directory is excluded from Git. Back up both the keystore and password offline.
 
 New certificate SHA256: `4d2ddf8b324da50e54c28c11c9c61ae55eae69f1a9f2073be8315d62342aba29`. Previous certificate SHA256: `44b04d7a953320f0c0c1bb2843a715a23f8c2207c1d602db5c0c4cfbb4313155`. The original `candidate.jks` and previous public certificate backup remain intact. **The new signing identity cannot update the old app in place.** Back up configuration, uninstall the old app, install the new app and matching backend, check framework scopes again, and restart fully. These are instructions for a separate manual migration; CI performs no device operations. Retain the new release key for all future updates.
 
-The Overlay is signed first, then the backend ZIP is hashed and embedded into the app, which is signed last. CI rejects a certificate different from the repository's fixed trusted certificate to prevent accidental identity changes in later updates. Signing only the outer APK is insufficient.
+The backend ZIP is hashed and embedded into the app, which is signed last. CI rejects a certificate different from the repository's fixed trusted certificate to prevent accidental identity changes in later updates. Signing only the outer APK is insufficient.
 
 ## Evidence and artifacts
 

@@ -8,7 +8,7 @@
 flowchart LR
   A[推送 main / 手动 signed] --> B[仓库 / 文档 / 翻译检查]
   B --> C[Java / 后端 / 原生 / GPU 回归]
-  C --> D[云编译并签 Overlay 与 App]
+  C --> D[云编译并签名 App]
   D --> E[包装校验与四组双语 UI]
   E --> F[校对同轮来源与附件哈希]
   F --> G[草稿 / 上传 / 校验 / 发布]
@@ -18,7 +18,7 @@ flowchart LR
 
 ## 版本与不可覆盖
 
-当前候选 `0.3.0-rc1`；新版本通过后自动创建 `v<version>` tag 和 Release，固定到已验证的准确 commit。`-rcN` 自动标为预发布，不标记 Latest；稳定版本标记 Latest。候选状态由版本决定，云端通过不等于实机稳定版。
+当前候选 `0.3.0-rc1`（版本号必须是 `X.Y.Z` 或 `X.Y.Z-rcN`，由发布器校验）；新版本通过后自动创建 `v<version>` tag 和 Release，固定到已验证的准确 commit。`-rcN` 自动标为预发布，不标记 Latest；稳定版本标记 Latest。候选状态由版本决定，云端通过不等于实机稳定版。
 
 版本递增同步 `AndroidManifest.xml`、`tools/build.py`、`backend/lib/common.sh`、App/模块 versionCode、发布说明及知识索引。仅文档提交可以保留版本；已发布同版本直接跳过，不修改 tag、说明或附件。代码／资源行为变化必须新版本。
 
@@ -46,7 +46,7 @@ Actions 原始测试、UI PNG/XML 等 artifacts 保留七天；Release 附件按
 
 ## 签名与私有输入
 
-新固定发行签名从 rc13 使用；公钥为 `ci/trusted-certificate.der`，私钥与随机密码只留本地和 Actions secrets。首次迁移旧签名 App 需备份并卸载，后续必须沿用新密钥。App 与 Overlay 顺序签名，不能只补签外层 APK。
+新固定发行签名从 rc13 使用；公钥为 `ci/trusted-certificate.der`，私钥与随机密码只留本地和 Actions secrets。首次迁移旧签名 App 需备份并卸载，后续必须沿用新密钥。后端 ZIP 的哈希先嵌入 App 再签名，不能只补签外层 APK。
 
 两个 HWC 输入加密为 `ci/private-inputs.zip.enc`；解密在运行器临时目录，校验成员与哈希，退出清理。Release 不附原始私钥、密码、备份和明文输入。部署与正式实机交付归档仍单独执行，自动 Release 不操作手机。
 

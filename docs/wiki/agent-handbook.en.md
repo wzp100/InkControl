@@ -15,6 +15,7 @@
 | Actual activation | Current PID + starttime, version, revision, boot_id, runtime acknowledgement |
 | Artifact provenance | Release `build-manifest.json`, SHA256SUMS, run ID, commit |
 | Experimental success | Raw evidence and latest scoped report; older summaries are pointers |
+| Page-turn animation and the GPU backend | Section 5 of the [backend support list](../功能列表后端支持清单.md) (Chinese) and the matching release notes |
 
 Java paths above are relative to `src/com/inkcontrol/`. See the [code map](architecture.en.md).
 
@@ -24,11 +25,11 @@ Java paths above are relative to `src/com/inkcontrol/`. See the [code map](archi
 
 **Features:** define finite options, dependencies, process role, and HOT/REBOOT in FeatureCatalog. Consume immutable snapshots in handlers, conditionally restore on disable, acknowledge only after readiness, and report failures. Do not introduce another configuration source or handwritten backend catalog. See the [development guide](../development.en.md).
 
-**UI text:** maintain Chinese source phrases and `assets/i18n/en.tsv`. Translate at display boundaries; persisted IDs, routing, properties, and protocols stay stable. Run static translation checks and cloud UI/text tests.
+**UI text:** keep Chinese source phrases and `assets/i18n/en.tsv` in sync. Translate at display boundaries; persisted IDs, routing, properties, and protocols stay stable. Run `python tools/check_i18n.py` (missing translations fail), `check_docs.py` after documentation edits, and cloud UI/text tests.
 
 **Slow refresh:** follow [operations](operations.en.md). Preserve first-fault evidence and protection markers before intervention. Inspect counter growth. Do not begin by clearing logs, removing markers, or restarting HWC. Slow `stock` processing is not proof of CPU fallback.
 
-**Releases:** synchronize app, backend, build version, and versionCode; push main. All regressions, signed packaging, and bilingual UI checks gate automatic release. Existing versions remain intact; increment the version for behavioral changes.
+**Releases:** synchronize the version string and versionCode in `AndroidManifest.xml`, `tools/build.py`, `backend/lib/common.sh`, the knowledge index, both READMEs and the release notes. Pushing main releases automatically only after signed packaging, regressions and bilingual UI checks pass; PRs run regressions only. Versions must match `X.Y.Z` or `X.Y.Z-rcN`. Existing versions remain intact; increment the version for behavioral changes. Commit messages may be detailed while release notes and READMEs stay concise; release notes are bilingual and must keep the spare-device, off-device backup and boot-failure / data-loss / unrecoverable-damage notices.
 
 ## Boundaries and handoff
 

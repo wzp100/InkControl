@@ -8,12 +8,15 @@
 | Device gates | `HLTE203T`, Android 10 / API 29, arm64 |
 | Input | 720 × 1440; GPU research uses Mali-G52 |
 | Platform | ums512; historical kernel 4.14.133 |
-| Firmware gate | `L1732.6.01.02` plus exact HWC hashes |
+| Firmware gate | Build number `L1732.6.01.02` plus exact HWC hashes |
+| Verified system software | `ro.software.version` `L1732.6.14.01.B10` (contributor) and `L1732.6.15.01.B10` (2026-11-11 smoke test); both report build `L1732.6.01.02` and the same stock HWC hash |
 | Private inputs | Two stock/motion HWC hashes in `ci/inputs.json` |
 
 These are compatibility gates, not a promise for other firmware or related devices. Preserve original libraries and waveform files.
 
 The pipeline is: **application → SurfaceFlinger → vendor HWC input queue → grayscale/tone mapping → quantization/dither → mode/history → WBF lookup → scan frames → DRM/DPU → monochrome panel**.
+
+The page-turn banded reveal is implemented in the same GPU waveform timing (`native/service_fusion.hpp`), so it requires the GPU display backend; there is no separate page-turn display library.
 
 The GPU helper handles matched image, statistics, waveform, and scan computations. EGL/GLES import and synchronization matter; unsupported or faulty paths may still use the stock CPU consumer. Framework events, quantization, waveform selection, and panel scanning are separate layers.
 

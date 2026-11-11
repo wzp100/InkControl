@@ -4,16 +4,13 @@
 
 # More control over your E-ink display
 
-**InkControl · 墨控** brings display algorithms, transitions, lock-screen controls, and stock-launcher themes to the **Hisense A5 Pro 经典版 (Classic Edition)** with its **monochrome E-ink screen**. One app contains its matching Magisk backend.
-
-**All enhancements ship off by default.** The only entries stored as on are sub-options that do nothing until their parent switch is enabled (the four lock-screen device-status items, the panel's pin-screen size alignment, and the page-turn style, speed, band-count and volume-key direction options). Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
-
-| Display | Motion | Lock screen | Stock launcher | System |
-| --- | --- | --- | --- | --- |
-| Per-mode algorithms; separate video settings | Effects, previews, temperature timing curves | Weather, lyrics, notification count, four status items, six styles | Three themes; independent icons, wallpaper, widgets; long-press lists up to four shortcuts | Quick-settings tiles, white navigation bar, system-settings snapshots, system-app removal |
-| Grayscale and binary groups; independent hysteresis | Existing display path and mode boundaries | Individual controls and conditional restoration; notifications and device status are mutually exclusive; Pixel uses a white background and an up-swipe hint; no stock bottom-bar overlay | Original layout and app positions retained | Every item is an independent switch; turning it off restores stock behaviour |
+**InkControl · 墨控** is a monochrome E-ink enhancement suite for the **Hisense A5 Pro 经典版 (Classic Edition)** (`HLTE203T` / Android 10 / arm64): one app manages display algorithms, transitions, page-turn animation, the lock screen, the stock launcher and system enhancements, paired with a Magisk backend module. **All enhancements ship off by default**; enable what you need. The UI shows configuration intent, runtime acknowledgement and faults separately. Packages and notes are on [Releases](https://github.com/wzp100/InkControl/releases); the app and backend module must be the same version.
 
 > **Test devices only recommended: back up important data to a computer or independent storage first. Boot failure, permanent data loss, and unrecoverable device damage are possible. Read [risks and disclaimer](#risks-and-disclaimer) before installation.**
+
+| Display | Motion | Page turn | Lock screen | Stock launcher | System | Fonts | Quick panel |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Per-mode algorithms; grayscale and binary groups; independent hysteresis | Per-scene effects and previews on the existing display path | Banded reveal for listed reader apps, rendered by the GPU display backend | Six styles; weather, lyrics, notification count, device status and countdowns switched individually | Theme, icons and wallpaper chosen separately; long-press lists up to four shortcuts | Control-center tiles, white navigation keys, settings snapshots, system-app removal and restore | Replace the system font from a chosen font file | Extra buttons on the system E-Ink panel |
 
 ## Choose your starting point
 
@@ -23,38 +20,27 @@
 | Understand modes, video, and hysteresis | [Display algorithms](docs/wiki/algorithms.en.md) |
 | Diagnose slow refresh or inactive settings | [Operations and recovery](docs/wiki/operations.en.md) |
 | Continue development and understand prior work | [Agent handbook](docs/wiki/agent-handbook.en.md) → [Research](docs/wiki/research.en.md) |
+| Read mechanism and process documents | [docs index](docs/README.md) (Chinese) |
 | Locate code, evidence, and release automation | [Architecture](docs/wiki/architecture.en.md) · [Evidence](docs/wiki/evidence.en.md) · [Build and release](docs/wiki/build-and-release.en.md) |
 
 ## Getting started
 
-1. Download a signed APK from [Releases](https://github.com/wzp100/InkControl/releases). Read its notes and checksums. Suffixes such as `-rc16` / `-r19` are candidate rounds; the higher the number, the newer the build.
-2. Open **Install**, check compatibility, export the bundled backend ZIP, and install it through Magisk.
-3. Enable InkControl in a Vector/LSPosed-compatible framework for System Framework, System UI, and the stock launcher.
-4. Restart fully, check **Diagnostics**, then enable individual enhancements.
+1. Download a signed APK from [Releases](https://github.com/wzp100/InkControl/releases) and read that version's notes and checksums first.
+2. Open **Install** in the app, check the environment, export the matching backend ZIP, and install it through Magisk.
+3. Enable InkControl in an LSPosed-style framework and tick three scopes: System Framework, System UI, and the stock launcher.
+4. Restart fully, confirm readiness on **Diagnostics**, then enable the features you need one by one.
 
-The backend checks `HLTE203T / Android 10 / arm64` plus the firmware fingerprint and exact vendor-input hashes (the fingerprint string reads `L1732.6.01.02`, which differs in prefix from `ro.software.version`; both denote the same build). Without Root you can browse guides, switch languages, preview effects, and export the installer. See [installation and recovery](docs/wiki/getting-started.en.md).
-
-> **Verified device and system:** The only model accepted on physical hardware so far is the **Hisense A5 Pro 经典版 `HLTE203T`**, Android 10 (API 29), `arm64-v8a`, system firmware **`L1732.6.14.01.B10`** (`ro.software.version`; `ro.build.display.id` is `QP1A.190711.020`, and `ro.build.fingerprint` still reads `L1732.6.01.02`). InkControl depends on that firmware's stock launcher (`com.hmct.vision`), stock theme, and display-backend internals, so **other models, other system versions, or modified ROMs are likely incompatible** and are not guaranteed to work or be recoverable. Before changing devices or upgrading the system, review the risks below and back up first.
-
-> **Signing migration:** rc13 introduced a fixed new release identity. Back up configuration and uninstall the old signed app before migrating to the new app and matching backend. Subsequent updates retain that identity.
+Only `HLTE203T` / Android 10 / `arm64-v8a` is supported. The backend gates on the build number `L1732.6.01.02` and the exact stock display-library hash. Verified system software versions (`ro.software.version`) are `L1732.6.14.01.B10` (by the contributor) and `L1732.6.15.01.B10` (0.3.0-rc1 smoke test on 2026-11-11); both report the same build number. InkControl depends on the stock launcher, theme and display-backend internals, so **other models, system versions or modified ROMs are likely incompatible**. Without Root you can still browse guides and previews. The release signature is fixed, so an app with the old signature cannot be updated in place: back up configuration and uninstall it first. See [detailed steps and recovery](docs/wiki/getting-started.en.md).
 
 ## A look inside
 
-<table><tr><th>Home</th><th>Module settings</th><th>Launcher shortcuts</th></tr><tr><td><img src="docs/media/ui-home.png" alt="Home page: readiness chip, 25 of 74 enabled, per-category counts" width="260"></td><td><img src="docs/media/ui-settings.png" alt="Module settings: install, diagnostics, feature ordering, launcher shortcuts, lab, glossary, language and toast duration" width="260"></td><td><img src="docs/media/ui-shortcuts.png" alt="Launcher shortcut page: the four entries and their order" width="260"></td></tr></table>
+<table><tr><th>Home</th><th>Module settings</th><th>Launcher shortcuts</th></tr><tr><td><img src="docs/media/ui-home.png" alt="Feature home page" width="260"></td><td><img src="docs/media/ui-settings.png" alt="Module settings" width="260"></td><td><img src="docs/media/ui-shortcuts.png" alt="Launcher shortcuts" width="260"></td></tr></table>
 
-**Physical-device screenshots** of 0.2.2-r19 on `HLTE203T` (720×1440 framebuffer, scaled to 360×720). The home page shows the current readiness state and an "enabled / total" line; the middle page is **Module settings** (install wizard, diagnostics, feature ordering, launcher shortcuts, lab, glossary, plus language and toast duration further down the same list); the last page is **Module settings → Launcher shortcuts**, the order in which long-pressing the launcher icon lists up to four features. Captures show layout only — they do not establish panel grayscale or ghosting quality. English UI translation is no longer maintained: the app may still show Chinese text in places, as visible above.
+<table><tr><th>E-Ink quick panel</th><th>Panel buttons</th></tr><tr><td><img src="docs/media/ui-panel.png" alt="E-Ink quick panel: brightness, current display mode, and a bottom row of five buttons: WiFi, Bluetooth, auto refresh, page-turn animation, screenshot note" width="300"></td><td><img src="docs/media/ui-panel-buttons.png" alt="Panel buttons page: five ordered rows, each with a drag handle and Change, plus two in-page switches" width="230"></td></tr></table>
 
-<table><tr><th>E-Ink panel</th><th>Panel buttons</th></tr><tr><td><img src="docs/media/ui-panel.png" alt="E-Ink panel: brightness, current display mode, and a bottom row of four buttons (Wi-Fi / Bluetooth / auto refresh / cover to sleep)" width="300"></td><td><img src="docs/media/ui-panel-buttons.png" alt="Panel buttons page: master switch, four slots with Change and left/right arrows, and restore-default-order" width="230"></td></tr></table>
+<table><tr><th>Page-turn animation</th><th>Target readers</th></tr><tr><td><img src="docs/media/ui-pageanim.png" alt="Page-turn animation settings as of 0.2.6-r26; 0.3.0 removed the interval option and two gesture switches" width="230"></td><td><img src="docs/media/ui-pageanim-readers.png" alt="Target reader chooser: search apps and tick them" width="230"></td></tr></table>
 
-The two captures above are from **0.2.5-r23** on the same device. On the left is the **E-Ink panel** itself — the System UI overlay that rises from the bottom edge and covers the lower half, with brightness and the current display mode on top and a row of four slots at the bottom that InkControl can now take over (shown here as Wi-Fi, Bluetooth, auto refresh, cover to sleep); a tap toggles the action in place and the prompt appears at the **bottom** of the screen. The panel is translucent, so the launcher icons show through. On the right is the **panel buttons** page, reached directly from **System enhancements → Panel modification**: master switch, four "index · action" rows each with **Change** and **← / →**, **Restore default order**, and the in-page switches for "close the panel after a tap" and "match the pin-note size".
-
-## Project status
-
-The source targets **0.3.0-rc1**, with per-mode algorithms, independent hysteresis, auto refresh (tap/key/reading counters plus periodic triggering), lock-screen notification counts (system clearable notifications by default, or WeChat unread), six custom lock-screen styles (Editorial, Swiss grid, Pixel, Editorial landscape, Editorial landscape reversed, Liquid glass), a lock-screen device-status strip (Wi-Fi / Bluetooth / sound mode / airplane, mutually exclusive with notifications), quick-settings tiles for third-party apps, a white navigation bar, a six-style phased page-turn animation rendered by the GPU display backend (it requires that backend; no closed-source page-turn library is shipped) (style, speed and band count are mandatory options without a toggle; triggering is limited to the reader list), system-settings snapshots replayed row by row after a factory reset, system-app removal and restore, four customizable buttons in the bottom row of the E-Ink refresh panel (a tap toggles the action and prompts use the default bottom position, a long press on Wi-Fi / Bluetooth / the InkControl toggles jumps to the matching settings page), up to four launcher long-press shortcuts, a bilingual Chinese/English UI, a shared visual identity, and a versioned knowledge base. All compilation, signing and release publication run in GitHub Actions (`.github/workflows/build.yml`): repository, translation and documentation checks, the regression suite (`tools/test.py`), packaging verification and bilingual UI checks must pass before a Release is published, and each Release lists SHA256 checksums. An existing Release is never overwritten.
-
-Physical-device status recorded on 2026-11-03 (`HLTE203T`): **app and backend module both 0.2.2-r19**, `sys.inkcontrol.ready=1`, no `error` / `disable_hwc`, `helper_loaded=true`; a settings snapshot captured 418 rows across the three `settings` tables; long-pressing the launcher icon lists four shortcuts (Cover to sleep / Custom lock screen / Auto refresh / Fonts) alongside the stock Share / Freeze / Uninstall row; the "add tile" list grows from 5 stock tiles to hundreds; the navigation bar dropped from 100% to 2.26% dark pixels with zero module log lines over 60 idle seconds. Every figure above comes from single-device, single-run checks; none of it establishes panel quality, power, temperature coverage, or long-term stability. The historical first GPU error remains unexplained; the firmware's Google split-resource icon overlay should stay off. See [evidence boundaries](docs/wiki/evidence.en.md).
-
-On 2026-11-06 this device (`HLTE203T`) was upgraded to **0.2.3-r20**: app and backend module reinstalled together, full reboot, `sys.inkcontrol.ready=1`, no `error` / `disable_hwc`, and the installed APK is byte-identical to the local build. Panel-button prompts now appear at the bottom of the screen (they had been raised to the top so the panel would not cover them); see the panel captures in **A look inside** above.
+The screenshots show the Chinese UI; the app also offers English under **Module settings → Language**. Sources, sizes and SHA256 are in [docs/media/README.md](docs/media/README.md). Captures show layout only, not panel grayscale or ghosting quality.
 
 ## Developers and agents
 

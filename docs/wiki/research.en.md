@@ -23,4 +23,4 @@ Original reports preserve inputs, device state, parameters, and failures. Their 
 
 Latest-target overwrite already exists in stock firmware. Standalone GPU correctness does not establish import, invocation, synchronization, scan consumption, and panel quality together. Service reload can break Vector injection; verify current identities. Global refresh changes do not prove a local-line fix, and equal bytes do not establish equal optical quality. Matching module symbol CRCs support an ABI inference, not runtime stability or power claims.
 
-Open work includes historical GPU fault capture, panel/temperature/stability acceptance, unplugged power baselines, quality after scrolling stops, first-action latency after idle, Google split overlays, and framework self-recovery. Current user tasks and the workspace backlog determine priority.
+Open work includes historical GPU fault capture, panel/temperature/stability acceptance, unplugged power baselines, quality after scrolling stops, first-action latency after idle, and framework self-recovery. Current user tasks and the workspace backlog determine priority.

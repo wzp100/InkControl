@@ -7,12 +7,13 @@
 | `src/com/inkcontrol/core` | Catalog, configuration, dependencies, restoration; Android-free |
 | `src/com/inkcontrol/ui` | Pages, guides, previews; application-service calls only |
 | `src/com/inkcontrol/platform` | Android composition, AtomicFile, Provider, RootBridge, Hook routing, acknowledgements |
-| `src/com/inkcontrol/features` | Motion, lock, desktop, and fix handlers |
+| `src/com/inkcontrol/features` | Motion, lock, desktop, fix, refresh (auto refresh), wave (proximity), qsext (control center and E-Ink panel), and navbar handlers |
 | `src/com/inkcontrol/shared` | Actual shared weather/media logic |
 | `src/com/inkcontrol/i18n` | Pure Java display translation |
 | `native/service_gpu.cpp` | GPU service and production shaders |
 | `native/service_algorithm_policy.hpp` | Pure algorithm-selection policy |
 | `native/service_queue_retry.hpp` | Stable input-queue selection and bounded retry |
+| `native/service_fusion.hpp` | Banded waveform phase for page-turn animation (GPU fusion) |
 | `backend` | Magisk lifecycle, fixed controller, protection, conditional restoration |
 | `test`, `tools`, `ci`, `.github/workflows` | Tests, cloud build/publish tools, encrypted inputs, trust certificate |
 
@@ -24,8 +25,10 @@ Changes pass validation, save desired intent, apply, and await acknowledgement. 
 
 Hook acknowledgement matches PID, `/proc/PID/stat` starttime, version, and revision. Startup behavior also matches boot_id and boot snapshot. GPU confirmation requires the current helper, telemetry, and zero errors. Stale process success is not reused.
 
-The Provider restricts callers by UID and role and exposes no arbitrary configuration writes, file access, or Root execution. Permission enhancement binds the build certificate. RootBridge calls only fixed `inkctl`, with values through stdin and whitelist parsing.
+The Provider runs in its own `:state` process, restricts callers by UID and role, and exposes no arbitrary configuration writes, file access, or Root execution. Its only write entry is `toggle`, accepted from System UI or InkControl itself and limited to five whitelisted switches (auto refresh, lock-screen theme, sleep on cover, page-turn animation, full-refresh sweep). The exported transparent `PanelToggleActivity` is its fallback when the Provider cannot be started, so other installed apps can also flip those five switches, but cannot write any other setting or value. Permission enhancement binds the build certificate. RootBridge calls only fixed `inkctl`, with values through stdin and whitelist parsing.
 
-Restoration uses before/written ledgers and restores only values still owned by InkControl. Field-level XML merges preserve later user edits. Magisk disable/uninstall handles recovery. Monitoring reuses the startup service; no additional Android resident service exists.
+Restoration uses before/written ledgers and restores only values still owned by InkControl. Field-level XML merges preserve later user edits. Magisk disable/uninstall handles recovery. Display-backend monitoring reuses the Magisk startup service. Auto refresh and Proximity each have an accessibility service (`:refresh` and `:motion` processes) that the backend adds to the enabled list only while its switch is on and removes afterwards.
+
+The app declares network permission solely for the manual update check on the About page (GitHub Release API; nothing is checked, downloaded or installed automatically) and storage read permission for choosing font files.
 
 Sources: `R01`, `R04`. [source-provenance.json](../source-provenance.json) records imported originals, not current modified-file hashes. Current source provenance belongs to the build manifest.

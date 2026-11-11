@@ -12,9 +12,9 @@ Source: **physical-device screenshots** (`HLTE203T`, Android 10, 720×1440, 1-bi
 - `ui-pageanim.png`：**翻页动画**页——总开关与「已生效」回执、`01 选择翻页风格` 四个下拉（横向展开 / 12 阶段（均衡）/ 12 块 / 250 毫秒）、`02 翻页操作` 的前两项（反转动画方向、点击与横向滑动翻页）；再往下还有实体音量键翻页、音量键遵从翻页直觉与 `03 目标阅读器`。
 - `ui-pageanim-readers.png`：`03 目标阅读器` 的「选择应用 · 目标阅读器」弹窗——搜索框输入「微信」后过滤出「微信读书」并勾选，底部为「取消」「保存」。
 
-这些是屏幕位图，**不是面板翻拍**：能说明界面版式，不能说明灰阶观感、残影、刷新波形或可读性验收。当前截图均为中文界面。
+这些是屏幕位图，**不是面板翻拍**：能说明界面版式，不能说明灰阶观感、残影、刷新波形或可读性验收。当前截图均为中文界面。`ui-pageanim` 截于 0.2.6-r26，画面里的「翻页间隔」与两个手势开关已在 0.3.0 移除。
 
-These are framebuffer captures, **not panel photographs**: they show layout, not grayscale quality, ghosting, refresh waveforms, or readability acceptance. The current screenshots show the Chinese UI.
+These are framebuffer captures, **not panel photographs**: they show layout, not grayscale quality, ghosting, refresh waveforms, or readability acceptance. The current screenshots show the Chinese UI. `ui-pageanim` was captured on 0.2.6-r26; the interval option and two gesture switches it shows were removed in 0.3.0.
 
 以下校验值对应仓库内当前文件：
 

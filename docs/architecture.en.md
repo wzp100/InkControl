@@ -13,7 +13,7 @@ InkControl targets the Hisense A5 Pro 经典版 (Classic Edition, monochrome) (H
 | `src/com/inkcontrol/features` | Motion, lock-screen, desktop, and system enhancement handlers |
 | `native` | GPU processing, algorithm selection, waveforms, telemetry |
 | `backend` | Magisk lifecycle, controller, configuration validation and restoration ledger |
-| `res`, `assets`, `overlay` | Localized metadata, theme assets, translations, optional icon overlay |
+| `res`, `assets` | Localized metadata, theme assets, translations |
 | `test`, `tools` | Host regressions, native probes, build and verification entry points |
 | `.github`, `ci` | Cloud workflow, pinned dependencies, encrypted private inputs, public trust certificate |
 

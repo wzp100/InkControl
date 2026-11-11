@@ -8,7 +8,8 @@
     "device_gate": "HLTE203T",
     "api": 29,
     "abi": "arm64-v8a",
-    "firmware_gate": "L1732.6.01.02"
+    "firmware_gate": "L1732.6.01.02",
+    "verified_software_versions": ["L1732.6.14.01.B10", "L1732.6.15.01.B10"]
   },
   "source_version": "0.3.0-rc1",
   "enhancements_default_off": 88,
@@ -19,10 +20,10 @@
     "changed_by_documentation_task": false
   },
   "reference_cloud_evidence": {
-    "version": "0.1.0-rc13",
-    "run_id": 39046131228,
-    "commit": "c9e4d7d7ca75214ab6b7a204392ad7adcb16a479",
-    "scope": "cloud signing, regression, software GPU, bilingual emulator"
+    "version": "0.3.0-rc1",
+    "run_id": 42916377816,
+    "commit": "275dd9a70965bf09d34abcebfc9b89a4bb5fdcbf",
+    "scope": "cloud signing, regression, software GPU, bilingual emulator, public prerelease"
   },
   "authority_order": [
     "current source and matching runtime identity",
