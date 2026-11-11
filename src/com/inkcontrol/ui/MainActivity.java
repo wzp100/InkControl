@@ -37,100 +37,109 @@ import org.json.JSONObject;
  * 「功能」分三级：分类 → 分类内功能列表 → 单项详情（说明、开启前后对比、演示与选项）。
  */
 public final class MainActivity extends Activity {
-    private static final ExecutorService WORKER = Executors.newSingleThreadExecutor();
-    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "功能列表排序", SHORTCUTS = "桌面快捷方式", ABOUT = "关于", TERMS = "__terms";
+    static final ExecutorService WORKER = Executors.newSingleThreadExecutor();
+    static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "功能列表排序", SHORTCUTS = "桌面快捷方式", ABOUT = "关于", TERMS = "__terms";
     /** 启动时直接打开「模块设置」下某一页用的 extra。 */
-    private static final String MODULE_EXTRA = "module";
+    static final String MODULE_EXTRA = "module";
     /** E-Ink 刷新面板的「墨控快捷设置」按钮：带 quick=1 进来，直接落到只含三个常用开关的一页。 */
-    private static final String QUICK_EXTRA = "quick";
+    static final String QUICK_EXTRA = "quick";
     /** 面板长按「自动刷新 / 遮挡息屏」：带分类名进来，落到该大功能的分类页而不是单项详情。 */
-    private static final String CATEGORY_EXTRA = "category";
+    static final String CATEGORY_EXTRA = "category";
     /** 落到大功能页之后要滚到哪一行（面板长按「全刷扫过」用它定位到 02 那一组）。 */
-    private static final String FOCUS_EXTRA = "focus";
+    static final String FOCUS_EXTRA = "focus";
     /** 「快捷设置」页不是 Guide 里的分类（首页不列），只是借分类位渲染一个独立页面。 */
-    private static final String QUICK = "快捷设置";
+    static final String QUICK = "快捷设置";
     /** 「模块设置」下这些是页面而不是普通选项，进程重建时要保留当前页。 */
-    private static final List<String> MODULE_PAGES = Arrays.asList(INSTALL, DIAGNOSE, ORDER, SHORTCUTS, ABOUT);
-    private static final String[] TABS = {FEATURES, MODULE};
-    private static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL};
-    private static final int EXPORT_REQUEST = 100;
-    private static final int FONT_REQUEST = 101;
-    private static final int FONT_DIR_REQUEST = 102;
+    static final List<String> MODULE_PAGES = Arrays.asList(INSTALL, DIAGNOSE, ORDER, SHORTCUTS, ABOUT);
+    static final String[] TABS = {FEATURES, MODULE};
+    static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL};
+    static final int EXPORT_REQUEST = 100;
+    static final int FONT_REQUEST = 101;
+    static final int FONT_DIR_REQUEST = 102;
     /** 海信主题字体目录：字体包没有扩展名，靠文件头识别 TTF/OTF。 */
-    private static final String FONT_DIR_DEFAULT = "/storage/emulated/0/.hmcttheme/com.hmct.theme/";
+    static final String FONT_DIR_DEFAULT = "/storage/emulated/0/.hmcttheme/com.hmct.theme/";
     /** 「关于」页里的外链；只跳转浏览器，不在应用里做自动更新或下载。 */
-    private static final String REPO = "https://github.com/wzp100/InkControl";
-    private static final String RELEASES = REPO + "/releases";
-    private static final String README_URL = REPO + "/blob/main/README.md";
-    private static final String LATEST_API = "https://api.github.com/repos/wzp100/InkControl/releases/latest";
-    private static final String AUTHOR_URL = "https://github.com/liuqianhe";
-    private static final String UPSTREAM_REPO = "https://github.com/wzp100/InkControl";
-    private static final String COMMUNITY_NUKU = "http://www.coolapk.com/u/21150263";
-    private static final String REFRESH_REFERENCE = "https://github.com/ChenXu178/Hisense-E-Ink-auto-refresh";
+    static final String REPO = "https://github.com/wzp100/InkControl";
+    static final String RELEASES = REPO + "/releases";
+    static final String README_URL = REPO + "/blob/main/README.md";
+    static final String LATEST_API = "https://api.github.com/repos/wzp100/InkControl/releases/latest";
+    static final String AUTHOR_URL = "https://github.com/liuqianhe";
+    static final String UPSTREAM_REPO = "https://github.com/wzp100/InkControl";
+    static final String COMMUNITY_NUKU = "http://www.coolapk.com/u/21150263";
+    static final String REFRESH_REFERENCE = "https://github.com/ChenXu178/Hisense-E-Ink-auto-refresh";
     /** 上面那个项目的分支，墨控的自动刷新按它改。 */
-    private static final String REFRESH_FORK = "https://github.com/liuqianhe/Hisense-E-Ink-auto-refreshs";
+    static final String REFRESH_FORK = "https://github.com/liuqianhe/Hisense-E-Ink-auto-refreshs";
     /** 体感（遮挡息屏 / 移开唤醒）参考的 wave-up。 */
-    private static final String WAVEUP_REFERENCE = "https://gitlab.com/juanitobananas/wave-up";
+    static final String WAVEUP_REFERENCE = "https://gitlab.com/juanitobananas/wave-up";
     /**
      * 三个作用域一个回执都没有＝框架根本没把墨控注入任何进程。这时功能页只会顶着一句
      * 「等待运行确认」，看起来像功能写坏了，所以要在状态旁边直说原因。
      */
-    private static final String NOT_INJECTED = "模块未注入，请到框架管理器启用墨控并勾选三个作用域（系统框架、系统界面、桌面），改完完整重启。";
+    static final String NOT_INJECTED = "模块未注入，请到框架管理器启用墨控并勾选三个作用域（系统框架、系统界面、桌面），改完完整重启。";
 
-    private ApplicationServices services;
-    private Ink ink;
-    private ApplicationServices.Snapshot snapshot;
-    private String loadError = "";
-    private String tab = FEATURES, category = "", featureId = "", message = "", output = "";
+    ApplicationServices services;
+    Ink ink;
+    ApplicationServices.Snapshot snapshot;
+    String loadError = "";
+    String tab = FEATURES, category = "", featureId = "", message = "", output = "";
     /** 「模块设置」内的子页：空=入口页，否则为「安装」/「诊断」。 */
-    private String modulePage = "";
-    private boolean busy, messageFailed, outputExpanded;
+    String modulePage = "";
+    boolean busy, messageFailed, outputExpanded;
     /** 正在提交的单项更改；执行期间按目标值显示，结束后以新快照为准。 */
-    private String pendingId = "", pendingValue = "";
-    private boolean pendingEnabled;
+    String pendingId = "", pendingValue = "";
+    boolean pendingEnabled;
     /** 「显示信息修改」在紧凑页里是展开式多选，记着这一行是展开还是收起。 */
-    private boolean lockExtOpen;
+    boolean lockExtOpen;
     /** 面板开关由 SystemUI 转到应用进程写盘，界面快照不会自己变；靠这条观察者重读。 */
-    private android.database.ContentObserver panelObserver;
+    android.database.ContentObserver panelObserver;
     /** 「关于」页检测更新的结果：留在字段里，页面重建（旋转）后仍看得到上一次结论。 */
-    private String aboutUpdateText = "", aboutUpdateUrl = "";
-    private boolean checkingUpdate;
-    private TextView aboutUpdateView;
+    String aboutUpdateText = "", aboutUpdateUrl = "";
+    boolean checkingUpdate;
+    TextView aboutUpdateView;
     /** 详情页里正在预览、尚未使用的选项；空表示与当前设置相同。 */
-    private String preview = "";
+    String preview = "";
     /** 字体页的完整列表、过滤词与渲染控件：搜索框只过滤显示，不重新扫描目录。 */
-    private List<String[]> fontItems = new ArrayList<>();    private String fontProblem = "";
-    private String fontAppliedMark = "";
-    private String fontQuery = "";
+    List<String[]> fontItems = new ArrayList<>();    private String fontProblem = "";
+    String fontAppliedMark = "";
+    String fontQuery = "";
     /** 字体页当前目录：列表读取失败时「重新加载」按它重扫。 */
-    private String fontDir = FONT_DIR_DEFAULT;
-    private TextView fontHintView;
-    private LinearLayout fontListViews;
-    private boolean autoplay;
+    String fontDir = FONT_DIR_DEFAULT;
+    TextView fontHintView;
+    LinearLayout fontListViews;
+    boolean autoplay;
     /** 停留曲线编辑中的草稿。 */
-    private String holdMode = "";
-    private int[] holdDraft;
+    String holdMode = "";
+    int[] holdDraft;
     /** 操作结果提示条的自动消失计时；结果条默认停留 30 秒，可在「模块设置」调整。 */
-    private final android.os.Handler noticeHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-    private int noticeSeq;
+    final android.os.Handler noticeHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    int noticeSeq;
     /** 缓存「提示时长」偏好，避免每次绘制都同步读一遍存储。 */
-    private int noticeSeconds = UiNotice.DEFAULT;
-    private final Map<String, Integer> scrollPositions = new HashMap<>();
-    private ScrollView scroll;
-    private LinearLayout body;
-    private MotionDemo mainDemo;
+    int noticeSeconds = UiNotice.DEFAULT;
+    final Map<String, Integer> scrollPositions = new HashMap<>();
+    ScrollView scroll;
+    LinearLayout body;
+    MotionDemo mainDemo;
     /** 预览选项后滚动到演示处，让用户立刻看到效果。 */
-    private boolean scrollToVisual;
-    private View visualView;
+    boolean scrollToVisual;
+    View visualView;
     /** 从面板/快捷方式进来时，落页后要滚到的那一行（功能 id）。 */
-    private String scrollToFocus;
+    String scrollToFocus;
     /** 面板按钮刚拖完、还没写进配置的新顺序；有值时按它画，省得等 root 应用那一两秒。 */
-    private String[] panelOrderPending;
-    private boolean panelOrderBusy;
+    String[] panelOrderPending;
+    boolean panelOrderBusy;
 
     /** 系统设置快照列表；null 表示还没读过，读的时候用 backupsLoading 挡重复请求。 */
-    private List<String[]> backups;
-    private boolean backupsLoading;
+    List<String[]> backups;
+    boolean backupsLoading;
+    // 各页面的实现按功能拆到独立的类里；这里只持有它们，状态与通用控件仍在本类。
+    final SysAppPages sysAppPages = new SysAppPages(this);
+    final PanelPages panelPages = new PanelPages(this);
+    final ListEditors listEditors = new ListEditors(this);
+    final FontPages fontPages = new FontPages(this);
+    final HoldEditor holdEditors = new HoldEditor(this);
+    final AboutPages aboutPages = new AboutPages(this);
+    final ShortcutPages shortcutPages = new ShortcutPages(this);
+    final BackupPages backupPages = new BackupPages(this);
 
     @Override protected void attachBaseContext(android.content.Context base) { super.attachBaseContext(UiLanguage.wrap(base)); }
 
@@ -180,7 +189,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 直接打开「模块设置」下的某一页（快捷面板里的「去设置」用）。 */
-    private void moduleTarget(android.content.Intent intent) {
+    void moduleTarget(android.content.Intent intent) {
         if (intent == null) return;
         String page = intent.getStringExtra(MODULE_EXTRA);
         if (page == null || !MODULE_PAGES.contains(page)) return;
@@ -188,7 +197,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 从桌面快捷方式进来：直接落到对应功能页，返回时回到该功能的分类而不是首页。 */
-    private void shortcutTarget(android.content.Intent intent) {
+    void shortcutTarget(android.content.Intent intent) {
         if (intent == null || !UiShortcuts.ACTION.equals(intent.getAction())) return;
         String id = intent.getStringExtra(UiShortcuts.EXTRA);
         if (id == null || id.isEmpty()) return;
@@ -212,7 +221,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 从 E-Ink 刷新面板的「墨控快捷设置」按钮进来：落到遮挡息屏 / 锁屏自定义 / 自动刷新那一页。 */
-    private void quickTarget(android.content.Intent intent) {
+    void quickTarget(android.content.Intent intent) {
         if (intent == null || !"1".equals(intent.getStringExtra(QUICK_EXTRA))) return;
         tab = FEATURES; modulePage = ""; category = QUICK; featureId = "";
     }
@@ -221,7 +230,7 @@ public final class MainActivity extends Activity {
      * 面板长按「自动刷新 / 遮挡息屏」进来：落到对应大功能的分类页，而不是某一项的说明页。
      * 分类名从功能目录取，跟首页卡片用的是同一份名字；只认真实存在的分类，避免落到空页。
      */
-    private void categoryTarget(android.content.Intent intent) {
+    void categoryTarget(android.content.Intent intent) {
         if (intent == null) return;
         String name = intent.getStringExtra(CATEGORY_EXTRA);
         if (name == null || !Guide.CATEGORIES.containsKey(name)) return;
@@ -254,6 +263,7 @@ public final class MainActivity extends Activity {
         state.putString("tab", tab); state.putString("category", category); state.putString("feature", featureId);
         state.putString("module", modulePage);
     }
+
     @Override public void onConfigurationChanged(Configuration configuration) { super.onConfigurationChanged(configuration); render(); }
     @Override protected void onDestroy() {
         dismissNotice();
@@ -281,7 +291,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 首次读取；用户已改过配置时顺带静默检查一次，否则在未授权 Root 的情况下不主动申请。 */
-    private void load() {
+    void load() {
         busy = true;
         WORKER.execute(() -> {
             ApplicationServices.Snapshot next = null;
@@ -306,7 +316,7 @@ public final class MainActivity extends Activity {
      * 重跑一次 inspect 让运行回执跟上（详情页状态别停在「等待运行确认」），再比对快照，
      * 有变化才重画，免得连续点击时反复重建页面、丢掉滚动位置。
      */
-    private void refreshFromPanel() {
+    void refreshFromPanel() {
         if (isFinishing() || isDestroyed()) return;
         if (busy) { noticeHandler.postDelayed(this::refreshFromPanel, 900); return; }
         WORKER.execute(() -> {
@@ -327,9 +337,9 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 页面骨架 ─────────────────────────
 
-    private String pageKey() { return tab + "|" + category + "|" + featureId; }
+    String pageKey() { return tab + "|" + category + "|" + featureId; }
 
-    private void render() {
+    void render() {
         if (scroll != null) scrollPositions.put(pageKey(), scroll.getScrollY());
         mainDemo = null; visualView = null; aboutUpdateView = null;
         LinearLayout root = new LinearLayout(this);
@@ -372,8 +382,8 @@ public final class MainActivity extends Activity {
                 if (modulePage.equals(INSTALL)) installation();
                 else if (modulePage.equals(DIAGNOSE)) diagnostics();
                 else if (modulePage.equals(ORDER)) categoryOrderPage();
-                else if (modulePage.equals(SHORTCUTS)) shortcutPage();
-                else if (modulePage.equals(ABOUT)) aboutPage();
+                else if (modulePage.equals(SHORTCUTS)) shortcutPages.shortcutPage();
+                else if (modulePage.equals(ABOUT)) aboutPages.aboutPage();
                 // 名词解释从「模块设置」点进去时 tab 还是 MODULE，原先把 TAB 分支写在前面，
                 // 结果整页仍画成模块设置首页，看起来就是「点了没反应」，切到「功能」才显示。
                 else if (category.equals(TERMS)) glossary();
@@ -413,7 +423,7 @@ public final class MainActivity extends Activity {
         autoplay = false;
     }
 
-    private View header() {
+    View header() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(ink.dp(20), ink.dp(14), ink.dp(16), ink.dp(10));
@@ -523,23 +533,23 @@ public final class MainActivity extends Activity {
     }
 
     /** 字体条目是页内操作（目录、字体列表、应用），没有开关，也不计入开启数量。 */
-    private static boolean isFontNode(String id) { return id.startsWith("font."); }
+    static boolean isFontNode(String id) { return id.startsWith("font."); }
 
     /**
      * 没有开关、点进去只做修改的页内操作项：字体（挑字体、应用）与「显示信息修改」
      * （把设备状态的四项显示开关收进一页）。它们不计入「已开启 / 总数」。
      */
-    private static boolean isPageNode(String id) { return isFontNode(id) || id.equals("lock.ext.edit"); }
+    static boolean isPageNode(String id) { return isFontNode(id) || id.equals("lock.ext.edit"); }
 
     /** 「显示信息修改」页里的四项显示开关，顺序即锁屏上从左到右的顺序。 */
-    private static final String[] EXT_ITEMS = {"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"};
+    static final String[] EXT_ITEMS = {"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"};
 
     /**
      * 点大功能卡片不经过分类列表、直接落到某个功能页的分类：
      * 字体那一页全是页内操作；「快捷面板修改」原来中间那页只摆一个开关，四格编辑器全收在
      * 「快捷面板按钮」页里，多一层没有内容的列表没有意义。返回值同时让返回跳过这一层。
      */
-    private static String landingFeature(Guide.Category c) {
+    static String landingFeature(Guide.Category c) {
         String only = "";
         int count = 0;
         for (String[] section : c.sections) for (int i = 1; i < section.length; i++) { count++; only = section[i]; }
@@ -548,7 +558,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 标题下方的单行状态：只留「待重启 / 异常」，不再统计开启数量。 */
-    private View headerStats() {
+    View headerStats() {
         if (snapshot == null) return null;
         int pending = 0, faults = 0;
         String firstFault = "";
@@ -579,7 +589,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 单个状态项：数字与标签同行，比原 stat() 卡片紧凑。 */
-    private View statInline(String number, String label) {
+    View statInline(String number, String label) {
         LinearLayout box = new LinearLayout(this);
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setPadding(0, 0, ink.dp(20), 0);
@@ -591,7 +601,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 最近一次操作的结果；不再每次弹窗，失败和页面级操作才弹出完整内容。 */
-    private View messageBar() {
+    View messageBar() {
         if (message.isEmpty() && !busy) return null;
         // 「不显示」时不占用界面空间，直接不画这条提示。
         if (!busy && noticeSeconds <= 0) return null;
@@ -627,7 +637,7 @@ public final class MainActivity extends Activity {
      * 结果提示条到期后自动消失。失败提示必须一直留着由用户手动关闭，
      * 所以失败时不启动计时；「不显示」时同样不计时。
      */
-    private void scheduleNoticeDismiss() {
+    void scheduleNoticeDismiss() {
         noticeHandler.removeCallbacksAndMessages(null);
         noticeSeq++;
         if (messageFailed || busy) return;
@@ -642,12 +652,12 @@ public final class MainActivity extends Activity {
     }
 
     /** 立刻清掉待触发的自动消失计时（关闭按钮、页面切换时用）。 */
-    private void dismissNotice() {
+    void dismissNotice() {
         noticeHandler.removeCallbacksAndMessages(null);
         noticeSeq++;
     }
 
-    private View navigation() {
+    View navigation() {
         LinearLayout nav = new LinearLayout(this);
         nav.setPadding(ink.dp(8), ink.dp(6), ink.dp(8), ink.dp(6));
         for (int i = 0; i < TABS.length; i++) {
@@ -676,7 +686,7 @@ public final class MainActivity extends Activity {
         return nav;
     }
 
-    private void switchTab(String next) {
+    void switchTab(String next) {
         if (next.equals(tab)) {
             // 再点一次「功能」回到分类首页；「模块设置」回到它的入口页。
             // 「字体」「快捷面板修改」这类没有中间分类页的大功能是直接落到功能页的，
@@ -693,12 +703,12 @@ public final class MainActivity extends Activity {
     }
 
     /** 从功能页跳进「模块设置」的指定子页（安装/诊断）。 */
-    private void openModule(String page) {
+    void openModule(String page) {
         modulePage = page;
         if (tab.equals(MODULE)) render();
         else switchTab(MODULE);
     }
-    private void navigate(String nextCategory, String nextFeature) {
+    void navigate(String nextCategory, String nextFeature) {
         if (scroll != null) scrollPositions.put(pageKey(), scroll.getScrollY());
         if (!nextFeature.equals(featureId)) { preview = ""; holdMode = ""; holdDraft = null; }
         // 进入新的下一级页面从顶部开始；返回上一级时保留原位置。
@@ -707,7 +717,7 @@ public final class MainActivity extends Activity {
         scroll = null;
         render();
     }
-    private void openFeature(String id) {
+    void openFeature(String id) {
         String destination = Guide.destination(id);
         navigate(FeatureCatalog.get(destination).group, destination);
     }
@@ -722,7 +732,7 @@ public final class MainActivity extends Activity {
         render();
     }
 
-    private void home() {
+    void home() {
         ApplicationServices.Snapshot s = snapshot;
         // 状态概览（已开启/待重启/异常）已合并到标题下方的一行（headerStats）。
         if (!s.ready()) {
@@ -758,7 +768,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 分类入口卡：只有分类名、一行简介和异常提示，不再统计「已开启 / 总数」。 */
-    private View categoryCard(Guide.Category c, int bad, View.OnClickListener click) {
+    View categoryCard(Guide.Category c, int bad, View.OnClickListener click) {
         LinearLayout card = new LinearLayout(this);
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(ink.dp(18), ink.dp(16), ink.dp(14), ink.dp(16));
@@ -781,7 +791,7 @@ public final class MainActivity extends Activity {
         return card;
     }
 
-    private View navCard(String title, String text, String meta, boolean strong, String description, View.OnClickListener click) {
+    View navCard(String title, String text, String meta, boolean strong, String description, View.OnClickListener click) {
         return navCard(title, text, meta, strong, description, click, true);
     }
 
@@ -790,7 +800,7 @@ public final class MainActivity extends Activity {
      * 再叠一层圆角 14 的框会在四角错开、直边叠成 4px，看着像「方框里套了个扁圆框」。
      * 采用与普通功能行同一套处理：常态透明露出分组描边，按下时加粗框（圆角 12 与外框一致）。
      */
-    private View navCard(String title, String text, String meta, boolean strong, String description,
+    View navCard(String title, String text, String meta, boolean strong, String description,
                          View.OnClickListener click, boolean framed) {
         LinearLayout card = new LinearLayout(this);
         card.setGravity(Gravity.CENTER_VERTICAL);
@@ -808,10 +818,10 @@ public final class MainActivity extends Activity {
         return card;
     }
 
-    private void glossary() {
+    void glossary() {
         for (Map.Entry<String, String> term : Guide.TERMS.entrySet()) body.addView(spaced(termView(term.getKey(), term.getValue()), 16));
     }
-    private View termView(String term, String text) {
+    View termView(String term, String text) {
         return column(ink.text(term, 16, Ink.BOLD), spaced(paragraph(text, 14), 4));
     }
 
@@ -820,9 +830,9 @@ public final class MainActivity extends Activity {
     // ───────────────────────── 系统应用卸载 / 还原 ─────────────────────────
 
     /** 首页分类名；这一页是独立界面，不走功能开关列表（sections 为空，渲染在此特判）。 */
-    private static final String SYSAPP_CATEGORY = "系统应用卸载/还原";
+    static final String SYSAPP_CATEGORY = "系统应用卸载/还原";
     /** 预置的系统应用：{包名, 显示名}，顺序即页面顺序。 */
-    private static final String[][] SYS_APPS = {
+    static final String[][] SYS_APPS = {
             {"com.hmct.updater", "系统更新"},
             {"com.tencent.android.location", "腾讯位置服务"},
             // 只在配置工作资料 / 设备所有者 / 影子应用时才用到；冻结后进程即消失且不会回来。
@@ -831,84 +841,11 @@ public final class MainActivity extends Activity {
             {"com.android.managedprovisioning", "工作设置"},
     };
     /** 包名 → installed / removed / absent；没有条目表示还没读到。 */
-    private final Map<String, String> sysAppStates = new java.util.HashMap<>();
-    private String sysAppPageKey = "";
+    final Map<String, String> sysAppStates = new java.util.HashMap<>();
+    String sysAppPageKey = "";
 
-    private void sysAppPage() {
-        String key = pageKey();
-        if (!key.equals(sysAppPageKey)) {
-            // 每次重新进入这一页都重读一遍，避免看到离开前的旧状态
-            sysAppPageKey = key;
-            sysAppStates.clear();
-            body.postDelayed(() -> { if (!busy) perform("读取卸载状态", this::readSysAppStates, false); }, 60);
-        }
-        // 页头已经有分类名与 intro，这里只补一句「卸载到底做了什么」，不再重复标题
-        body.addView(card(column(paragraph("「卸载」只从机主账号移除，系统文件保留，点「还原」即可装回。", 14))));
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setBackground(ink.outline(12));
-        for (int i = 0; i < SYS_APPS.length; i++) {
-            if (i > 0) list.addView(ink.rule(1));
-            list.addView(sysAppRow(SYS_APPS[i][0], SYS_APPS[i][1]));
-        }
-        body.addView(spaced(list, 18));
-        body.addView(spaced(paragraph("常驻组件不在此列：冻结压不住，卸载会让系统软重启。", 13), 10));
-        body.addView(spaced(ink.button("重新读取状态", Ink.Kind.SECONDARY,
-                v -> perform("读取卸载状态", this::readSysAppStates, false)), 14));
-    }
-
-    private View sysAppRow(String pkg, String name) {
-        String state = sysAppStates.get(pkg);
-        boolean installed = "installed".equals(state);
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(ink.dp(16), ink.dp(14), ink.dp(12), ink.dp(14));
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.addView(ink.text(name, 17, Ink.MEDIUM));
-        content.addView(spaced(paragraph(pkg, 12), 4));
-        content.addView(spaced(ink.text("状态：" + sysAppStateLabel(state), 13, installed ? Ink.BOLD : Ink.REGULAR), 5));
-        row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView action = installed
-                ? ink.button("卸载", Ink.Kind.DANGER, v -> confirm("卸载「" + name + "」",
-                        "只从机主账号里移除，系统分区里的原始文件不动；以后在任何时候点「还原」都能原样装回。", () ->
-                                perform("卸载「" + name + "」", () -> sysAppChange(pkg, name, true), false)))
-                : ink.button("还原", Ink.Kind.SECONDARY, v ->
-                        perform("还原「" + name + "」", () -> sysAppChange(pkg, name, false), false));
-        row.addView(action);
-        return row;
-    }
-
-    /** 执行卸载或还原，并把新状态记下来；返回值直接作为顶部提示条。 */
-    private String sysAppChange(String pkg, String name, boolean remove) throws Exception {
-        if (remove) services.sysAppRemove(pkg); else services.sysAppRestore(pkg);
-        String state = services.sysAppState(pkg)[0];
-        sysAppStates.put(pkg, state);
-        return name + "：" + sysAppStateLabel(state);
-    }
-
-    /** 一次读完所有预置应用的状态，返回给提示条；perform 成功后会自动重画页面。 */
-    private String readSysAppStates() throws Exception {
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < SYS_APPS.length; i++) {
-            String state;
-            try { state = services.sysAppState(SYS_APPS[i][0])[0]; } catch (Exception error) { state = ""; }
-            if (!state.isEmpty()) sysAppStates.put(SYS_APPS[i][0], state);
-            if (i > 0) out.append('\n');
-            out.append(SYS_APPS[i][1]).append('：').append(sysAppStateLabel(state));
-        }
-        return out.toString();
-    }
-
-    private static String sysAppStateLabel(String state) {
-        if ("installed".equals(state)) return "已安装";
-        if ("removed".equals(state)) return "已卸载";
-        if ("absent".equals(state)) return "设备上没有这个应用";
-        return "未读取";
-    }
-
-    private void categoryPage(Guide.Category c) {
-        if (SYSAPP_CATEGORY.equals(c.name)) { sysAppPage(); return; }
+    void categoryPage(Guide.Category c) {
+        if (SYSAPP_CATEGORY.equals(c.name)) { sysAppPages.sysAppPage(); return; }
         // 翻页动画有自己的编号小节与阅读器卡片，其余大功能一律走通用紧凑页。
         if (c.name.equals("翻页动画")) { pageAnimPage(); return; }
         compactCategoryPage(c);
@@ -918,7 +855,7 @@ public final class MainActivity extends Activity {
      * 全局大功能页：分区标题（带编号）＋ 下拉／单行开关，说明文字全部收进详情页。
      * 页内操作、名单编辑、带预览或自定义输入的项留一个「名称 ›」入口，不丢功能。
      */
-    private void compactCategoryPage(Guide.Category c) {
+    void compactCategoryPage(Guide.Category c) {
         // 只有一个分组的分类（体感）不再画「01 行为」这种编号小标题：页头已经说明这一页是什么，
         // 编号只剩一个反而占掉一行。
         boolean single = c.sections.length == 1;
@@ -956,12 +893,12 @@ public final class MainActivity extends Activity {
     }
 
     /** 锁屏主题的分类页：标题行右上角挂「刷新格言」，页内不再单列一块。 */
-    private boolean isLockTheme() {
+    boolean isLockTheme() {
         return tab.equals(FEATURES) && featureId.isEmpty() && "锁屏显示".equals(category);
     }
 
     /** 「刷新格言」小徽标：与首页「关于」同一套样式，点一下让原厂格言往前跳一条。 */
-    private TextView mottoBadge() {
+    TextView mottoBadge() {
         TextView badge = ink.text("刷新格言", 13, Ink.MEDIUM);
         badge.setPadding(ink.dp(12), ink.dp(7), ink.dp(12), ink.dp(7));
         badge.setBackground(ink.pressable(ink.outline(16), ink.solid(16)));
@@ -972,7 +909,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 这些项有自己的编辑页／预览／名单，紧凑行放不下，给一个入口即可。 */
-    private static boolean compactSpecial(String id) {
+    static boolean compactSpecial(String id) {
         FeatureDefinition f = FeatureCatalog.get(id);
         return isPageNode(id) || id.equals("sys.backup") || id.equals("lock.countdown")
                 || id.equals("lock.style") || id.equals("desktop.theme") || id.equals("desktop.icons")
@@ -984,7 +921,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 「名称 ›」入口行：点进原详情页，右侧顺带显示当前值。 */
-    private View entryRow(FeatureDefinition f) {
+    View entryRow(FeatureDefinition f) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(ink.dp(14), ink.dp(11), ink.dp(12), ink.dp(11));
@@ -1002,7 +939,7 @@ public final class MainActivity extends Activity {
      * 「显示信息修改」：点标题就地展开四项，每项前面一个方框，勾一项存一项。
      * 收起时右侧显示「2 / 4」，跟下拉行一样只占一行，不占版面。
      */
-    private View lockExtBlock() {
+    View lockExtBlock() {
         LinearLayout block = new LinearLayout(this);
         block.setOrientation(LinearLayout.VERTICAL);
         int on = 0;
@@ -1030,7 +967,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 展开后的一行：方框 + 名称，点一下勾选／取消并立即保存。 */
-    private View lockExtItem(FeatureDefinition f) {
+    View lockExtItem(FeatureDefinition f) {
         boolean on = snapshot.config.requested(f.id);
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -1053,7 +990,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 自绘方框：系统 CheckBox 在灰度墨水屏上靠不住，实心就代表已勾选。 */
-    private View checkBox(boolean checked) {
+    View checkBox(boolean checked) {
         View box = new View(this);
         box.setBackground(checked ? ink.box(Ink.INK, Ink.INK, 2, 3) : ink.box(Ink.PAPER, Ink.INK, 2, 3));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ink.dp(18), ink.dp(18));
@@ -1068,7 +1005,7 @@ public final class MainActivity extends Activity {
      * <p>只放三个最常用的入口——遮挡息屏、锁屏主题、自动刷新——开关就地能改，点进去分别是
      * 完整的功能页（延时、版式、触发次数等细项都在那边）。首页的分类列表不列这一页。
      */
-    private void quickPage() {
+    void quickPage() {
         body.addView(card(column(paragraph("常用三项放在一页，开关直接改；点进每一项可以调细节。", 14))));
         String[] ids = {"wave.lock", "lock.style", "refresh.master"};
         LinearLayout list = new LinearLayout(this);
@@ -1086,7 +1023,7 @@ public final class MainActivity extends Activity {
      * 「翻页动画」专用页：参数用下拉、操作用单行开关，一屏就能看完。
      * 对齐原插件「02 选择翻页风格」那种紧凑排法，不再铺「它做什么」＋六张选项卡片。
      */
-    private void pageAnimPage() {
+    void pageAnimPage() {
         LinearLayout master = new LinearLayout(this);
         master.setOrientation(LinearLayout.VERTICAL);
         master.setBackground(ink.outline(12));
@@ -1119,17 +1056,17 @@ public final class MainActivity extends Activity {
         body.addView(spaced(ink.text("03 目标阅读器", 20, Ink.BOLD), 22));
         FeatureDefinition readers = FeatureCatalog.get("pageanim.readers");
         String current = snapshot.config.value(readers.id);
-        List<String> chosen = plainList(current);
+        List<String> chosen = ListEditors.plainList(current);
         LinearLayout box = column(
                 ink.text(chosen.isEmpty() ? "未选择阅读器" : "目标阅读器", 15, Ink.MEDIUM),
                 spaced(paragraph(chosen.isEmpty() ? "不选则动画不触发；上下滚动仍走原厂刷新。" : String.join("、", chosen), 13), 5));
         box.addView(spaced(ink.button("选择阅读器", Ink.Kind.SECONDARY,
-                v -> appPickerDialog(readers, snapshot.config.requested(readers.id), current, true)), 10));
+                v -> listEditors.appPickerDialog(readers, snapshot.config.requested(readers.id), current, true)), 10));
         body.addView(card(box));
     }
 
     /** 一行「标签 + 当前值 ▾」：点右侧出单选列表，点标签进原详情页（自定义值、预览都在那里）。 */
-    private View dropdownRow(FeatureDefinition f, String label) {
+    View dropdownRow(FeatureDefinition f, String label) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(ink.dp(14), ink.dp(13), ink.dp(12), ink.dp(13));
@@ -1146,7 +1083,7 @@ public final class MainActivity extends Activity {
      * 不靠勾选图标或高亮底色（墨水屏上灰度不可靠）。选完即保存，不用预览＋使用两步。
      * 允许手动输入数值的项把「自定义」放在最上面；已经输入过就直接显示「4次(自定义)」。
      */
-    private void showOptionDialog(FeatureDefinition f, String label) {
+    void showOptionDialog(FeatureDefinition f, String label) {
         List<String> values = realValues(f);
         // 数值项的预设一律按数值从小到大排（遮挡延时、周期性刷新都是）。目录里的首值
         // 仍是默认档，显示顺序不影响默认值；比如周期性刷新默认 5 分钟，列表仍从 1 分钟起。
@@ -1191,7 +1128,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 选中项上下的那条粗线：2dp 实线，颜色与正文一致。 */
-    private View optionMark() {
+    View optionMark() {
         View line = new View(this);
         line.setBackgroundColor(Ink.INK);
         line.setLayoutParams(new LinearLayout.LayoutParams(-1, ink.dp(2)));
@@ -1199,7 +1136,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 紧凑开关行：只留名字和 Switch，点名字仍可进原详情页。 */
-    private View smallToggleRow(String id) {
+    View smallToggleRow(String id) {
         FeatureDefinition f = FeatureCatalog.get(id);
         boolean requested = snapshot.config.requested(id);
         LinearLayout row = new LinearLayout(this);
@@ -1212,14 +1149,14 @@ public final class MainActivity extends Activity {
         return row;
     }
 
-    private View compactToggleRow(String id) { return compactToggleRow(id, false); }
+    View compactToggleRow(String id) { return compactToggleRow(id, false); }
 
     /**
      * 单行「标题 + 状态 + 开关」：状态（已生效 / 待重启 / 异常）挤到开关左侧，不再单独占一行。
      * 翻页动画总开关这类只有开关、没有参数的项用它，比三行的 {@link #featureRow} 省一半高度。
      * chevron=true 时右侧再加一个「›」，表示点标题还能进详情页（锁屏倒数日这种带编辑页的项）。
      */
-    private View compactToggleRow(String id, boolean chevron) {
+    View compactToggleRow(String id, boolean chevron) {
         FeatureDefinition f = FeatureCatalog.get(id);
         boolean requested = snapshot.config.requested(id);
         boolean pending = busy && id.equals(pendingId);
@@ -1242,10 +1179,10 @@ public final class MainActivity extends Activity {
         return row;
     }
 
-    private View featureRow(FeatureDefinition feature) { return featureRow(feature, true); }
+    View featureRow(FeatureDefinition feature) { return featureRow(feature, true); }
 
     /** {@code links} 为假时只留开关、不显示「›」也不可点（用于收在子页里的行）。 */
-    private View featureRow(FeatureDefinition feature, boolean links) {
+    View featureRow(FeatureDefinition feature, boolean links) {
         if (DisplayAlgorithms.algorithmFeature(feature.id)) {
             String scope = DisplayAlgorithms.scope(feature.id);
             String chosen = snapshot.config.requested(feature.id) ? snapshot.config.value(feature.id) : "default";
@@ -1273,11 +1210,11 @@ public final class MainActivity extends Activity {
         }
         // 「备份系统设置」也是页内操作项：列表里显示有几张快照，不画开关
         if (feature.id.equals("sys.backup")) {
-            if (backups == null && !backupsLoading) loadBackups();
+            if (backups == null && !backupsLoading) backupPages.loadBackups();
             String meta;
             if (backups == null) meta = "正在读取…";
             else if (backups.isEmpty()) meta = "还没有快照";
-            else meta = backups.size() + " 个快照 · 最近 " + stamp(backups.get(0)[1]);
+            else meta = backups.size() + " 个快照 · 最近 " + BackupPages.stamp(backups.get(0)[1]);
             return navCard(feature.title, Guide.get(feature.id).summary, meta, backups != null && !backups.isEmpty(),
                     feature.title + "，打开备份", v -> openFeature(feature.id), false);
         }
@@ -1336,22 +1273,22 @@ public final class MainActivity extends Activity {
     }
 
     /** 列表里显示的当前选择；只有一个选项的功能不显示。 */
-    private String valueSummary(FeatureDefinition f, String value, boolean on) {
-        if (f.id.equals("motion.hold")) return on ? holdSummary(value) : "温度自适应";
+    String valueSummary(FeatureDefinition f, String value, boolean on) {
+        if (f.id.equals("motion.hold")) return on ? holdEditors.holdSummary(value) : "温度自适应";
         if (f.id.equals("refresh.apps")) {
             String mode = FeatureDefinition.filterWhitelist(value) ? "白名单" : "黑名单";
             int count = appList(value).size();
             return count == 0 ? mode : mode + " · " + count + " 个应用";
         }
         if (f.id.equals("pageanim.readers")) {
-            int count = plainList(value).size();
+            int count = ListEditors.plainList(value).size();
             return count == 0 ? "未选择阅读器" : count + " 个阅读器";
         }
         List<String> real = realValues(f);
         if (real.size() <= 1) return "";
         return Guide.optionName(f, value);
     }
-    private static List<String> realValues(FeatureDefinition f) {
+    static List<String> realValues(FeatureDefinition f) {
         List<String> result = new ArrayList<>(f.values);
         result.remove(FeatureDefinition.CURVE_TOKEN);
         result.remove(FeatureDefinition.NUMBER_TOKEN);
@@ -1363,7 +1300,7 @@ public final class MainActivity extends Activity {
         return result;
     }
 
-    private LinearLayout titleLine(FeatureDefinition feature, float sp, boolean rebootPending) {
+    LinearLayout titleLine(FeatureDefinition feature, float sp, boolean rebootPending) {
         LinearLayout line = new LinearLayout(this);
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.addView(ink.text(feature.title, sp, Ink.MEDIUM));
@@ -1374,7 +1311,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 不让 CompoundButton 自行翻转：只有提交成功的更改才改变显示状态。 */
-    private CompoundButton toggle(FeatureDefinition feature, boolean shown, boolean requested) {
+    CompoundButton toggle(FeatureDefinition feature, boolean shown, boolean requested) {
         CompoundButton toggle = new CompoundButton(this) {
             @Override public void toggle() { }
             @Override public CharSequence getAccessibilityClassName() { return Switch.class.getName(); }
@@ -1396,16 +1333,16 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 功能：详情页 ─────────────────────────
 
-    private void featurePage(FeatureDefinition f) {
+    void featurePage(FeatureDefinition f) {
         if (DisplayAlgorithms.algorithmFeature(f.id)) { displayAlgorithmPage(f); return; }
         // 字体是「页内操作」，没有开关：目录、字体列表、选择器、恢复与刷新全在一页
-        if (isFontNode(f.id)) { fontPage(f); return; }
+        if (isFontNode(f.id)) { fontPages.fontPage(f); return; }
         // 「显示信息修改」：四项显示开关收在一页，本页自己没有开关
         if (f.id.equals("lock.ext.edit")) { extItemsPage(f); return; }
         // 「备份系统设置」：进去是操作页（拍快照 / 列快照 / 写回），没有开关
-        if (f.id.equals("sys.backup")) { backupPage(); return; }
+        if (f.id.equals("sys.backup")) { backupPages.backupPage(); return; }
         // 「快捷面板修改」：整页只有总开关和按钮顺序，交给专用页
-        if (f.id.equals("qs.panel")) { quickPanelPage(); return; }
+        if (f.id.equals("qs.panel")) { panelPages.quickPanelPage(); return; }
         ApplicationServices.Snapshot s = snapshot;
         Guide.Entry g = Guide.get(f.id);
         boolean requested = s.config.requested(f.id);
@@ -1455,13 +1392,13 @@ public final class MainActivity extends Activity {
         }
 
         // 2. 名单编辑器（模式 + 应用），放在说明之前
-        if (f.id.equals("refresh.apps")) appsFilterEditor(f, requested, current);
+        if (f.id.equals("refresh.apps")) listEditors.appsFilterEditor(f, requested, current);
         // 2a. 翻页动画的目标阅读器：纯包名逗号列表，没有白/黑名单模式
-        if (f.id.equals("pageanim.readers")) pageReadersEditor(f, requested, current);
+        if (f.id.equals("pageanim.readers")) listEditors.pageReadersEditor(f, requested, current);
         // 2b. 倒数日事项编辑器：合并到「锁屏倒数日」页内，数据仍写 lock.countdowns
         if (f.id.equals("lock.countdown")) {
             String stored = busy && "lock.countdowns".equals(pendingId) ? pendingValue : s.config.value("lock.countdowns");
-            countdownEditor(FeatureCatalog.get("lock.countdowns"), stored);
+            listEditors.countdownEditor(FeatureCatalog.get("lock.countdowns"), stored);
         }
         // 2c. 字体页自己处理全部内容（目录 / 列表 / 选择器 / 恢复 / 刷新），这里不再插编辑器
         // 3. 说明：直接给正文，不再套「它做什么」这种没有信息量的小标题
@@ -1481,7 +1418,7 @@ public final class MainActivity extends Activity {
         // 4. 开启前后
         if (!g.before.isEmpty() || !g.after.isEmpty()) body.addView(spaced(beforeAfter(g), 20));
         // 5. 选项
-        if (g.visual == Guide.Visual.HOLD_CURVE) holdEditor(f, requested, current);
+        if (g.visual == Guide.Visual.HOLD_CURVE) holdEditors.holdEditor(f, requested, current);
         else if (realValues(f).size() > 1) options(f, g, requested, current, selected);
         // 5b. 锁屏样式的大预览：挪到选项列表下方，选完往上对一眼效果。
         //      「使用此主题」跟着标题行走（见 visual()），不再在图片下面重复一颗大按钮。
@@ -1512,7 +1449,7 @@ public final class MainActivity extends Activity {
      * 「显示信息修改」：把设备状态条的四项显示开关收进一页。
      * 本页自己没有开关（值是 {@code @panel}），改的都是 lock.ext.*。
      */
-    private void extItemsPage(FeatureDefinition f) {
+    void extItemsPage(FeatureDefinition f) {
         ApplicationServices.Snapshot s = snapshot;
         Guide.Entry g = Guide.get(f.id);
         int shown = 0;
@@ -1543,7 +1480,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 算法页直接选值，保持现状即撤下本页覆盖；不改旧视频、锁屏细线或独立迟滞。 */
-    private void displayAlgorithmPage(FeatureDefinition feature) {
+    void displayAlgorithmPage(FeatureDefinition feature) {
         String scope = DisplayAlgorithms.scope(feature.id);
         com.inkcontrol.core.Configuration config = snapshot.config;
         Guide.Entry guide = Guide.get(feature.id);
@@ -1577,7 +1514,7 @@ public final class MainActivity extends Activity {
         if (scope.equals("video")) body.addView(spaced(paragraph("旧实验室的视频选择继续保存在配置中，本页选「保持现状」即可沿用。新算法选择优先；恢复默认不会清除旧选择。", 14), 12));
     }
 
-    private String displayBaseline(String scope) {
+    String displayBaseline(String scope) {
         if (DisplayAlgorithms.gray(scope)) return "沿用原有16级灰阶处理，由原分支决定是否需要抖动；需要抖动且符合锁屏细线条件时，仍沿用「消除锁屏细线」的点量化。该项当前"
                 + (snapshot.config.enabled("lock.dither") ? "已开启。" : "未开启。" );
         FeatureDefinition feature = FeatureCatalog.get("display.alg." + scope);
@@ -1585,7 +1522,7 @@ public final class MainActivity extends Activity {
                 + (scope.equals("video") && snapshot.config.enabled("experiment.video") ? "（沿用旧视频选择）。" : "。");
     }
 
-    private void displayHysteresis(String scope) {
+    void displayHysteresis(String scope) {
         com.inkcontrol.core.Configuration config = snapshot.config;
         if (!config.enabled("display.gpu")) {
             body.addView(spaced(section("独立迟滞", paragraph("开启 GPU 显示后端后，可按当前算法设置。视频默认开启，快速和极速默认关闭。", 14)), 20));
@@ -1619,7 +1556,7 @@ public final class MainActivity extends Activity {
         body.addView(spaced(card(row), 20));
     }
 
-    private void saveDisplayChoice(String id, String value, String label) {
+    void saveDisplayChoice(String id, String value, String label) {
         boolean enabled = !value.equals("default");
         if (!begin(id, enabled, value)) return;
         perform("保存「" + label + "」", () -> {
@@ -1628,23 +1565,23 @@ public final class MainActivity extends Activity {
         }, false);
     }
 
-    private void dependencyHint(LinearLayout card, String dependency, String text) {
+    void dependencyHint(LinearLayout card, String dependency, String text) {
         card.addView(spaced(ink.rule(1), 14));
         card.addView(spaced(paragraph(text, 14), 12));
         card.addView(spaced(ink.button("前往「" + FeatureCatalog.get(dependency).title + "」", Ink.Kind.SECONDARY, v -> openFeature(dependency)), 10));
     }
 
-    private View section(String title, View content) {
+    View section(String title, View content) {
         return column(ink.text(title, 18, Ink.BOLD), spaced(content, 8));
     }
 
-    private View beforeAfter(Guide.Entry g) {
+    View beforeAfter(Guide.Entry g) {
         LinearLayout box = column(ink.text("开启前后", 18, Ink.BOLD));
         if (!g.before.isEmpty()) box.addView(spaced(compare("开启前", g.before, false), 10));
         if (!g.after.isEmpty()) box.addView(spaced(compare("开启后", g.after, true), 8));
         return box;
     }
-    private View compare(String label, String text, boolean after) {
+    View compare(String label, String text, boolean after) {
         LinearLayout row = new LinearLayout(this);
         row.setPadding(ink.dp(14), ink.dp(12), ink.dp(14), ink.dp(12));
         row.setBackground(ink.box(Ink.PAPER, Ink.INK, after ? 2.5f : 1, 10));
@@ -1659,9 +1596,9 @@ public final class MainActivity extends Activity {
 
     // ── 演示与示意图 ──
 
-    private int width() { return getResources().getDisplayMetrics().widthPixels - ink.dp(32); }
+    int width() { return getResources().getDisplayMetrics().widthPixels - ink.dp(32); }
 
-    private View visual(FeatureDefinition f, Guide.Entry g, String value) {
+    View visual(FeatureDefinition f, Guide.Entry g, String value) {
         ApplicationServices.Snapshot s = snapshot;
         switch (g.visual) {
             case MOTION_SCENE: {
@@ -1709,7 +1646,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private MotionDemo demo(String scene, String style, int steps, String origin, String direction, int spread) {
+    MotionDemo demo(String scene, String style, int steps, String origin, String direction, int spread) {
         // 全刷扫过用自己的方向、速度与形状，别让「动画擦除方向 / 波形动画速度」的取值带进预览。
         if ("gc_clear".equals(scene)) { direction = gcDirection(); spread = gcSpread(); }
         MotionDemo demo = new MotionDemo(this, ink, false).configure(scene, style, steps, origin, direction, spread);
@@ -1717,7 +1654,7 @@ public final class MainActivity extends Activity {
         mainDemo = demo;
         return demo;
     }
-    private View demoBox(String title, MotionDemo demo, String caption) {
+    View demoBox(String title, MotionDemo demo, String caption) {
         int w = Math.min(ink.dp(220), width() - ink.dp(40));
         FrameLayout frame = new FrameLayout(this);
         frame.setPadding(ink.dp(5), ink.dp(5), ink.dp(5), ink.dp(5));
@@ -1731,9 +1668,9 @@ public final class MainActivity extends Activity {
         box.addView(spaced(paragraph("点按画面播放一次。演示把时间放慢，方便看清过程。" + (caption.isEmpty() ? "" : "\n" + caption), 13), 10));
         return box;
     }
-    private View framed(String title, View content, String caption) { return framed(title, content, caption, null); }
+    View framed(String title, View content, String caption) { return framed(title, content, caption, null); }
     /** {@code action} 非空时挂在标题行右侧，省得为了一个按钮再滚一屏。 */
-    private View framed(String title, View content, String caption, View action) {
+    View framed(String title, View content, String caption, View action) {
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.addView(ink.text(title, 18, Ink.BOLD), new LinearLayout.LayoutParams(0, -2, 1));
@@ -1743,7 +1680,7 @@ public final class MainActivity extends Activity {
         if (!caption.isEmpty()) box.addView(spaced(paragraph(caption, 13), 10));
         return box;
     }
-    private View phone(View screen, int frameWidth) {
+    View phone(View screen, int frameWidth) {
         FrameLayout frame = new FrameLayout(this);
         frame.setPadding(ink.dp(6), ink.dp(6), ink.dp(6), ink.dp(6));
         frame.setBackground(ink.box(Ink.PAPER, Ink.INK, 2.5f, 22));
@@ -1758,7 +1695,7 @@ public final class MainActivity extends Activity {
         frame.setLayoutParams(params);
         return frame;
     }
-    private View widget(String theme, String kind) {
+    View widget(String theme, String kind) {
         FrameLayout frame = new FrameLayout(this);
         frame.setPadding(ink.dp(2), ink.dp(2), ink.dp(2), ink.dp(2));
         frame.setBackground(ink.outline(12));
@@ -1772,21 +1709,21 @@ public final class MainActivity extends Activity {
     }
 
     /** 当前设置下的动画参数；子项未开启时取运行端的默认值。 */
-    private int steps() { return snapshot.config.enabled("motion.steps") ? Integer.parseInt(snapshot.config.value("motion.steps")) : 2; }
-    private String origin() { return snapshot.config.enabled("motion.origin") ? snapshot.config.value("motion.origin") : "touch"; }
-    private String direction() { return snapshot.config.enabled("motion.direction") ? snapshot.config.value("motion.direction") : "auto"; }
+    int steps() { return snapshot.config.enabled("motion.steps") ? Integer.parseInt(snapshot.config.value("motion.steps")) : 2; }
+    String origin() { return snapshot.config.enabled("motion.origin") ? snapshot.config.value("motion.origin") : "touch"; }
+    String direction() { return snapshot.config.enabled("motion.direction") ? snapshot.config.value("motion.direction") : "auto"; }
     /** 全刷扫过自己的方向；auto 时沿用原厂「从左向右」。 */
-    private String gcDirection() { return snapshot.config.enabled("motion.gc_direction") ? snapshot.config.value("motion.gc_direction") : "auto"; }
+    String gcDirection() { return snapshot.config.enabled("motion.gc_direction") ? snapshot.config.value("motion.gc_direction") : "auto"; }
     /** 场景取哪个方向：全刷扫过用独立设置，其余共用「擦除方向」。 */
-    private String sceneDirection(String id) { return "motion.gc_clear".equals(id) ? gcDirection() : direction(); }
-    private int spread() { return snapshot.config.enabled("motion.spread") ? Integer.parseInt(snapshot.config.value("motion.spread")) : 12; }
+    String sceneDirection(String id) { return "motion.gc_clear".equals(id) ? gcDirection() : direction(); }
+    int spread() { return snapshot.config.enabled("motion.spread") ? Integer.parseInt(snapshot.config.value("motion.spread")) : 12; }
     /** 全刷扫过自己的速度；没单独设置时跟随「波形动画速度」。 */
-    private int gcSpread() { return snapshot.config.enabled("motion.gc_speed") ? Integer.parseInt(snapshot.config.value("motion.gc_speed")) : spread(); }
+    int gcSpread() { return snapshot.config.enabled("motion.gc_speed") ? Integer.parseInt(snapshot.config.value("motion.gc_speed")) : spread(); }
     /** 全刷扫过自己的形状；没单独设置时为横向展开。 */
-    private String gcStyle() { return snapshot.config.enabled("motion.gc_style") ? snapshot.config.value("motion.gc_style") : "horizontal"; }
-    private String timing(String style) {
+    String gcStyle() { return snapshot.config.enabled("motion.gc_style") ? snapshot.config.value("motion.gc_style") : "horizontal"; }
+    String timing(String style) {
         if (style.equals("kiris") || style.equals("kwipe")) {
-            int hold = currentHold();
+            int hold = holdEditors.currentHold();
             return "按当前设置，实际约 " + seconds((steps() - 1) * hold + 117) + " 秒（" + (steps() - 1) + " 张中间画面，每张停留 " + hold + " 毫秒）。";
         }
         if (style.equals("gcsweep"))
@@ -1794,11 +1731,11 @@ public final class MainActivity extends Activity {
         if (style.equals("none") || style.equals("instant") || style.equals("gc16")) return "保持原厂：画面直接切换，不额外增加刷新。";
         return "按当前设置，实际约 " + seconds(spread() * 11.65 + 117) + " 秒，仍在一次刷新内完成。";
     }
-    private static String seconds(double ms) { return String.format(Locale.ROOT, "%.2f", ms / 1000.0); }
+    static String seconds(double ms) { return String.format(Locale.ROOT, "%.2f", ms / 1000.0); }
 
     // ── 选项卡片 ──
 
-    private void options(FeatureDefinition f, Guide.Entry g, boolean requested, String current, String selected) {
+    void options(FeatureDefinition f, Guide.Entry g, boolean requested, String current, String selected) {
         boolean thumbs = g.visual == Guide.Visual.MOTION_SCENE || g.visual == Guide.Visual.LOCK_STYLE;
         // 锁屏样式的效果图比一屏还高，「使用」按钮挪到了标题行右侧，提示要跟着改；
         // 动画场景的按钮仍在列表下方。
@@ -1853,7 +1790,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 手动输入数值的卡片；当前值不在预设档位时高亮显示。 */
-    private View customNumberCard(FeatureDefinition f, boolean requested, String current, String selected) {
+    View customNumberCard(FeatureDefinition f, boolean requested, String current, String selected) {
         boolean previewing = FeatureDefinition.number(selected) != null && !f.values.contains(selected);
         String shown = previewing ? selected : current;
         boolean highlighted = FeatureDefinition.number(shown) != null && !f.values.contains(shown);
@@ -1870,7 +1807,7 @@ public final class MainActivity extends Activity {
         return card;
     }
 
-    private void customNumberDialog(FeatureDefinition f, boolean requested, String initial) {
+    void customNumberDialog(FeatureDefinition f, boolean requested, String initial) {
         EditText input = new EditText(this);
         input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         input.setText(initial);
@@ -1896,7 +1833,7 @@ public final class MainActivity extends Activity {
                 }).show();
     }
 
-    private View useButton(FeatureDefinition f, boolean requested, String selected) {
+    View useButton(FeatureDefinition f, boolean requested, String selected) {
         String name = Guide.optionName(f, selected);
         // 依赖没开时按钮只保存，不假装会开启；否则点下去像被拒了。
         String label = !enableOnSave(f) ? "保存「" + name + "」"
@@ -1905,11 +1842,11 @@ public final class MainActivity extends Activity {
     }
 
     /** 标题行右侧那一小颗：「使用此主题」。 */
-    private View useChip(FeatureDefinition f, String selected) {
+    View useChip(FeatureDefinition f, String selected) {
         return ink.chip("使用此主题", true, v -> use(f, selected));
     }
 
-    private void use(FeatureDefinition f, String selected) {
+    void use(FeatureDefinition f, String selected) {
         String name = Guide.optionName(f, selected);
         // 依赖的总开关没开时只保存取值、不顺手把这一项打开：否则会被「请先开启…」拦住，
         // 用户想先把参数配好、回头再开总开关就做不到（自动刷新的触发次数、体感的遮挡延时都是这种）。
@@ -1928,25 +1865,25 @@ public final class MainActivity extends Activity {
      * <p>「只落盘」走 {@link com.inkcontrol.core.FeatureService#changeValue}，既不触发
      * 「请先开启…」的依赖校验，也不会把原本开着的项关掉。
      */
-    private void saveValue(FeatureDefinition f, String value) throws Exception {
+    void saveValue(FeatureDefinition f, String value) throws Exception {
         if (enableOnSave(f)) change(f.id, true, value);
         else services.changeValue(f.id, value);
     }
 
     /** 沿用当前开关状态保存取值（名单、按钮格这类「改内容不改开关」的编辑器用）。 */
-    private void saveValueKeeping(FeatureDefinition f, String value) throws Exception {
+    void saveValueKeeping(FeatureDefinition f, String value) throws Exception {
         if (snapshot.config.requested(f.id) && enableOnSave(f)) change(f.id, true, value);
         else services.changeValue(f.id, value);
     }
 
     /** 保存取值时能不能顺手把这一项打开：只取决于依赖的总开关，必选参数/顶层项恒为 true。 */
-    private boolean enableOnSave(FeatureDefinition f) {
+    boolean enableOnSave(FeatureDefinition f) {
         return f.dependency.isEmpty() || snapshot.config.enabled(f.dependency);
     }
 
     // ── 应用名单：黑白名单 ──
 
-    private static List<String> appList(String value) {
+    static List<String> appList(String value) {
         List<String> result = new ArrayList<>();
         String list = FeatureDefinition.filterList(value);
         if (list.isEmpty()) return result;
@@ -1956,760 +1893,13 @@ public final class MainActivity extends Activity {
 
     // ── 快捷面板：按钮顺序、动作与两个开关 ──
 
-    private static final String[] PANEL_SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3",
+    static final String[] PANEL_SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3",
             "qs.panel.btn4", "qs.panel.btn5"};
-
-    /**
-     * 「快捷面板修改」页：总开关 + 按钮顺序 + 两个小开关。
-     *
-     * <p>总开关按「翻页动画总开关」那套单行紧凑样式画——标题、状态、开关挤在同一行，
-     * 外面只套一圈描边。以前这里是带 18dp 内边距的卡片，只有「已生效」没有名字，
-     * 既占高度又看不出开的是什么。
-     */
-    private void quickPanelPage() {
-        LinearLayout master = new LinearLayout(this);
-        master.setOrientation(LinearLayout.VERTICAL);
-        master.setBackground(ink.outline(12));
-        master.addView(compactToggleRow("qs.panel"));
-        // 作用域没注入时这页照样能看：状态会停在「等待…确认」，补一条前往诊断的入口。
-        String status = status("qs.panel");
-        if (snapshot.hooked.isEmpty() && (status.equals("等待运行确认") || status.equals("等待停用确认"))) {
-            master.addView(ink.rule(1));
-            LinearLayout hint = column(spaced(paragraph(NOT_INJECTED, 13), 10),
-                    spaced(ink.button("前往「诊断」", Ink.Kind.SECONDARY, v -> switchTab(DIAGNOSE)), 10));
-            hint.setPadding(ink.dp(14), ink.dp(10), ink.dp(14), ink.dp(12));
-            master.addView(hint);
-        }
-        body.addView(spaced(master, 10));
-        panelEditor();
-    }
-
-    /**
-     * 「快捷面板按钮」页里的一块编辑：五个位置各是什么动作（位置顺序就是按钮顺序），
-     * 下面挂「点完收起面板」与「截屏便签对齐尺寸」两个开关。挪位置靠拖动把手重排，
-     * 写回时整排动作整体搬一次，不另存一份顺序。
-     */
-    private void panelEditor() {
-        com.inkcontrol.core.Configuration config = snapshot.config;
-        // 刚拖完、root 应用还没跑完时先按「挂起的新顺序」画，省得等那一两秒。
-        String[] order = panelOrderPending != null ? panelOrderPending : new String[PANEL_SLOTS.length];
-        if (panelOrderPending == null) for (int i = 0; i < order.length; i++) order[i] = config.value(PANEL_SLOTS[i]);
-        LinearLayout panel = column(heading("按钮顺序", 18),
-                spaced(paragraph("从左到右排。按住左侧的三条横线上下拖即可换位置，点「更换」换动作。", 13), 6));
-        // 每个位置单独装一层：拖动落点是按容器子视图的中线算的，标题与按钮不能混在同一个容器里。
-        LinearLayout items = DragSort.container(this);
-        for (int i = 0; i < PANEL_SLOTS.length; i++) {
-            String id = PANEL_SLOTS[i];
-            // 每格只占容器的一格：分隔线画在包装里，不额外插视图（拖动落点按子视图中线算）。
-            LinearLayout item = new LinearLayout(this);
-            item.setOrientation(LinearLayout.VERTICAL);
-            if (i > 0) item.addView(ink.rule(1));
-            LinearLayout row = new LinearLayout(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(ink.dp(4), ink.dp(4), ink.dp(10), ink.dp(4));
-            View handle = DragSort.handle(this, ink);
-            row.addView(handle);
-            row.addView(ink.text((i + 1) + " · " + slotName(order[i]), 16, Ink.MEDIUM),
-                    new LinearLayout.LayoutParams(0, -2, 1));
-            row.addView(ink.chip("更换", false, v -> panelActionPicker(id)));
-            item.addView(row);
-            DragSort.attach(handle, item, (from, to) -> orderSlots(from, to));
-            items.addView(spaced(item, 2));
-        }
-        panel.addView(items);
-        body.addView(spaced(panel, 20));
-
-        // 两个开关放在按钮顺序下面：点行不跳页，只有开关本身能改；用和分类页一样的紧凑行。
-        LinearLayout switches = new LinearLayout(this);
-        switches.setOrientation(LinearLayout.VERTICAL);
-        switches.setBackground(ink.outline(12));
-        switches.addView(smallToggleRow("qs.panel.close"));
-        switches.addView(ink.rule(1));
-        switches.addView(smallToggleRow("qs.panel.pinsize"));
-        body.addView(spaced(switches, 12));
-
-        // 恢复默认是次要操作，压在页面底部：左边小一号按钮，右边直接跟出厂顺序本身
-        // （不再写「默认：」前缀，也不再占一行，省得整块贴着底部导航）。
-        LinearLayout reset = new LinearLayout(this);
-        reset.setOrientation(LinearLayout.HORIZONTAL);
-        reset.setGravity(Gravity.CENTER_VERTICAL);
-        reset.addView(smallButton("恢复默认顺序", v -> resetSlots()));
-        LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(0, -2, 1);
-        note.leftMargin = ink.dp(12);
-        reset.addView(ink.text("WiFi · 蓝牙 · 自动刷新 · 翻页动画 · 截屏便签", 11, Ink.REGULAR), note);
-        body.addView(spaced(reset, 18));
-    }
-
-    /** 比主按钮小一号：14sp、最小高度 40dp、宽度随文字，用在页内的次要操作上。 */
-    private TextView smallButton(String label, View.OnClickListener click) {
-        TextView view = ink.text(label, 14, Ink.MEDIUM);
-        view.setGravity(Gravity.CENTER);
-        view.setMinHeight(ink.dp(40));
-        view.setPadding(ink.dp(16), ink.dp(8), ink.dp(16), ink.dp(8));
-        view.setBackground(ink.pressable(ink.box(Ink.PAPER, Ink.INK, 1.5f, 10), ink.solid(10)));
-        view.setTextColor(ink.pressedColors(Ink.INK, Ink.PAPER));
-        view.setClickable(true);
-        view.setFocusable(true);
-        // 显式给 wrap_content：外层 spaced() 在拿不到 LayoutParams 时会按整行宽铺开。
-        view.setLayoutParams(new LinearLayout.LayoutParams(-2, -2));
-        view.setOnClickListener(click);
-        return view;
-    }
-
-    /** 某一格现在是什么：普通动作取选项名；存的是包名时显示应用名。 */
-    private String slotName(String value) {
-        FeatureDefinition slot = FeatureCatalog.get(PANEL_SLOTS[0]);
-        if (slot.values.contains(value)) return Guide.optionName(slot, value);
-        return value == null || value.isEmpty() ? "无" : appLabel(value);
-    }
-
-    private String appLabel(String pkg) {
-        try {
-            android.content.pm.PackageManager manager = getPackageManager();
-            return manager.getApplicationLabel(manager.getApplicationInfo(pkg, 0)).toString();
-        } catch (Exception error) { return pkg; }
-    }
-
-    /**
-     * 换某个位置的动作：最上面是「无」（这个位置不显示），中间是动作表，最下面是 APP。
-     * 动作表见 {@code FeatureCatalog.PANEL_ACTIONS}。
-     */
-    private void panelActionPicker(String id) {
-        String current = snapshot.config.value(id);
-        final List<String> values = new ArrayList<>();
-        final List<String> names = new ArrayList<>();
-        values.add(FeatureCatalog.PANEL_NONE); names.add("无（这个位置不显示）");
-        for (String[] action : FeatureCatalog.PANEL_ACTIONS) { values.add(action[0]); names.add(action[1]); }
-        values.add(FeatureDefinition.PACKAGE_TOKEN);
-        String app = FeatureCatalog.get(id).values.contains(current) ? "APP…" : "APP…（当前：" + appLabel(current) + "）";
-        names.add(app);
-        int checked = values.indexOf(current);
-        new AlertDialog.Builder(this).setTitle(ink.t("这个按钮做什么"))
-                .setSingleChoiceItems(names.toArray(new String[0]), checked, (dialog, which) -> {
-                    dialog.dismiss();
-                    // 最后一项不是取值，而是「去挑一个应用」
-                    if (which == values.size() - 1) { slotAppPicker(id); return; }
-                    saveSlot(id, values.get(which));
-                })
-                .setNegativeButton(ink.t("取消"), null).show();
-    }
-
-    private void saveSlot(String id, String value) {
-        FeatureDefinition slot = FeatureCatalog.get(id);
-        String name = slot.values.contains(value) ? Guide.optionName(slot, value) : appLabel(value);
-        perform("更换按钮动作", () -> {
-            saveValue(slot, value);
-            return "已保存「" + slot.title + "」：" + name;
-        }, false);
-    }
-
-    /**
-     * 挑一个应用当这一格的按钮。带搜索框，应用名和包名都能搜——两个应用的显示名可能一样，
-     * 包名才是唯一的，所以每一行都把包名写出来。
-     */
-    private void slotAppPicker(String slotId) {
-        LinkedHashMap<String, String> apps = launcherApps();
-        // 这个按钮最常见的用法之一就是打开墨控，而 launcherApps() 排除了自己，这里补回去。
-        LinkedHashMap<String, String> all = new LinkedHashMap<>();
-        all.put(getPackageName(), ink.t("墨控"));
-        all.putAll(apps);
-        final List<String> packages = new ArrayList<>(all.keySet());
-        final List<LinearLayout> rows = new ArrayList<>();
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        for (String pkg : packages) {
-            LinearLayout row = column(ink.text(all.get(pkg), 15, Ink.MEDIUM), spaced(paragraph(pkg, 12), 2));
-            row.setPadding(ink.dp(10), ink.dp(9), ink.dp(10), ink.dp(9));
-            row.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
-                    ink.box(Ink.PAPER, Ink.INK, 2, 10)));
-            list.addView(row);
-            rows.add(row);
-        }
-        ScrollView scroller = new ScrollView(this);
-        scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        scroller.addView(list);
-        EditText search = new EditText(this);
-        search.setHint(ink.t("搜索应用名或包名"));
-        search.setSingleLine(true);
-        search.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
-            @Override public void onTextChanged(CharSequence text, int start, int before, int count) { }
-            @Override public void afterTextChanged(android.text.Editable text) {
-                String query = text.toString().trim().toLowerCase(Locale.ROOT);
-                for (int i = 0; i < rows.size(); i++) {
-                    boolean match = query.isEmpty()
-                            || all.get(packages.get(i)).toLowerCase(Locale.ROOT).contains(query)
-                            || packages.get(i).toLowerCase(Locale.ROOT).contains(query);
-                    rows.get(i).setVisibility(match ? View.VISIBLE : View.GONE);
-                }
-            }
-        });
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(ink.dp(16), ink.dp(4), ink.dp(16), ink.dp(4));
-        content.addView(search);
-        content.addView(scroller, new LinearLayout.LayoutParams(-1, ink.dp(360)));
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(ink.t("点它打开哪个应用"))
-                .setView(content).setNegativeButton(ink.t("取消"), null).create();
-        for (int i = 0; i < rows.size(); i++) {
-            final String pkg = packages.get(i);
-            rows.get(i).setOnClickListener(v -> { dialog.dismiss(); saveSlot(slotId, pkg); });
-        }
-        dialog.show();
-    }
-
-    /**
-     * 拖动换位：把第 {@code from} 格的动作用搬到第 {@code to} 位。
-     *
-     * <p>先按新顺序重画一版再后台落盘 + 应用，中间不弹「处理中」——这些动作只有 SystemUI 读，
-     * 但顺序要写进配置，所以仍要跑一次应用；一次应用一两秒，拖完立刻回弹原位会很难用。
-     */
-    private void orderSlots(int from, int to) {
-        final int count = PANEL_SLOTS.length;
-        if (panelOrderBusy || from < 0 || from >= count || to < 0 || to >= count || from == to) return;
-        final String[] before = new String[count];
-        final List<String> order = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            before[i] = snapshot.config.value(PANEL_SLOTS[i]);
-            order.add(before[i]);
-        }
-        order.add(to, order.remove(from));
-        panelOrderPending = order.toArray(new String[0]);
-        panelOrderBusy = true;
-        render();
-        WORKER.execute(() -> {
-            String error = "";
-            try {
-                java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
-                for (int i = 0; i < count; i++)
-                    if (!order.get(i).equals(before[i])) values.put(PANEL_SLOTS[i], order.get(i));
-                services.changeAll(values);
-            } catch (Exception failure) { error = reason(failure); }
-            ApplicationServices.Snapshot next = null;
-            try { next = services.snapshot(); } catch (Exception failure) { if (error.isEmpty()) error = reason(failure); }
-            String problem = error;
-            ApplicationServices.Snapshot loaded = next;
-            runOnUiThread(() -> {
-                panelOrderBusy = false; panelOrderPending = null;
-                if (isFinishing() || isDestroyed()) return;
-                if (loaded != null) snapshot = loaded;
-                render();
-                if (!problem.isEmpty()) showText("按钮顺序未保存", problem);
-            });
-        });
-    }
-
-    private void resetSlots() {
-        final String[] defaults = {"wifi", "bt", "refresh", "pageanim", "pin"};
-        perform("恢复默认顺序", () -> {
-            for (int i = 0; i < PANEL_SLOTS.length; i++) saveValue(FeatureCatalog.get(PANEL_SLOTS[i]), defaults[i]);
-            return "已恢复默认顺序";
-        }, false);
-    }
-
-    /** 纯包名逗号列表（不走白/黑名单三段序列化）。 */
-    private static List<String> plainList(String value) {
-        List<String> result = new ArrayList<>();
-        if (value == null || value.isEmpty()) return result;
-        for (String part : value.split(",")) if (!part.isEmpty()) result.add(part);
-        return result;
-    }
-
-    /** 翻页动画只对名单里的阅读器生效；这里只管选应用，参数由各功能页自己保存。 */
-    private void pageReadersEditor(FeatureDefinition f, boolean requested, String current) {
-        List<String> chosen = plainList(current);
-        LinearLayout box = column(
-                ink.text("目标阅读器", 18, Ink.BOLD),
-                spaced(paragraph("只有名单里的应用会触发翻页动画；不选则不会触发。上下滚动仍走原厂刷新。", 13), 10),
-                spaced(ink.text(chosen.isEmpty() ? "尚未选择应用" : "当前名单", 15, Ink.BOLD), 10));
-        if (!chosen.isEmpty()) box.addView(spaced(paragraph(String.join("、", chosen), 13), 6));
-        box.addView(spaced(ink.button("选择阅读器", Ink.Kind.PRIMARY,
-                v -> appPickerDialog(f, requested, current, true)), 10));
-        body.addView(spaced(box, 22));
-    }
-
-    private void appsFilterEditor(FeatureDefinition f, boolean requested, String current) {
-        boolean white = FeatureDefinition.filterWhitelist(current);
-        List<String> chosen = appList(current);
-        LinearLayout box = column(ink.text("名单模式", 18, Ink.BOLD),
-                spaced(modeCard(f, requested, current, true, "白名单", "只有名单内应用会触发刷新", white), 10),
-                spaced(modeCard(f, requested, current, false, "黑名单", "名单内应用会被跳过，其余照常", !white), 10),
-                spaced(ink.text((white ? "白名单" : "黑名单") + " · " + (chosen.isEmpty() ? "尚未选择应用" : "已加入 " + chosen.size() + " 个应用"), 15, Ink.BOLD), 14),
-                spaced(ink.button("选择应用", Ink.Kind.PRIMARY, v -> appPickerDialog(f, requested, current)), 10));
-        if (!chosen.isEmpty()) box.addView(spaced(ink.button("清空名单", Ink.Kind.SECONDARY, v -> {
-            String value = FeatureDefinition.withActiveList(current, "");
-            if (!begin(f.id, requested, value)) return;
-            perform("清空名单", () -> {
-                saveValueKeeping(f, value);
-                return "已清空名单应用";
-            }, false);
-        }), 10));
-        body.addView(spaced(box, 22));
-    }
-
-    /** 白/黑名单模式卡片；点按立即写入，保留已选名单。 */
-    private View modeCard(FeatureDefinition f, boolean requested, String current, boolean white, String name, String detail, boolean selected) {
-        LinearLayout card = new LinearLayout(this);
-        card.setPadding(ink.dp(14), ink.dp(14), ink.dp(14), ink.dp(14));
-        card.setBackground(ink.box(Ink.PAPER, Ink.INK, selected ? 3 : 1.5f, 12));
-        LinearLayout content = column(ink.text(name, 16, selected ? Ink.BOLD : Ink.MEDIUM),
-                spaced(paragraph(detail, 13), 4));
-        if (selected) content.addView(spaced(ink.tag(requested ? "✓ 正在使用" : "已选（未开启）", true), 6));
-        card.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
-        card.setContentDescription(ink.t(name));
-        card.setOnClickListener(v -> {
-            if (selected) return;
-            String value = FeatureDefinition.filterMode(current, white);
-            if (!begin(f.id, requested, value)) return;
-            perform("使用「" + name + "」", () -> {
-                saveValueKeeping(f, value);
-                return "已保存「" + f.title + "」：" + name;
-            }, false);
-        });
-        return card;
-    }
-
-    /** 应用选择器：列出可启动应用，支持搜索与多选，保存为逗号分隔的包名。 */
-    private void appPickerDialog(FeatureDefinition f, boolean requested, String current) {
-        appPickerDialog(f, requested, current, false);
-    }
-
-    /** plain=true 时保存纯包名逗号列表（翻页动画用），false 保存白/黑名单三段值（自动刷新用）。 */
-    private void appPickerDialog(FeatureDefinition f, boolean requested, String current, boolean plain) {
-        LinkedHashMap<String, String> apps = launcherApps();
-        List<CheckBox> boxes = new ArrayList<>();
-        List<String> packages = new ArrayList<>();
-        Set<String> selected = new LinkedHashSet<>(plain ? plainList(current) : appList(current));
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        for (Map.Entry<String, String> app : apps.entrySet()) {
-            CheckBox box = new CheckBox(this);
-            box.setText(app.getValue());
-            box.setTextSize(15);
-            box.setChecked(selected.contains(app.getKey()));
-            box.setPadding(ink.dp(10), ink.dp(9), ink.dp(10), ink.dp(9));
-            list.addView(box);
-            boxes.add(box);
-            packages.add(app.getKey());
-        }
-        if (boxes.isEmpty()) list.addView(paragraph("没有可选择的启动器应用。", 14));
-        ScrollView scroller = new ScrollView(this);
-        scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        scroller.addView(list);
-        EditText search = new EditText(this);
-        search.setHint(ink.t("搜索应用"));
-        search.setSingleLine(true);
-        search.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
-            @Override public void onTextChanged(CharSequence text, int start, int before, int count) { }
-            @Override public void afterTextChanged(android.text.Editable text) {
-                String query = text.toString().trim().toLowerCase(Locale.ROOT);
-                for (int i = 0; i < boxes.size(); i++) {
-                    boolean match = query.isEmpty() || boxes.get(i).getText().toString().toLowerCase(Locale.ROOT).contains(query)
-                            || packages.get(i).toLowerCase(Locale.ROOT).contains(query);
-                    boxes.get(i).setVisibility(match ? View.VISIBLE : View.GONE);
-                }
-            }
-        });
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(ink.dp(16), ink.dp(4), ink.dp(16), ink.dp(4));
-        content.addView(search);
-        content.addView(scroller, new LinearLayout.LayoutParams(-1, ink.dp(360)));
-        new AlertDialog.Builder(this)
-                .setTitle(ink.t("选择应用") + " · " + ink.t(f.title)
-                        + (plain ? "" : " · " + ink.t(FeatureDefinition.filterWhitelist(current) ? "白名单" : "黑名单")))
-                .setView(content)
-                .setNegativeButton(ink.t("取消"), null)
-                .setPositiveButton(ink.t("保存"), (dialog, which) -> {
-                    List<String> chosen = new ArrayList<>();
-                    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).isChecked()) chosen.add(packages.get(i));
-                    String value = plain ? String.join(",", chosen)
-                            : FeatureDefinition.withActiveList(current, String.join(",", chosen));
-                    if (!begin(f.id, requested, value)) return;
-                    perform(ink.t("保存"), () -> {
-                        saveValueKeeping(f, value);
-                        return "已保存「" + f.title + "」：" + chosen.size() + " 个应用";
-                    }, false);
-                }).show();
-    }
-
-    // ── 倒数日事项：最多 3 组「事项;日期」，事项可空，日期为空该组停用 ──
-    // target 是数据落盘的 feature（lock.countdowns）；入口页是 lock.countdown，开关只控制显示。
-
-    private void countdownEditor(FeatureDefinition target, String current) {
-        final String[] dates = new String[FeatureDefinition.COUNTDOWNS_MAX];
-        final boolean[] lunar = new boolean[FeatureDefinition.COUNTDOWNS_MAX];
-        final boolean[] shown = new boolean[FeatureDefinition.COUNTDOWNS_MAX];
-        // 兼容旧 6 段「事项;日期」值：农历=否、显示=是
-        String[] parts = current == null ? new String[0] : current.split(";", -1);
-        boolean legacy = parts.length == FeatureDefinition.COUNTDOWNS_MAX * FeatureDefinition.COUNTDOWN_LEGACY_FIELDS;
-        boolean modern = parts.length == FeatureDefinition.COUNTDOWNS_MAX * FeatureDefinition.COUNTDOWN_FIELDS;
-        int step = legacy ? FeatureDefinition.COUNTDOWN_LEGACY_FIELDS : (modern ? FeatureDefinition.COUNTDOWN_FIELDS : 0);
-        LinearLayout box = column(ink.text("倒数日事项", 18, Ink.BOLD),
-                spaced(paragraph("最多三个，按目标日先后显示。事项名可留空；日期为空该组停用。开启「农历日期」时按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭「显示」可暂时隐藏该组。", 13), 12));
-        final TextView[] dateButtons = new TextView[FeatureDefinition.COUNTDOWNS_MAX];
-        final EditText[] itemFields = new EditText[FeatureDefinition.COUNTDOWNS_MAX];
-        for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
-            final int index = i;
-            int base = i * step;
-            dates[i] = step > 0 && base + 1 < parts.length ? parts[base + 1].trim() : "";
-            lunar[i] = !legacy && step > 0 && base + 2 < parts.length && "1".equals(parts[base + 2].trim());
-            shown[i] = legacy || step <= 0 || base + 3 >= parts.length || !"0".equals(parts[base + 3].trim());
-            LinearLayout row = new LinearLayout(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            EditText item = new EditText(this);
-            item.setHint(ink.t("事项（可空）"));
-            item.setText(step > 0 && base < parts.length ? parts[base].trim() : "");
-            item.setSingleLine(true);
-            item.setFilters(new android.text.InputFilter[]{
-                    new android.text.InputFilter.LengthFilter(FeatureDefinition.COUNTDOWN_ITEM_MAX),
-                    (source, start, end, dest, dstart, dend) -> {
-                        // 事项名不得含 ; 与 =：会破坏「事项;日期」序列化与 key=value 配置行
-                        StringBuilder out = new StringBuilder();
-                        for (int k = start; k < end; k++) {
-                            char ch = source.charAt(k);
-                            if (ch != ';' && ch != '=' && ch != '\n') out.append(ch);
-                        }
-                        return out.length() == end - start ? null : out.toString();
-                    }});
-            item.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
-            item.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
-            itemFields[i] = item;
-            row.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView date = ink.button(dates[i].isEmpty() ? "选日期" : dates[i] + (lunar[i] ? "（农历）" : ""), Ink.Kind.SECONDARY, v -> {
-                Calendar initial = FeatureDefinition.parseDate(dates[index]);
-                if (initial == null) initial = Calendar.getInstance();
-                new DatePickerDialog(this, (view, year, month, day) -> {
-                    dates[index] = String.format(Locale.ROOT, "%04d-%02d-%02d", year, month + 1, day);
-                    dateButtons[index].setText(dates[index] + (lunar[index] ? "（农历）" : ""));
-                }, initial.get(Calendar.YEAR), initial.get(Calendar.MONTH), initial.get(Calendar.DAY_OF_MONTH)).show();
-            });
-            dateButtons[i] = date;
-            LinearLayout.LayoutParams dateParams = new LinearLayout.LayoutParams(-2, -2);
-            dateParams.leftMargin = ink.dp(8);
-            row.addView(date, dateParams);
-            box.addView(spaced(row, 6));
-            // 日期按钮下方：本组独立的「农历日期」「显示」两个开关
-            LinearLayout sub = new LinearLayout(this);
-            sub.setGravity(Gravity.CENTER_VERTICAL);
-            sub.addView(ink.text("农历日期", 13, Ink.MEDIUM));
-            final CompoundButton lunarToggle = miniToggle(lunar[i]);
-            lunarToggle.setOnClickListener(v -> {
-                lunar[index] = lunarToggle.isChecked();
-                dateButtons[index].setText(dates[index].isEmpty() ? "选日期" : dates[index] + (lunarToggle.isChecked() ? "（农历）" : ""));
-            });
-            sub.addView(lunarToggle);
-            TextView showLabel = ink.text("显示", 13, Ink.MEDIUM);
-            LinearLayout.LayoutParams showParams = new LinearLayout.LayoutParams(-2, -2);
-            showParams.leftMargin = ink.dp(18);
-            sub.addView(showLabel, showParams);
-            final CompoundButton showToggle = miniToggle(shown[i]);
-            showToggle.setOnClickListener(v -> shown[index] = showToggle.isChecked());
-            sub.addView(showToggle);
-            box.addView(spaced(sub, 8));
-        }
-        box.addView(spaced(ink.button("保存", Ink.Kind.PRIMARY, v -> {
-            // 填了事项却没选日期：该组不会显示（日期为空停用），先明确提示再保存
-            for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
-                if (!itemFields[i].getText().toString().trim().isEmpty() && dates[i].isEmpty()) {
-                    Toast.makeText(this, ink.t("事项 " + (i + 1) + " 没选日期，不会显示"), Toast.LENGTH_LONG).show();
-                    return;
-                }
-            }
-            StringBuilder value = new StringBuilder();
-            for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
-                if (i > 0) value.append(';');
-                value.append(itemFields[i].getText().toString().trim()).append(';').append(dates[i]).append(';')
-                        .append(lunar[i] ? '1' : '0').append(';').append(shown[i] ? '1' : '0');
-            }
-            String text = value.toString();
-            if (FeatureDefinition.countdowns(text) == null) {
-                // 农历月无此日（选择器按公历选日，30/31 日可能不是合法农历日）
-                for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
-                    if (lunar[i] && !dates[i].isEmpty() && FeatureDefinition.targetDate(dates[i], true) == null) {
-                        Toast.makeText(this, ink.t("农历日期「" + dates[i] + "」不存在，请改选其他日期"), Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                }
-                Toast.makeText(this, ink.t("日期格式不正确"), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (!begin(target.id, enableOnSave(target) || snapshot.config.requested(target.id), text)) return;
-            perform(ink.t("保存"), () -> {
-                saveValue(target, text);
-                return "已保存「" + target.title + "」";
-            }, false);
-        }), 14));
-        body.addView(spaced(box, 16));
-    }
-
-    // ── 字体：目录、字体列表、文件选择、恢复与刷新都在同一页 ─────────────────
-
-    private void fontPage(FeatureDefinition f) {
-        ApplicationServices.Snapshot s = snapshot;
-        String saved = s.config.value("font.dir");
-        String dir = saved == null || saved.isEmpty() ? FONT_DIR_DEFAULT : saved;
-        String applied = s.config.value("font.pick");
-
-        // 页面每次重渲（应用字体、保存目录等操作都会整页重建）搜索框都是新建的、内容为空，
-        // 过滤词若不清空，就会出现「框看着是空的、列表却被上一次的词过滤到一行不剩」的假死，
-        // 用户无字可删、清不掉，只能以为字体列表坏了。进入/重建页面一律回到「显示全部」。
-        fontQuery = "";
-        fontDir = dir;
-
-        body.addView(spaced(paragraph("点「应用」写进系统槽位后，替换全局字体。", 14), 4));
-
-        LinearLayout box = column();
-        EditText field = new EditText(this);
-        field.setSingleLine(true);
-        field.setText(saved == null ? "" : saved);
-        field.setHint(FONT_DIR_DEFAULT);
-        field.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
-        field.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
-        box.addView(spaced(field, 12));
-        box.addView(spaced(ink.button("保存并刷新列表", Ink.Kind.PRIMARY, v -> saveFontDir("font.dir", field.getText().toString())), 10));
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.addView(ink.button("选择目录", Ink.Kind.SECONDARY, v -> pickFontDir()), new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(0, -2, 1);
-        rightParams.leftMargin = ink.dp(10);
-        actions.addView(ink.button("从文件选择", Ink.Kind.SECONDARY, v -> pickFontFile()), rightParams);
-        box.addView(spaced(actions, 12));
-
-        box.addView(spaced(ink.button("恢复原厂字体", Ink.Kind.SECONDARY, v -> restoreFont()), 10));
-        box.addView(spaced(paragraph("字体是全局替换：状态栏、锁屏、桌面与所有应用一起换字。字体缺少中文字形时部分界面会出现方块，点上面的「恢复原厂字体」即可退回系统默认字体。", 12), 8));
-        box.addView(spaced(ink.text("默认：" + FONT_DIR_DEFAULT, 12, Ink.MEDIUM), 8));
-        if (applied != null && !applied.isEmpty())
-            box.addView(spaced(ink.text("上次应用：" + applied, 13, Ink.BOLD), 12));
-        body.addView(spaced(box, 16));
-
-        // 搜索框：只过滤下方列表的显示，不重新扫描目录
-        EditText search = new EditText(this);
-        search.setSingleLine(true);
-        search.setHint("搜索字体名…");
-        search.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
-        search.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
-        search.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
-            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
-            @Override public void afterTextChanged(android.text.Editable s) {
-                fontQuery = s == null ? "" : s.toString();
-                renderFontList();
-            }
-        });
-        body.addView(spaced(search, 12));
-
-        fontAppliedMark = applied;
-        fontHintView = ink.text("正在扫描…", 13, Ink.MEDIUM);
-        body.addView(fontHintView);
-        fontListViews = column();
-        body.addView(spaced(fontListViews, 8));
-        loadFonts(dir, applied);
-    }
-
-    private void loadFonts(String dir, String applied) {
-        WORKER.execute(() -> {
-            List<String[]> fonts = new ArrayList<>();
-            String failure = "";
-            try {
-                // 优先走 root 列表：App 没有存储权限时也能读系统字体目录与 TF 卡
-                for (String[] font : services.listFonts(dir))
-                    fonts.add(new String[]{font[0], font[1], fontSize(Long.parseLong(font[2]))});
-            } catch (Exception error) {
-                fonts = scanFonts(dir);
-                if (fonts.isEmpty()) failure = reason(error);
-            }
-            List<String[]> found = fonts;
-            String problem = failure;
-            runOnUiThread(() -> {
-                if (isFinishing() || isDestroyed()) return;
-                fontItems = found;
-                fontProblem = problem;
-                fontAppliedMark = applied;
-                renderFontList();
-            });
-        });
-    }
-
-    /** 按搜索词过滤并重画字体列表；过滤词为空时显示全部。 */
-    private void renderFontList() {
-        if (fontListViews == null || fontHintView == null) return;
-        fontListViews.removeAllViews();
-        if (!fontProblem.isEmpty()) {
-            fontHintView.setText("读取目录失败：" + fontProblem + "\n可以用「从文件选择」直接挑一个字体文件。");
-            fontListViews.addView(spaced(reloadFontsButton(), 8));
-            return;
-        }
-        if (fontItems.isEmpty()) {
-            fontHintView.setText("这个目录里没找到字体文件。换一个目录，或用「从文件选择」。");
-            fontListViews.addView(spaced(reloadFontsButton(), 8));
-            return;
-        }
-        String q = fontQuery == null ? "" : fontQuery.trim().toLowerCase(Locale.ROOT);
-        List<String[]> shown = new ArrayList<>();
-        for (String[] font : fontItems)
-            if (q.isEmpty() || font[1].toLowerCase(Locale.ROOT).contains(q)) shown.add(font);
-        if (q.isEmpty()) fontHintView.setText("共 " + fontItems.size() + " 个字体");
-        else if (shown.isEmpty()) fontHintView.setText("没有匹配「" + fontQuery.trim() + "」的字体，清空搜索框显示全部");
-        else fontHintView.setText("匹配 " + shown.size() + " / 共 " + fontItems.size() + " 个字体");
-        for (String[] font : shown) fontListViews.addView(spaced(fontRow(font, fontAppliedMark), 8));
-    }
-
-    /** 列表读取失败或目录为空时的重试入口：按当前目录重新走一遍 root 列表 + 兜底扫描。 */
-    private View reloadFontsButton() {
-        return ink.button("重新加载列表", Ink.Kind.SECONDARY, v -> {
-            fontHintView.setText("正在扫描…");
-            loadFonts(fontDir, fontAppliedMark);
-        });
-    }
-
-    /** 扫描目录里的 TTF/OTF（含无扩展名的主题字体包），返回 {绝对路径, 文件名, 大小文本}。 */
-    private static List<String[]> scanFonts(String dir) {
-        List<String[]> result = new ArrayList<>();
-        java.io.File[] files = new java.io.File(dir).listFiles();
-        if (files == null) return result;
-        Arrays.sort(files, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-        for (java.io.File file : files) {
-            if (!file.isFile() || file.length() < 65536) continue;
-            try (java.io.FileInputStream input = new java.io.FileInputStream(file)) {
-                byte[] head = new byte[4];
-                if (input.read(head) != 4) continue;
-                String tag = String.format(Locale.ROOT, "%02x%02x%02x%02x",
-                        head[0] & 0xff, head[1] & 0xff, head[2] & 0xff, head[3] & 0xff);
-                if (!tag.equals("00010000") && !tag.equals("4f54544f")
-                        && !tag.equals("74727565") && !tag.equals("74746366")) continue;
-            } catch (Exception ignored) { continue; }
-            result.add(new String[]{file.getAbsolutePath(), file.getName(), fontSize(file.length())});
-        }
-        return result;
-    }
-
-    private static String fontSize(long bytes) {
-        return bytes >= 1048576
-                ? String.format(Locale.ROOT, "%.1f MB", bytes / 1048576f) : (bytes / 1024) + " KB";
-    }
-
-    /** 一个字体一个卡片：左侧名字+大小，「应用」按钮独立一列、在整个卡片内垂直居中。 */
-    private View fontRow(String[] font, String applied) {
-        boolean current = font[1].equals(applied);
-        TextView name = ink.text(font[1], 15, Ink.BOLD);
-        name.setSingleLine(false);
-        TextView size = ink.text(font[2] + (current ? " · 上次已应用" : ""), 12, Ink.REGULAR);
-        // 紧凑「应用」按钮：高度压到与字号相当
-        TextView apply = ink.button("应用", Ink.Kind.SECONDARY, v -> applyFontFile(font[0], font[1]));
-        apply.setTextSize(13);
-        apply.setMinHeight(ink.dp(30));
-        apply.setPadding(ink.dp(14), ink.dp(4), ink.dp(14), ink.dp(4));
-        LinearLayout textCol = new LinearLayout(this);
-        textCol.setOrientation(LinearLayout.VERTICAL);
-        textCol.addView(name);
-        textCol.addView(spaced(size, 2));
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.addView(textCol, new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams button = new LinearLayout.LayoutParams(-2, -2);
-        button.leftMargin = ink.dp(8);
-        row.addView(apply, button);
-        row.setBackground(ink.outline(12));
-        row.setPadding(ink.dp(14), ink.dp(10), ink.dp(10), ink.dp(10));
-        return row;
-    }
-
-    private void saveFontDir(String id, String text) {
-        String value = text == null ? "" : text.trim();
-        if (!value.isEmpty() && !value.startsWith("/")) {
-            Toast.makeText(this, "请填绝对路径，例如 " + FONT_DIR_DEFAULT, Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (FeatureDefinition.path(value) == null) {
-            Toast.makeText(this, "路径里不能有等号、分号或换行", Toast.LENGTH_LONG).show();
-            return;
-        }
-        perform(ink.t("保存字体目录"), () -> {
-            change(id, true, value);
-            return "已保存字体目录：" + (value.isEmpty() ? FONT_DIR_DEFAULT : value);
-        }, false);
-    }
-
-    private void pickFontDir() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        try { startActivityForResult(intent, FONT_DIR_REQUEST); }
-        catch (android.content.ActivityNotFoundException error) { showText("无法选择目录", "系统没有可用的文件夹选择界面。"); }
-    }
-
-    private void pickFontFile() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
-        try { startActivityForResult(intent, FONT_REQUEST); }
-        catch (android.content.ActivityNotFoundException error) { showText("无法选择文件", "系统没有可用的文件选择界面。"); }
-    }
-
-    /** 文件选择器给的 tree URI 转成文件系统路径；转不出来时返回 null（用「从文件选择」兜底）。 */
-    private static String treePath(android.net.Uri uri) {
-        try {
-            String id = android.provider.DocumentsContract.getTreeDocumentId(uri);
-            int colon = id.indexOf(':');
-            if (colon < 0) return null;
-            String volume = id.substring(0, colon);
-            String rest = id.substring(colon + 1);
-            String base;
-            if (volume.equalsIgnoreCase("primary")) base = "/storage/emulated/0";
-            else if (volume.matches("(?i)[0-9a-f]{4}-[0-9a-f]{4}")) base = "/storage/" + volume;
-            else return null;
-            return rest.isEmpty() ? base : base + "/" + rest;
-        } catch (Exception error) { return null; }
-    }
-
-    private void applyFontFile(String path, String name) {
-        if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
-        perform(ink.t("应用字体"), () -> {
-            String result = services.applyFont(path);
-            rememberFont(name);
-            return result;
-        }, true);
-    }
-
-    /** 记住最近应用的字体名；写配置失败不影响字体已经写入的事实。 */
-    private void rememberFont(String name) {
-        if (FeatureDefinition.path(name) == null) return;
-        try { change("font.pick", true, name); } catch (Exception ignored) { }
-    }
-
-    private void applyFontFromUri(android.net.Uri uri) {
-        if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
-        perform(ink.t("应用字体"), () -> {
-            java.io.File copy = new java.io.File(getCacheDir(), "font-apply.ttf");
-            try (java.io.InputStream input = getContentResolver().openInputStream(uri);
-                 OutputStream output = new java.io.FileOutputStream(copy)) {
-                if (input == null) throw new java.io.IOException("无法读取所选文件");
-                byte[] buffer = new byte[65536];
-                int count;
-                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-            }
-            String result = services.applyFont(copy.getAbsolutePath());
-            rememberFont(fontName(uri));
-            return result;
-        }, true);
-    }
-
-    private static String fontName(android.net.Uri uri) {
-        String name = uri.getLastPathSegment();
-        if (name == null) return "";
-        int slash = name.lastIndexOf('/');
-        return slash < 0 ? name : name.substring(slash + 1);
-    }
-
-    private void restoreFont() {
-        if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
-        confirm("恢复原厂字体", "把系统原厂默认字体（Roboto-Medium）重新指向当前槽位——也就是系统「字体样式」里的「默认字体」。写完界面自动刷新（全局界面一起换，包括桌面），不用重启。",
-                () -> perform(ink.t("恢复原厂字体"), () -> services.restoreFont(), true));
-    }
 
     /** 编辑器行内小开关：无动画黑白开关图形，状态由调用方读取。
      *  注意：不可重写 toggle() 为空——CompoundButton.performClick() 靠它切换选中态，
      *  置空后点击无反应、OnClickListener 里读到的 isChecked() 永远是旧值。 */
-    private CompoundButton miniToggle(boolean checked) {
+    CompoundButton miniToggle(boolean checked) {
         CompoundButton toggle = new CompoundButton(this) {
             @Override public CharSequence getAccessibilityClassName() { return Switch.class.getName(); }
         };
@@ -2718,7 +1908,7 @@ public final class MainActivity extends Activity {
         return toggle;
     }
 
-    private LinkedHashMap<String, String> launcherApps() {
+    LinkedHashMap<String, String> launcherApps() {
         List<String[]> items = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         try {
@@ -2741,128 +1931,8 @@ public final class MainActivity extends Activity {
 
     // ── 关键帧停留：温度曲线 ──
 
-    private float batteryTemperature() {
-        try {
-            Intent battery = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-            int t = battery == null ? Integer.MIN_VALUE : battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Integer.MIN_VALUE);
-            return t == Integer.MIN_VALUE ? 30f : t / 10f;
-        } catch (RuntimeException error) { return 30f; }
-    }
-    private String savedHoldMode(boolean requested, String value) {
-        if (!requested || value.equals("0")) return "auto";
-        int[] curve = FeatureDefinition.curve(value);
-        if (curve == null) return "fixed";
-        for (int v : curve) if (v != curve[0]) return "curve";
-        return "fixed";
-    }
-    private int[] savedHoldValues(String value) {
-        int[] curve = FeatureDefinition.curve(value);
-        if (curve != null) return curve;
-        int fixed = value.matches("[0-9]+") ? Integer.parseInt(value) : 0;
-        if (fixed <= 0) return Charts.autoCurve();
-        int[] all = new int[FeatureDefinition.TEMPERATURE_BANDS];
-        Arrays.fill(all, fixed);
-        return all;
-    }
-    private String holdSummary(String value) {
-        String mode = savedHoldMode(true, value);
-        if (mode.equals("auto")) return "温度自适应";
-        int[] v = savedHoldValues(value);
-        return mode.equals("fixed") ? "统一 " + v[0] + " 毫秒" : "自定义曲线";
-    }
-    /** 当前温度下实际生效的停留时长；未开启或该段为 0 时用自动值。 */
-    private int currentHold() {
-        int band = FeatureDefinition.band(batteryTemperature());
-        if (!snapshot.config.enabled("motion.hold")) return Geometry.autoHoldForBand(band);
-        int v = savedHoldValues(snapshot.config.value("motion.hold"))[band];
-        return v > 0 ? v : Geometry.autoHoldForBand(band);
-    }
-
-    private void holdEditor(FeatureDefinition f, boolean requested, String current) {
-        String saved = savedHoldMode(requested, current);
-        if (holdMode.isEmpty()) holdMode = saved;
-        if (holdDraft == null) holdDraft = savedHoldValues(current);
-        float temperature = batteryTemperature();
-        int band = FeatureDefinition.band(temperature);
-        int[] auto = Charts.autoCurve();
-
-        LinearLayout box = column(ink.text("怎么决定停留时长", 18, Ink.BOLD));
-        LinearLayout modes = new LinearLayout(this);
-        String[][] choices = {{"auto", "温度自适应"}, {"fixed", "统一时长"}, {"curve", "自定义曲线"}};
-        for (int i = 0; i < choices.length; i++) {
-            String mode = choices[i][0];
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, ink.dp(42), 1);
-            if (i > 0) p.leftMargin = ink.dp(8);
-            modes.addView(ink.chip(choices[i][1], mode.equals(holdMode), v -> {
-                holdMode = mode;
-                if (mode.equals("fixed")) { int v0 = holdDraft[band] > 0 ? holdDraft[band] : auto[band]; Arrays.fill(holdDraft, v0); }
-                else if (mode.equals("curve") && saved.equals("auto")) holdDraft = auto.clone();
-                render();
-            }), p);
-        }
-        box.addView(spaced(modes, 12));
-
-        String explain;
-        int[] shownValues;
-        if (holdMode.equals("auto")) { explain = "按电池温度自动取“刚好刷完 + 3 帧余量”。天冷时自动变长，避免画面糊在一起。"; shownValues = auto; }
-        else if (holdMode.equals("fixed")) { explain = "所有温度都使用同一个时长。天冷时如果低于虚线，动画可能糊。"; shownValues = holdDraft; }
-        else { explain = "上下拖动每根柱子，单独设置每个温度段，10 毫秒一档。虚线是该温度刷完所需的时间。"; shownValues = holdDraft; }
-        box.addView(spaced(paragraph(explain, 14), 12));
-
-        int now = holdMode.equals("auto") || shownValues[band] <= 0 ? auto[band] : shownValues[band];
-        box.addView(spaced(ink.text(String.format(Locale.ROOT, "当前电池温度 %.1f°C → 每张中间画面停留 %d 毫秒", temperature, now), 14, Ink.BOLD), 12));
-
-        Charts.HoldCurve curve = new Charts.HoldCurve(this, ink, shownValues, band, holdMode.equals("curve"),
-                values -> { holdDraft = values; render(); });
-        box.addView(spaced(curve, 14));
-        box.addView(spaced(paragraph("实心柱：设置的时长　虚线：该温度刷完所需　空心柱：低于所需，可能糊", 12), 6));
-
-        if (holdMode.equals("fixed")) {
-            LinearLayout stepper = new LinearLayout(this);
-            stepper.setGravity(Gravity.CENTER_VERTICAL);
-            stepper.addView(ink.button("−", Ink.Kind.SECONDARY, v -> { Arrays.fill(holdDraft, Math.max(30, holdDraft[0] - 10)); render(); }), new LinearLayout.LayoutParams(ink.dp(64), -2));
-            TextView value = ink.text(holdDraft[0] + " 毫秒", 22, Ink.BOLD);
-            value.setGravity(Gravity.CENTER);
-            stepper.addView(value, new LinearLayout.LayoutParams(0, -2, 1));
-            stepper.addView(ink.button("+", Ink.Kind.SECONDARY, v -> { Arrays.fill(holdDraft, Math.min(FeatureDefinition.CURVE_MAX_MS, holdDraft[0] + 10)); render(); }), new LinearLayout.LayoutParams(ink.dp(64), -2));
-            box.addView(spaced(stepper, 14));
-            FlowLayout presets = new FlowLayout(this, ink.dp(8), ink.dp(8));
-            for (int ms : new int[]{100, 150, 200, 300, 500, 1000}) presets.addView(ink.chip(ms + " 毫秒", holdDraft[0] == ms, v -> { Arrays.fill(holdDraft, ms); render(); }));
-            box.addView(spaced(presets, 12));
-        } else if (holdMode.equals("curve")) {
-            LinearLayout actions = new LinearLayout(this);
-            actions.addView(ink.button("从自动值开始", Ink.Kind.SECONDARY, v -> { holdDraft = auto.clone(); render(); }), new LinearLayout.LayoutParams(0, -2, 1));
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
-            p.leftMargin = ink.dp(10);
-            actions.addView(ink.button("整体加长 20%", Ink.Kind.SECONDARY, v -> {
-                for (int i = 0; i < holdDraft.length; i++) holdDraft[i] = Math.min(FeatureDefinition.CURVE_MAX_MS, Math.round(holdDraft[i] * 1.2f / 10) * 10);
-                render();
-            }), p);
-            box.addView(spaced(actions, 14));
-        }
-
-        boolean changed = !holdMode.equals(saved) || !holdMode.equals("auto") && !Arrays.equals(holdDraft, savedHoldValues(current));
-        if (changed) {
-            String mode = holdMode;
-            int[] values = holdDraft.clone();
-            box.addView(spaced(ink.button("保存", Ink.Kind.PRIMARY, v -> {
-                String next = mode.equals("auto") ? current : FeatureDefinition.curveValue(values);
-                boolean enable = !mode.equals("auto");
-                if (!begin(f.id, enable, next)) return;
-                perform("保存关键帧停留", () -> {
-                    change(f.id, enable, next);
-                    return "已保存「关键帧停留」：" + (mode.equals("auto") ? "温度自适应" : mode.equals("fixed") ? "统一 " + values[0] + " 毫秒" : "自定义曲线");
-                }, false);
-                holdMode = ""; holdDraft = null;
-            }), 16));
-        }
-        body.addView(spaced(box, 22));
-    }
-
-    // ───────────────────────── 模块设置 ─────────────────────────
-
     /** 「安装」「诊断」的统一入口：跳转卡片 + 语言切换。 */
-    private void moduleSettings() {
+    void moduleSettings() {
         body.addView(spaced(navCard("安装", "导出 Magisk 安装包、启用墨控模块并勾选作用域的完整向导。",
                 "", false, "打开安装向导", v -> { modulePage = INSTALL; render(); }), 12));
         body.addView(spaced(navCard("诊断", "查看后端模块、配置应用与各项生效状态，排查异常。",
@@ -2896,170 +1966,8 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 关于 ─────────────────────────
 
-    /** 只跳浏览器，不在应用内下载或安装任何东西。 */
-    private void openLink(String url) {
-        try {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (Exception failure) {
-            Toast.makeText(this, ink.t("没有可以打开链接的应用"), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /** 一条外链：名字 + 一行说明。不放头像，图标也不加背景形状。 */
-    private View linkRow(String name, String detail, String url) {
-        LinearLayout row = column(ink.text(name, 16, Ink.BOLD), spaced(paragraph(detail, 13), 4));
-        row.setPadding(ink.dp(2), ink.dp(10), ink.dp(2), ink.dp(10));
-        row.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
-                ink.box(Ink.PAPER, Ink.INK, 2, 10)));
-        row.setContentDescription(ink.t(name + "，" + detail + "，打开链接"));
-        row.setOnClickListener(v -> openLink(url));
-        return row;
-    }
-
-    /** 一组外链放在同一张卡里，条目之间用细线分隔。 */
-    private View aboutSection(String title, View... rows) {
-        LinearLayout box = column(ink.text(title, 16, Ink.BOLD));
-        for (int i = 0; i < rows.length; i++) {
-            if (i > 0) box.addView(spaced(ink.rule(1), 10));
-            box.addView(spaced(rows[i], 10));
-        }
-        return spaced(card(box), 12);
-    }
-
-    private void aboutPage() {
-        LinearLayout brand = new LinearLayout(this);
-        brand.setOrientation(LinearLayout.VERTICAL);
-        brand.setGravity(Gravity.CENTER_HORIZONTAL);
-        brand.setPadding(0, ink.dp(12), 0, ink.dp(6));
-        try {
-            ImageView icon = new ImageView(this);
-            icon.setImageDrawable(getPackageManager().getApplicationIcon(getPackageName()));
-            brand.addView(icon, new LinearLayout.LayoutParams(ink.dp(56), ink.dp(56)));
-        } catch (Exception ignored) { /* 取不到图标就只显示名字 */ }
-        TextView name = ink.text("墨控", 26, Ink.BOLD);
-        name.setGravity(Gravity.CENTER);
-        brand.addView(spaced(name, 10));
-        TextView version = ink.text("版本 v" + BuildInfo.VERSION, 13, Ink.REGULAR);
-        version.setGravity(Gravity.CENTER);
-        brand.addView(spaced(version, 6));
-        body.addView(brand);
-
-        LinearLayout primary = new LinearLayout(this);
-        primary.setGravity(Gravity.CENTER_VERTICAL);
-        primary.addView(ink.button("项目仓库", Ink.Kind.SECONDARY, v -> openLink(REPO)),
-                new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams docParams = new LinearLayout.LayoutParams(0, -2, 1);
-        docParams.leftMargin = ink.dp(10);
-        primary.addView(ink.button("文档", Ink.Kind.SECONDARY, v -> openLink(README_URL)), docParams);
-        body.addView(spaced(primary, 14));
-
-        body.addView(spaced(card(column(paragraph(
-                "海信 A5 Pro 经典版（HLTE203T / Android 10）的墨水屏增强模块。全部增强默认关闭，按需开启。", 14))), 12));
-
-        // 作者、上游与参考项目分开两张卡：作者卡只留自述与来源，
-        // 参考项目单独一张，免得和「谁做的」混在一起。
-        // 「版本发布」不再放这里：最下面的「查看更新」里已有「打开发布页」。
-        body.addView(aboutSection("作者与来源",
-                linkRow("liuqianhe", "贡献者 · GitHub 主页", AUTHOR_URL),
-                linkRow("wzp100/InkControl", "项目主仓库", UPSTREAM_REPO),
-                linkRow("nuku", "翻页动画作者 · 酷安主页", COMMUNITY_NUKU)));
-
-        body.addView(aboutSection("参考项目",
-                linkRow("ChenXu178/Hisense-E-Ink-auto-refresh", "自动刷新能力的参考项目", REFRESH_REFERENCE),
-                linkRow("liuqianhe/Hisense-E-Ink-auto-refreshs", "该项目的分支", REFRESH_FORK),
-                linkRow("wave-up", "体感相关的参考项目", WAVEUP_REFERENCE)));
-
-        LinearLayout update = column(ink.text("查看更新", 16, Ink.BOLD));
-        update.addView(spaced(paragraph("当前版本 v" + BuildInfo.VERSION
-                + "。只在点按钮时检测一次，不会自动检查、下载或安装。", 13), 8));
-        update.addView(spaced(ink.button("检测更新", Ink.Kind.SECONDARY, v -> checkForUpdate()), 12));
-        aboutUpdateView = ink.text(aboutUpdateText.isEmpty() ? "检测结果会显示在这里。" : aboutUpdateText,
-                14, Ink.REGULAR);
-        if (!aboutUpdateUrl.isEmpty()) {
-            aboutUpdateView.setPaintFlags(aboutUpdateView.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
-            aboutUpdateView.setOnClickListener(v -> openLink(aboutUpdateUrl));
-            aboutUpdateView.setClickable(true);
-        }
-        update.addView(spaced(aboutUpdateView, 12));
-        update.addView(spaced(linkRow("打开发布页", "在浏览器里查看全部版本", RELEASES), 12));
-        body.addView(spaced(card(update), 12));
-        body.addView(spaced(paragraph("第三方二进制与社区作品的权利归原权利人所有，详见仓库 NOTICE.md。", 13), 12));
-    }
-
-    /** 手动检测一次最新版本；结果留在字段里，页面重建后仍然可见。 */
-    private void checkForUpdate() {
-        if (checkingUpdate) return;
-        checkingUpdate = true;
-        aboutUpdateText = "正在检测最新版本…";
-        aboutUpdateUrl = "";
-        if (aboutUpdateView != null) {
-            aboutUpdateView.setText(ink.t(aboutUpdateText));
-            aboutUpdateView.setOnClickListener(null);
-            aboutUpdateView.setClickable(false);
-        }
-        WORKER.execute(() -> {
-            String result, link = "";
-            try {
-                HttpURLConnection connection = (HttpURLConnection) new URL(LATEST_API).openConnection();
-                connection.setConnectTimeout(6000);
-                connection.setReadTimeout(6000);
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("Accept", "application/vnd.github+json");
-                connection.setRequestProperty("User-Agent", "InkControl/" + BuildInfo.VERSION);
-                connection.setInstanceFollowRedirects(true);
-                try {
-                    if (connection.getResponseCode() != 200)
-                        throw new java.io.IOException("接口返回 " + connection.getResponseCode());
-                    java.io.InputStream input = connection.getInputStream();
-                    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
-                    byte[] chunk = new byte[4096];
-                    int count;
-                    while ((count = input.read(chunk)) > 0) buffer.write(chunk, 0, count);
-                    input.close();
-                    JSONObject release = new JSONObject(
-                            new String(buffer.toByteArray(), java.nio.charset.StandardCharsets.UTF_8));
-                    String tag = release.optString("tag_name", "");
-                    String page = release.optString("html_url", RELEASES);
-                    String latest = tag.startsWith("v") ? tag.substring(1) : tag;
-                    if (latest.isEmpty()) throw new java.io.IOException("发布页没有版本标签");
-                    // 只按版本号比大小：线上可能还停在旧版本（本机是提前构建的），
-                    // 单纯判断「相等/不等」会把旧发布报成新版本。
-                    int newer = com.inkcontrol.core.Versions.compare(latest, BuildInfo.VERSION);
-                    if (newer == 0) {
-                        result = "已是最新版本 v" + BuildInfo.VERSION;
-                    } else if (newer > 0) {
-                        result = "发现新版本 v" + latest + "（当前 v" + BuildInfo.VERSION + "），点这里打开发布页";
-                        link = page;
-                    } else {
-                        result = "本机 v" + BuildInfo.VERSION + " 比线上发布的 v" + latest + " 更新（未发布或本地构建）";
-                    }
-                } finally { connection.disconnect(); }
-            } catch (Exception failure) {
-                result = "检测失败：网络或接口暂不可用，可点下方打开发布页查看";
-            }
-            final String text = result, url = link;
-            runOnUiThread(() -> {
-                checkingUpdate = false;
-                aboutUpdateText = text; aboutUpdateUrl = url;
-                if (isFinishing() || isDestroyed() || aboutUpdateView == null) return;
-                aboutUpdateView.setText(ink.t(text));
-                if (url.isEmpty()) {
-                    aboutUpdateView.setOnClickListener(null);
-                    aboutUpdateView.setClickable(false);
-                } else {
-                    aboutUpdateView.setPaintFlags(aboutUpdateView.getPaintFlags()
-                            | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
-                    aboutUpdateView.setOnClickListener(v -> openLink(url));
-                    aboutUpdateView.setClickable(true);
-                }
-            });
-        });
-    }
-
-    // ───────────────────────── 功能列表排序 ─────────────────────────
-
     /** 首页大功能的显示顺序：按保存的顺序排列；空表示默认顺序。 */
-    private List<Guide.Category> orderedCategories() {
+    List<Guide.Category> orderedCategories() {
         Map<String, Guide.Category> pool = new LinkedHashMap<>();
         for (Guide.Category c : Guide.CATEGORIES.values()) pool.put(c.name, c);
         List<Guide.Category> result = new ArrayList<>();
@@ -3083,12 +1991,12 @@ public final class MainActivity extends Activity {
         return result;
     }
 
-    private static int indexOfCategory(List<Guide.Category> list, String name) {
+    static int indexOfCategory(List<Guide.Category> list, String name) {
         for (int i = 0; i < list.size(); i++) if (list.get(i).name.equals(name)) return i;
         return -1;
     }
 
-    private void categoryOrderPage() {
+    void categoryOrderPage() {
         body.addView(card(column(heading("功能列表排序", 20),
                 spaced(paragraph("调整首页各大功能的显示顺序。按住左侧的三条横线上下拖，松手就放到新位置；改动立即生效，只影响排列，不影响任何功能本身；「实验室」在「模块设置」里，不参与排序。", 14), 8))));
         // 编辑列表不含「实验室」：它不在首页显示，顺序由导航位置决定。
@@ -3122,7 +2030,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 把第 {@code from} 项拖到第 {@code to} 位后立即保存；保存的是不含「实验室」的完整顺序。 */
-    private void orderCategories(int from, int to) {
+    void orderCategories(int from, int to) {
         List<Guide.Category> list = new ArrayList<>();
         for (Guide.Category c : orderedCategories()) if (!c.name.equals("实验室")) list.add(c);
         if (from < 0 || from >= list.size()) return;
@@ -3139,7 +2047,7 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 安装 ─────────────────────────
 
-    private void installation() {
+    void installation() {
         ApplicationServices.Snapshot s = snapshot;
         // 配置读取失败时 snapshot 可能是 null：安装页必须照样打开（导出 ZIP 就在这里）
         Map<String, String> env = s == null ? Collections.emptyMap() : s.environment;
@@ -3177,7 +2085,7 @@ public final class MainActivity extends Activity {
                 ink.button("前往功能", Ink.Kind.SECONDARY, v -> { category = ""; featureId = ""; switchTab(FEATURES); })));
     }
 
-    private View step(int number, boolean done, String title, String text, View actions) {
+    View step(int number, boolean done, String title, String text, View actions) {
         LinearLayout row = new LinearLayout(this);
         row.setPadding(0, ink.dp(20), 0, 0);
         TextView marker = ink.text(done ? "✓" : String.valueOf(number), 15, Ink.BOLD);
@@ -3196,256 +2104,7 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 桌面快捷方式 ─────────────────────────
 
-    private void shortcutPage() {
-        List<String> chosen = UiShortcuts.saved(this);
-        body.addView(spaced(card(column(
-                heading("长按桌面图标", 18),
-                spaced(paragraph("长按桌面上的「墨控」图标，弹出的菜单里直接列出下面这几项，点一个就到对应功能页，"
-                        + "不再多一层面板。最多 " + UiShortcuts.MAX + " 个。", 14), 8),
-                spaced(paragraph("说明：这几条是安卓的「动态快捷方式」，桌面把它们画成一列「图标 + 名字」，"
-                        + "和系统自带的「分享 / 冻结 / 卸载」那一行是同一块菜单的不同样式。"
-                        + "名字只留两三个字，字多了会被桌面截成「遮挡息…」。", 13), 8))), 16));
-
-        LinearLayout chosenCard = column();
-        if (chosen.isEmpty()) chosenCard.addView(paragraph("还没有选择任何功能。", 14));
-        for (int i = 0; i < chosen.size(); i++) {
-            String id = chosen.get(i);
-            // 「刷新格言」不是功能页：没有 FeatureDefinition，单独给一行标题，别被 continue 掉。
-            if (UiShortcuts.MOTTO.equals(id)) {
-                chosenCard.addView(spaced(shortcutRow(i + 1, "刷新格言", "快捷动作 · 换下一条"), 10));
-                continue;
-            }
-            FeatureDefinition feature;
-            try { feature = FeatureCatalog.get(Guide.destination(id)); }
-            catch (RuntimeException unknown) { continue; }
-            chosenCard.addView(spaced(shortcutRow(i + 1, feature.title, feature.group), 10));
-        }
-        body.addView(spaced(card(chosenCard), 16));
-
-        body.addView(spaced(ink.button("选择功能", Ink.Kind.PRIMARY, v -> shortcutPicker()), 12));
-        body.addView(spaced(ink.button("恢复默认四个", Ink.Kind.SECONDARY, v -> {
-            boolean ok = UiShortcuts.reset(this);
-            dismissNotice();
-            message = ok ? "已恢复默认：遮挡息屏、锁屏显示、自动刷新、桌面主题" : "桌面没有接受这次改动，稍后再试一次";
-            messageFailed = !ok;
-            render();
-            if (ok) scheduleNoticeDismiss();
-        }), 12));
-        body.addView(spaced(paragraph("改完立即生效，不用重启桌面。个别桌面会缓存长按菜单，"
-                + "第一次可能要多等几秒，或者先滑一下桌面再长按。", 13), 12));
-    }
-
-    private View shortcutRow(int index, String title, String group) {
-        LinearLayout row = new LinearLayout(this);
-        // 序号要对齐标题那一行，不能按整块居中：描述一长，圆点会掉到中间去。
-        row.setGravity(Gravity.TOP);
-        TextView number = ink.text(String.valueOf(index), 15, Ink.BOLD);
-        number.setGravity(Gravity.CENTER);
-        number.setBackground(ink.outline(20));
-        LinearLayout.LayoutParams badge = new LinearLayout.LayoutParams(ink.dp(26), ink.dp(26));
-        badge.topMargin = ink.dp(1);
-        row.addView(number, badge);
-        LinearLayout text = column(ink.text(title, 16, Ink.MEDIUM),
-                spaced(paragraph(group, 12), 2));
-        LinearLayout.LayoutParams content = new LinearLayout.LayoutParams(0, -2, 1);
-        content.leftMargin = ink.dp(12);
-        row.addView(text, content);
-        row.setContentDescription(ink.t(title));
-        return row;
-    }
-
-    /** 选快捷方式：列全部分类下的功能，勾满上限后自动挡回。 */
-    private void shortcutPicker() {
-        Set<String> selected = new LinkedHashSet<>(UiShortcuts.saved(this));
-        List<CheckBox> boxes = new ArrayList<>();
-        List<String> ids = new ArrayList<>();
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        String lastGroup = null;
-        for (FeatureDefinition feature : FeatureCatalog.all()) {
-            // 纯页面项（「显示信息修改」「倒数日事项」这类）没有自己的开关，当快捷方式没意义
-            if (feature.acceptsPanel()) continue;
-            if (!feature.group.equals(lastGroup)) {
-                lastGroup = feature.group;
-                TextView header = ink.text(feature.group, 14, Ink.BOLD);
-                header.setPadding(ink.dp(10), ink.dp(14), ink.dp(10), ink.dp(4));
-                list.addView(header);
-            }
-            CheckBox box = new CheckBox(this);
-            box.setText(feature.title);
-            box.setTextSize(15);
-            box.setPadding(ink.dp(10), ink.dp(9), ink.dp(10), ink.dp(9));
-            box.setChecked(selected.contains(feature.id));
-            box.setOnCheckedChangeListener((button, checked) -> {
-                if (!checked) return;
-                int count = 0;
-                for (CheckBox other : boxes) if (other.isChecked()) count++;
-                if (count > UiShortcuts.MAX) {
-                    button.setChecked(false);
-                    Toast.makeText(this, "最多选 " + UiShortcuts.MAX + " 个，先取消一个再选", Toast.LENGTH_SHORT).show();
-                }
-            });
-            list.addView(box);
-            boxes.add(box);
-            ids.add(feature.id);
-        }
-        // 「刷新格言」不是功能页，是一个就地动作，单独归到「快捷动作」一组放在最后。
-        TextView actionHead = ink.text("快捷动作", 14, Ink.BOLD);
-        actionHead.setPadding(ink.dp(10), ink.dp(14), ink.dp(10), ink.dp(4));
-        list.addView(actionHead);
-        CheckBox motto = new CheckBox(this);
-        motto.setText("刷新格言");
-        motto.setTextSize(15);
-        motto.setPadding(ink.dp(10), ink.dp(9), ink.dp(10), ink.dp(9));
-        motto.setChecked(selected.contains(UiShortcuts.MOTTO));
-        motto.setOnCheckedChangeListener((button, checked) -> {
-            if (!checked) return;
-            int count = 0;
-            for (CheckBox other : boxes) if (other.isChecked()) count++;
-            if (count > UiShortcuts.MAX) {
-                button.setChecked(false);
-                Toast.makeText(this, "最多选 " + UiShortcuts.MAX + " 个，先取消一个再选", Toast.LENGTH_SHORT).show();
-            }
-        });
-        list.addView(motto);
-        boxes.add(motto);
-        ids.add(UiShortcuts.MOTTO);
-        ScrollView scroller = new ScrollView(this);
-        scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        scroller.setScrollbarFadingEnabled(false);
-        scroller.addView(list);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(ink.dp(10), ink.dp(4), ink.dp(10), ink.dp(4));
-        content.addView(paragraph("勾选顺序按列表从上到下排列，与点选先后无关。", 12));
-        content.addView(scroller, new LinearLayout.LayoutParams(-1, ink.dp(380)));
-        new AlertDialog.Builder(this)
-                .setTitle(ink.t("选择快捷方式") + "（最多 " + UiShortcuts.MAX + " 个）")
-                .setView(content)
-                .setNegativeButton(ink.t("取消"), null)
-                .setPositiveButton(ink.t("保存"), (dialog, which) -> {
-                    List<String> picked = new ArrayList<>();
-                    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).isChecked()) picked.add(ids.get(i));
-                    if (picked.isEmpty()) {
-                        dismissNotice();
-                        message = "至少要留一个，否则长按图标不会弹出菜单";
-                        messageFailed = true;
-                        render();
-                        return;
-                    }
-                    boolean ok = UiShortcuts.save(this, picked);
-                    dismissNotice();
-                    message = ok
-                            ? "已保存 " + picked.size() + " 个快捷方式，长按桌面图标就能看到"
-                            : "桌面拒绝了这次更新（可能刚改过太多次），过一会儿再保存一次";
-                    messageFailed = !ok;
-                    render();
-                    if (ok) scheduleNoticeDismiss();
-                }).show();
-    }
-
-    // ───────────────────────── 备份系统设置 ─────────────────────────
-
-    private void backupPage() {
-        body.addView(spaced(card(column(
-                heading("存的是什么", 18),
-                spaced(paragraph("系统设置本身：息屏与锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、"
-                        + "显示模式、开发者选项这些。真机上约 420 项，恢复时逐条写回。", 14), 8),
-                spaced(paragraph("不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。", 13), 6))), 16));
-
-        body.addView(spaced(ink.button("立即备份当前设置", Ink.Kind.PRIMARY, v ->
-                perform("正在备份系统设置…", () -> {
-                    String[] saved = services.backupSave();
-                    backups = null;
-                    return "已备份 " + saved[1] + " 项设置，编号 " + saved[0];
-                }, false)), 12));
-
-        if (backups == null && !backupsLoading) loadBackups();
-        if (backups == null) { body.addView(note("正在读取已有快照…")); return; }
-
-        body.addView(spaced(heading("已有快照", 18), 18));
-        if (backups.isEmpty()) {
-            body.addView(paragraph("还没有备份过。点上面的按钮拍第一张。", 14));
-            return;
-        }
-        for (String[] item : backups) body.addView(spaced(snapshotCard(item), 10));
-        body.addView(spaced(paragraph("快照存在 /data/adb/inkcontrol/backup 下，清除应用数据不会带走。"
-                + "恢复只改设置项，不会覆盖系统文件；写之前还会先给当前状态拍一张，写坏了能退回去。", 13), 14));
-    }
-
-    private View snapshotCard(String[] item) {
-        String id = item[0], count = item[2], size = item[3];
-        LinearLayout card = column(ink.text(stamp(item[1]) + " · " + count + " 项 · " + size + " KB", 15, Ink.BOLD));
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setPadding(0, ink.dp(10), 0, 0);
-        actions.addView(ink.chip("写回", false, v -> restoreConfirm(id, count)));
-        LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(-2, -2);
-        removeParams.leftMargin = ink.dp(10);
-        actions.addView(ink.chip("删除", false, v -> confirm("删除快照",
-                "删掉 " + id + "？这张快照里的 " + count + " 项就找不回来了。", () -> removeSnapshot(id))), removeParams);
-        card.addView(actions);
-        return card;
-    }
-
-    private void restoreConfirm(String id, String count) {
-        confirm("写回系统设置",
-                "把 " + id + " 里的 " + count + " 项写回当前系统。\n\n"
-                        + "写之前会自动给现在的状态拍一张快照，写坏了可以用它退回去。"
-                        + "无线网络、字体这类要重启系统界面才看得出来；个别项可能要重启手机。",
-                () -> perform("正在写回设置…", () -> {
-                    String[] done = services.backupRestore(id);
-                    backups = null;
-                    String text = "已写回 " + done[0] + " 项，跳过 " + done[1] + " 项，失败 " + done[2] + " 项。";
-                    if (!done[3].isEmpty()) text += "\n写回前的状态已存为 " + done[3] + "。";
-                    return text;
-                }, true));
-    }
-
-    private void removeSnapshot(String id) {
-        perform("正在删除快照…", () -> {
-            services.backupDelete(id);
-            backups = null;
-            return "已删除快照 " + id;
-        }, false);
-    }
-
-    private void loadBackups() {
-        backupsLoading = true;
-        WORKER.execute(() -> {
-            List<String[]> loaded = null;
-            String error = "";
-            try { loaded = services.backupSnapshots(); } catch (Exception failure) { error = reason(failure); }
-            List<String[]> result = loaded;
-            String problem = error;
-            runOnUiThread(() -> {
-                backupsLoading = false;
-                if (isFinishing() || isDestroyed()) return;
-                // 读不到（多半是没给 Root）也要把页面画出来，否则只剩下「正在读取」一句
-                if (result == null) {
-                    backups = new ArrayList<>();
-                    message = problem;
-                    messageFailed = true;
-                } else backups = result;
-                render();
-            });
-        });
-    }
-
-    /** 秒级时间戳转成本地「MM-dd HH:mm」；解析不了就说明时间未知，别把数字直接丢给用户。 */
-    private static String stamp(String seconds) {
-        try {
-            long value = Long.parseLong(seconds) * 1000L;
-            if (value <= 0) return "时间未知";
-            return new java.text.SimpleDateFormat("MM-dd HH:mm", Locale.CHINA).format(new java.util.Date(value));
-        } catch (NumberFormatException invalid) {
-            return "时间未知";
-        }
-    }
-
-    // ───────────────────────── 诊断 ─────────────────────────
-
-    private void diagnostics() {
+    void diagnostics() {
         ApplicationServices.Snapshot s = snapshot;
         // 配置读取失败时 snapshot 可能是 null：诊断页必须照样打开
         Map<String, String> env = s == null ? Collections.emptyMap() : s.environment;
@@ -3488,7 +2147,7 @@ public final class MainActivity extends Activity {
             body.addView(spaced(card(raw), 24));
         }
     }
-    private View fact(String key, String value) {
+    View fact(String key, String value) {
         LinearLayout row = new LinearLayout(this);
         row.setPadding(0, ink.dp(6), 0, ink.dp(6));
         row.addView(ink.text(key, 14, Ink.REGULAR), new LinearLayout.LayoutParams(ink.dp(96), -2));
@@ -3499,7 +2158,7 @@ public final class MainActivity extends Activity {
     // ───────────────────────── 操作 ─────────────────────────
 
     /** 配置先保存再由 Root 应用；保存成功但应用失败时如实说明，而不是笼统报“未完成”。 */
-    private void change(String id, boolean enabled, String value) throws Exception {
+    void change(String id, boolean enabled, String value) throws Exception {
         // 「显示通知」与「显示设备状态」共用锁屏底部那一块位置，界面层强制互斥：
         // 开其中一个就先把另一个关掉。列表开关与详情页按钮都走这里，所以只在这一处保证即可；
         // 关掉另一个时沿用它的现值，免得下次打开又要重选来源。
@@ -3518,17 +2177,17 @@ public final class MainActivity extends Activity {
             throw error;
         }
     }
-    private boolean begin(String id, boolean enabled, String value) {
+    boolean begin(String id, boolean enabled, String value) {
         if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return false; }
         pendingId = id; pendingEnabled = enabled; pendingValue = value;
         return true;
     }
 
-    private String status(String id) {
+    String status(String id) {
         String value = snapshot == null ? null : snapshot.statuses.get(id);
         return value == null ? "未知" : value;
     }
-    private static String glyph(String status) {
+    static String glyph(String status) {
         if (status.equals("已生效")) return "●";
         if (status.equals("关闭")) return "○";
         if (status.equals("待重启")) return "↻";
@@ -3538,10 +2197,10 @@ public final class MainActivity extends Activity {
         return "…";
     }
 
-    private void confirm(String title, String text, Runnable action) {
+    void confirm(String title, String text, Runnable action) {
         new AlertDialog.Builder(this).setTitle(ink.t(title)).setMessage(ink.t(text)).setNegativeButton(ink.t("取消"), null).setPositiveButton(ink.t("继续"), (dialog, which) -> action.run()).show();
     }
-    private void showText(String title, String text) {
+    void showText(String title, String text) {
         new AlertDialog.Builder(this).setTitle(ink.t(title)).setMessage(ink.t(text)).setPositiveButton(ink.t("知道了"), null).show();
     }
 
@@ -3549,9 +2208,9 @@ public final class MainActivity extends Activity {
      * 后台执行并刷新快照。dialog 为 true 时总是弹出完整结果；否则只在失败时弹出。
      * 返回 false 表示已有操作在执行，本次未提交。onSuccess 在成功收尾后回主线程执行。
      */
-    private boolean perform(String label, Work work, boolean dialog) { return perform(label, work, dialog, null); }
+    boolean perform(String label, Work work, boolean dialog) { return perform(label, work, dialog, null); }
 
-    private boolean perform(String label, Work work, boolean dialog, Runnable onSuccess) {
+    boolean perform(String label, Work work, boolean dialog, Runnable onSuccess) {
         if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return false; }
         // 新操作开始前撤掉上一条结果的自动消失计时，免得中途把新提示清掉。
         dismissNotice();
@@ -3588,12 +2247,12 @@ public final class MainActivity extends Activity {
         });
         return true;
     }
-    private static String reason(Throwable error) {
+    static String reason(Throwable error) {
         String text = error.getMessage();
         return text == null || text.isEmpty() ? error.getClass().getSimpleName() : text;
     }
 
-    private void exportZip() {
+    void exportZip() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/zip").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE, "inkcontrol_backend-v" + BuildInfo.VERSION + ".zip");
         try { startActivityForResult(intent, EXPORT_REQUEST); }
         catch (android.content.ActivityNotFoundException error) { showText("无法导出", "系统没有可用的文件保存界面。"); }
@@ -3605,26 +2264,26 @@ public final class MainActivity extends Activity {
             return "ZIP 已校验并导出，请在 Magisk 中从本地安装。";
         }, true);
         if (request == FONT_REQUEST && result == RESULT_OK && data != null && data.getData() != null)
-            applyFontFromUri(data.getData());
+            fontPages.applyFontFromUri(data.getData());
         if (request == FONT_DIR_REQUEST && result == RESULT_OK && data != null && data.getData() != null) {
-            String path = treePath(data.getData());
+            String path = FontPages.treePath(data.getData());
             if (path == null) showText("无法换成路径", "这个位置没法转换成文件路径。可以改用「从文件选择」直接挑一个字体文件。");
-            else saveFontDir("font.dir", path);
+            else fontPages.saveFontDir("font.dir", path);
         }
     }
 
     // ───────────────────────── 排版工具 ─────────────────────────
 
-    private TextView heading(String value, float sp) { return ink.text(value, sp, Ink.BOLD); }
-    private TextView paragraph(String value, float sp) { return ink.text(value, sp, Ink.REGULAR); }
-    private TextView note(String value) { TextView view = paragraph(value, 15); view.setPadding(ink.dp(4), ink.dp(24), 0, 0); return view; }
-    private LinearLayout column(View... children) {
+    TextView heading(String value, float sp) { return ink.text(value, sp, Ink.BOLD); }
+    TextView paragraph(String value, float sp) { return ink.text(value, sp, Ink.REGULAR); }
+    TextView note(String value) { TextView view = paragraph(value, 15); view.setPadding(ink.dp(4), ink.dp(24), 0, 0); return view; }
+    LinearLayout column(View... children) {
         LinearLayout column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
         for (View child : children) column.addView(child);
         return column;
     }
-    private LinearLayout card(View content) {
+    LinearLayout card(View content) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackground(ink.outline(14));
@@ -3636,7 +2295,7 @@ public final class MainActivity extends Activity {
         return card;
     }
     /** 给视图加上外边距；保留调用方之后传入的 LayoutParams 宽高。 */
-    private View spaced(View view, int topDp) {
+    View spaced(View view, int topDp) {
         ViewGroup.LayoutParams current = view.getLayoutParams();
         LinearLayout.LayoutParams params = current instanceof LinearLayout.LayoutParams ? (LinearLayout.LayoutParams) current
                 : new LinearLayout.LayoutParams(current == null ? -1 : current.width, current == null ? -2 : current.height);
@@ -3646,7 +2305,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 页面里打了 tag 的那一行；紧凑大功能页给每行都打了功能 id，用来定位到指定项。 */
-    private static View findTagged(View root, String tag) {
+    static View findTagged(View root, String tag) {
         if (root == null || tag == null) return null;
         if (tag.equals(root.getTag())) return root;
         if (root instanceof ViewGroup) {
@@ -3660,7 +2319,7 @@ public final class MainActivity extends Activity {
     }
 
     /** 视图在 body 坐标系里的纵向位置：逐层累加 getTop()，一直加到 body 为止。 */
-    private int offsetInBody(View view) {
+    int offsetInBody(View view) {
         int y = 0;
         View current = view;
         while (current != null && current != body) {
@@ -3669,7 +2328,7 @@ public final class MainActivity extends Activity {
         }
         return y;
     }
-    private View withMargin(View view, int leftDp) {
+    View withMargin(View view, int leftDp) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-2, -2);
         params.leftMargin = ink.dp(leftDp);
         view.setLayoutParams(params);
