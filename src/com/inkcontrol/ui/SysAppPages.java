@@ -38,10 +38,10 @@ final class SysAppPages {
 
     void sysAppPage() {
         String key = a.pageKey();
-        if (!key.equals(sysAppPageKey)) {
+        if (!key.equals(a.sysAppPageKey)) {
             // 每次重新进入这一页都重读一遍，避免看到离开前的旧状态
-            sysAppPageKey = key;
-            sysAppStates.clear();
+            a.sysAppPageKey = key;
+            a.sysAppStates.clear();
             a.body.postDelayed(() -> { if (!a.busy) a.perform("读取卸载状态", this::readSysAppStates, false); }, 60);
         }
         // 页头已经有分类名与 intro，这里只补一句「卸载到底做了什么」，不再重复标题
@@ -49,9 +49,9 @@ final class SysAppPages {
         LinearLayout list = new LinearLayout(a);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setBackground(a.ink.outline(12));
-        for (int i = 0; i < SYS_APPS.length; i++) {
+        for (int i = 0; i < MainActivity.SYS_APPS.length; i++) {
             if (i > 0) list.addView(a.ink.rule(1));
-            list.addView(sysAppRow(SYS_APPS[i][0], SYS_APPS[i][1]));
+            list.addView(sysAppRow(MainActivity.SYS_APPS[i][0], MainActivity.SYS_APPS[i][1]));
         }
         a.body.addView(a.spaced(list, 18));
         a.body.addView(a.spaced(a.paragraph("常驻组件不在此列：冻结压不住，卸载会让系统软重启。", 13), 10));
@@ -60,7 +60,7 @@ final class SysAppPages {
     }
 
     View sysAppRow(String pkg, String name) {
-        String state = sysAppStates.get(pkg);
+        String state = a.sysAppStates.get(pkg);
         boolean installed = "installed".equals(state);
         LinearLayout row = new LinearLayout(a);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -85,19 +85,19 @@ final class SysAppPages {
     String sysAppChange(String pkg, String name, boolean remove) throws Exception {
         if (remove) a.services.sysAppRemove(pkg); else a.services.sysAppRestore(pkg);
         String state = a.services.sysAppState(pkg)[0];
-        sysAppStates.put(pkg, state);
+        a.sysAppStates.put(pkg, state);
         return name + "：" + sysAppStateLabel(state);
     }
 
     /** 一次读完所有预置应用的状态，返回给提示条；perform 成功后会自动重画页面。 */
     String readSysAppStates() throws Exception {
         StringBuilder out = new StringBuilder();
-        for (int i = 0; i < SYS_APPS.length; i++) {
+        for (int i = 0; i < MainActivity.SYS_APPS.length; i++) {
             String state;
-            try { state = a.services.sysAppState(SYS_APPS[i][0])[0]; } catch (Exception error) { state = ""; }
-            if (!state.isEmpty()) sysAppStates.put(SYS_APPS[i][0], state);
+            try { state = a.services.sysAppState(MainActivity.SYS_APPS[i][0])[0]; } catch (Exception error) { state = ""; }
+            if (!state.isEmpty()) a.sysAppStates.put(MainActivity.SYS_APPS[i][0], state);
             if (i > 0) out.append('\n');
-            out.append(SYS_APPS[i][1]).append('：').append(sysAppStateLabel(state));
+            out.append(MainActivity.SYS_APPS[i][1]).append('：').append(sysAppStateLabel(state));
         }
         return out.toString();
     }

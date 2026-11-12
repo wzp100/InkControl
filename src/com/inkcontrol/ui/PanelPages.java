@@ -69,14 +69,14 @@ final class PanelPages {
     void panelEditor() {
         com.inkcontrol.core.Configuration config = a.snapshot.config;
         // 刚拖完、root 应用还没跑完时先按「挂起的新顺序」画，省得等那一两秒。
-        String[] order = a.panelOrderPending != null ? a.panelOrderPending : new String[PANEL_SLOTS.length];
-        if (a.panelOrderPending == null) for (int i = 0; i < order.length; i++) order[i] = config.value(PANEL_SLOTS[i]);
+        String[] order = a.panelOrderPending != null ? a.panelOrderPending : new String[MainActivity.PANEL_SLOTS.length];
+        if (a.panelOrderPending == null) for (int i = 0; i < order.length; i++) order[i] = config.value(MainActivity.PANEL_SLOTS[i]);
         LinearLayout panel = a.column(a.heading("按钮顺序", 18),
                 a.spaced(a.paragraph("从左到右排。按住左侧的三条横线上下拖即可换位置，点「更换」换动作。", 13), 6));
         // 每个位置单独装一层：拖动落点是按容器子视图的中线算的，标题与按钮不能混在同一个容器里。
         LinearLayout items = DragSort.container(a);
-        for (int i = 0; i < PANEL_SLOTS.length; i++) {
-            String id = PANEL_SLOTS[i];
+        for (int i = 0; i < MainActivity.PANEL_SLOTS.length; i++) {
+            String id = MainActivity.PANEL_SLOTS[i];
             // 每格只占容器的一格：分隔线画在包装里，不额外插视图（拖动落点按子视图中线算）。
             LinearLayout item = new LinearLayout(a);
             item.setOrientation(LinearLayout.VERTICAL);
@@ -135,7 +135,7 @@ final class PanelPages {
 
     /** 某一格现在是什么：普通动作取选项名；存的是包名时显示应用名。 */
     String slotName(String value) {
-        FeatureDefinition slot = FeatureCatalog.get(PANEL_SLOTS[0]);
+        FeatureDefinition slot = FeatureCatalog.get(MainActivity.PANEL_SLOTS[0]);
         if (slot.values.contains(value)) return Guide.optionName(slot, value);
         return value == null || value.isEmpty() ? "无" : appLabel(value);
     }
@@ -242,12 +242,12 @@ final class PanelPages {
      * 但顺序要写进配置，所以仍要跑一次应用；一次应用一两秒，拖完立刻回弹原位会很难用。
      */
     void orderSlots(int from, int to) {
-        final int count = PANEL_SLOTS.length;
+        final int count = MainActivity.PANEL_SLOTS.length;
         if (a.panelOrderBusy || from < 0 || from >= count || to < 0 || to >= count || from == to) return;
         final String[] before = new String[count];
         final List<String> order = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            before[i] = a.snapshot.config.value(PANEL_SLOTS[i]);
+            before[i] = a.snapshot.config.value(MainActivity.PANEL_SLOTS[i]);
             order.add(before[i]);
         }
         order.add(to, order.remove(from));
@@ -259,7 +259,7 @@ final class PanelPages {
             try {
                 java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
                 for (int i = 0; i < count; i++)
-                    if (!order.get(i).equals(before[i])) values.put(PANEL_SLOTS[i], order.get(i));
+                    if (!order.get(i).equals(before[i])) values.put(MainActivity.PANEL_SLOTS[i], order.get(i));
                 a.services.changeAll(values);
             } catch (Exception failure) { error = MainActivity.reason(failure); }
             ApplicationServices.Snapshot next = null;
@@ -279,7 +279,7 @@ final class PanelPages {
     void resetSlots() {
         final String[] defaults = {"wifi", "bt", "refresh", "pageanim", "pin"};
         a.perform("恢复默认顺序", () -> {
-            for (int i = 0; i < PANEL_SLOTS.length; i++) a.saveValue(FeatureCatalog.get(PANEL_SLOTS[i]), defaults[i]);
+            for (int i = 0; i < MainActivity.PANEL_SLOTS.length; i++) a.saveValue(FeatureCatalog.get(MainActivity.PANEL_SLOTS[i]), defaults[i]);
             return "已恢复默认顺序";
         }, false);
     }

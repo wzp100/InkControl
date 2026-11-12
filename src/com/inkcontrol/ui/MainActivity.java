@@ -99,7 +99,8 @@ public final class MainActivity extends Activity {
     /** 详情页里正在预览、尚未使用的选项；空表示与当前设置相同。 */
     String preview = "";
     /** 字体页的完整列表、过滤词与渲染控件：搜索框只过滤显示，不重新扫描目录。 */
-    List<String[]> fontItems = new ArrayList<>();    private String fontProblem = "";
+    List<String[]> fontItems = new ArrayList<>();
+    String fontProblem = "";
     String fontAppliedMark = "";
     String fontQuery = "";
     /** 字体页当前目录：列表读取失败时「重新加载」按它重扫。 */
