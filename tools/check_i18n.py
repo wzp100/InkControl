@@ -4,7 +4,8 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCES = ('ui/MainActivity.java', 'ui/Guide.java', 'ui/Charts.java', 'ui/MotionDemo.java',
+SOURCES = ('ui/MainActivity.java', 'ui/SysAppPages.java', 'ui/PanelPages.java', 'ui/ListEditors.java', 'ui/FontPages.java',
+           'ui/HoldEditor.java', 'ui/AboutPages.java', 'ui/ShortcutPages.java', 'ui/BackupPages.java', 'ui/Guide.java', 'ui/Charts.java', 'ui/MotionDemo.java',
            'core/FeatureCatalog.java', 'core/DisplayAlgorithms.java', 'core/FeatureService.java',
            'core/Configuration.java', 'core/Integrity.java', 'core/FeatureDefinition.java',
            # 系统界面与桌面进程里弹出的提示也走同一张翻译表（见 platform/HookText.java）
