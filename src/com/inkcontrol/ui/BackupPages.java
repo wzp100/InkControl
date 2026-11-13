@@ -37,13 +37,13 @@ final class BackupPages {
     BackupPages(MainActivity host) { a = host; }
 
     void backupPage() {
-        a.body.addView(a.spaced(a.card(a.column(
-                a.heading("存的是什么", 18),
-                a.spaced(a.paragraph("系统设置本身：息屏与锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、"
+        a.body.addView(a.widgets.spaced(a.widgets.card(a.widgets.column(
+                a.widgets.heading("存的是什么", 18),
+                a.widgets.spaced(a.widgets.paragraph("系统设置本身：息屏与锁屏时长、各声道音量、默认输入法、字体名、护眼与游戏模式、"
                         + "显示模式、开发者选项这些。真机上约 420 项，恢复时逐条写回。", 14), 8),
-                a.spaced(a.paragraph("不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。", 13), 6))), 16));
+                a.widgets.spaced(a.widgets.paragraph("不备份应用自己的数据、不备份锁屏密码、不碰应用安装信息。", 13), 6))), 16));
 
-        a.body.addView(a.spaced(a.ink.button("立即备份当前设置", Ink.Kind.PRIMARY, v ->
+        a.body.addView(a.widgets.spaced(a.ink.button("立即备份当前设置", Ink.Kind.PRIMARY, v ->
                 a.perform("正在备份系统设置…", () -> {
                     String[] saved = a.services.backupSave();
                     a.backups = null;
@@ -51,21 +51,21 @@ final class BackupPages {
                 }, false)), 12));
 
         if (a.backups == null && !a.backupsLoading) loadBackups();
-        if (a.backups == null) { a.body.addView(a.note("正在读取已有快照…")); return; }
+        if (a.backups == null) { a.body.addView(a.widgets.note("正在读取已有快照…")); return; }
 
-        a.body.addView(a.spaced(a.heading("已有快照", 18), 18));
+        a.body.addView(a.widgets.spaced(a.widgets.heading("已有快照", 18), 18));
         if (a.backups.isEmpty()) {
-            a.body.addView(a.paragraph("还没有备份过。点上面的按钮拍第一张。", 14));
+            a.body.addView(a.widgets.paragraph("还没有备份过。点上面的按钮拍第一张。", 14));
             return;
         }
-        for (String[] item : a.backups) a.body.addView(a.spaced(snapshotCard(item), 10));
-        a.body.addView(a.spaced(a.paragraph("快照存在 /data/adb/inkcontrol/backup 下，清除应用数据不会带走。"
+        for (String[] item : a.backups) a.body.addView(a.widgets.spaced(snapshotCard(item), 10));
+        a.body.addView(a.widgets.spaced(a.widgets.paragraph("快照存在 /data/adb/inkcontrol/backup 下，清除应用数据不会带走。"
                 + "恢复只改设置项，不会覆盖系统文件；写之前还会先给当前状态拍一张，写坏了能退回去。", 13), 14));
     }
 
-    View snapshotCard(String[] item) {
+    private View snapshotCard(String[] item) {
         String id = item[0], count = item[2], size = item[3];
-        LinearLayout card = a.column(a.ink.text(stamp(item[1]) + " · " + count + " 项 · " + size + " KB", 15, Ink.BOLD));
+        LinearLayout card = a.widgets.column(a.ink.text(stamp(item[1]) + " · " + count + " 项 · " + size + " KB", 15, Ink.BOLD));
         LinearLayout actions = new LinearLayout(a);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setPadding(0, a.ink.dp(10), 0, 0);
@@ -78,7 +78,7 @@ final class BackupPages {
         return card;
     }
 
-    void restoreConfirm(String id, String count) {
+    private void restoreConfirm(String id, String count) {
         a.confirm("写回系统设置",
                 "把 " + id + " 里的 " + count + " 项写回当前系统。\n\n"
                         + "写之前会自动给现在的状态拍一张快照，写坏了可以用它退回去。"
@@ -92,7 +92,7 @@ final class BackupPages {
                 }, true));
     }
 
-    void removeSnapshot(String id) {
+    private void removeSnapshot(String id) {
         a.perform("正在删除快照…", () -> {
             a.services.backupDelete(id);
             a.backups = null;

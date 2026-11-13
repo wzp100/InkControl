@@ -48,31 +48,31 @@ final class FontPages {
         a.fontQuery = "";
         a.fontDir = dir;
 
-        a.body.addView(a.spaced(a.paragraph("点「应用」写进系统槽位后，替换全局字体。", 14), 4));
+        a.body.addView(a.widgets.spaced(a.widgets.paragraph("点「应用」写进系统槽位后，替换全局字体。", 14), 4));
 
-        LinearLayout box = a.column();
+        LinearLayout box = a.widgets.column();
         EditText field = new EditText(a);
         field.setSingleLine(true);
         field.setText(saved == null ? "" : saved);
         field.setHint(MainActivity.FONT_DIR_DEFAULT);
         field.setBackground(a.ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
         field.setPadding(a.ink.dp(10), a.ink.dp(8), a.ink.dp(10), a.ink.dp(8));
-        box.addView(a.spaced(field, 12));
-        box.addView(a.spaced(a.ink.button("保存并刷新列表", Ink.Kind.PRIMARY, v -> saveFontDir("font.dir", field.getText().toString())), 10));
+        box.addView(a.widgets.spaced(field, 12));
+        box.addView(a.widgets.spaced(a.ink.button("保存并刷新列表", Ink.Kind.PRIMARY, v -> saveFontDir("font.dir", field.getText().toString())), 10));
 
         LinearLayout actions = new LinearLayout(a);
         actions.addView(a.ink.button("选择目录", Ink.Kind.SECONDARY, v -> pickFontDir()), new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(0, -2, 1);
         rightParams.leftMargin = a.ink.dp(10);
         actions.addView(a.ink.button("从文件选择", Ink.Kind.SECONDARY, v -> pickFontFile()), rightParams);
-        box.addView(a.spaced(actions, 12));
+        box.addView(a.widgets.spaced(actions, 12));
 
-        box.addView(a.spaced(a.ink.button("恢复原厂字体", Ink.Kind.SECONDARY, v -> restoreFont()), 10));
-        box.addView(a.spaced(a.paragraph("字体是全局替换：状态栏、锁屏、桌面与所有应用一起换字。字体缺少中文字形时部分界面会出现方块，点上面的「恢复原厂字体」即可退回系统默认字体。", 12), 8));
-        box.addView(a.spaced(a.ink.text("默认：" + MainActivity.FONT_DIR_DEFAULT, 12, Ink.MEDIUM), 8));
+        box.addView(a.widgets.spaced(a.ink.button("恢复原厂字体", Ink.Kind.SECONDARY, v -> restoreFont()), 10));
+        box.addView(a.widgets.spaced(a.widgets.paragraph("字体是全局替换：状态栏、锁屏、桌面与所有应用一起换字。字体缺少中文字形时部分界面会出现方块，点上面的「恢复原厂字体」即可退回系统默认字体。", 12), 8));
+        box.addView(a.widgets.spaced(a.ink.text("默认：" + MainActivity.FONT_DIR_DEFAULT, 12, Ink.MEDIUM), 8));
         if (applied != null && !applied.isEmpty())
-            box.addView(a.spaced(a.ink.text("上次应用：" + applied, 13, Ink.BOLD), 12));
-        a.body.addView(a.spaced(box, 16));
+            box.addView(a.widgets.spaced(a.ink.text("上次应用：" + applied, 13, Ink.BOLD), 12));
+        a.body.addView(a.widgets.spaced(box, 16));
 
         // 搜索框：只过滤下方列表的显示，不重新扫描目录
         EditText search = new EditText(a);
@@ -88,17 +88,17 @@ final class FontPages {
                 renderFontList();
             }
         });
-        a.body.addView(a.spaced(search, 12));
+        a.body.addView(a.widgets.spaced(search, 12));
 
         a.fontAppliedMark = applied;
         a.fontHintView = a.ink.text("正在扫描…", 13, Ink.MEDIUM);
         a.body.addView(a.fontHintView);
-        a.fontListViews = a.column();
-        a.body.addView(a.spaced(a.fontListViews, 8));
+        a.fontListViews = a.widgets.column();
+        a.body.addView(a.widgets.spaced(a.fontListViews, 8));
         loadFonts(dir, applied);
     }
 
-    void loadFonts(String dir, String applied) {
+    private void loadFonts(String dir, String applied) {
         MainActivity.WORKER.execute(() -> {
             List<String[]> fonts = new ArrayList<>();
             String failure = "";
@@ -123,17 +123,17 @@ final class FontPages {
     }
 
     /** 按搜索词过滤并重画字体列表；过滤词为空时显示全部。 */
-    void renderFontList() {
+    private void renderFontList() {
         if (a.fontListViews == null || a.fontHintView == null) return;
         a.fontListViews.removeAllViews();
         if (!a.fontProblem.isEmpty()) {
             a.fontHintView.setText("读取目录失败：" + a.fontProblem + "\n可以用「从文件选择」直接挑一个字体文件。");
-            a.fontListViews.addView(a.spaced(reloadFontsButton(), 8));
+            a.fontListViews.addView(a.widgets.spaced(reloadFontsButton(), 8));
             return;
         }
         if (a.fontItems.isEmpty()) {
             a.fontHintView.setText("这个目录里没找到字体文件。换一个目录，或用「从文件选择」。");
-            a.fontListViews.addView(a.spaced(reloadFontsButton(), 8));
+            a.fontListViews.addView(a.widgets.spaced(reloadFontsButton(), 8));
             return;
         }
         String q = a.fontQuery == null ? "" : a.fontQuery.trim().toLowerCase(Locale.ROOT);
@@ -143,11 +143,11 @@ final class FontPages {
         if (q.isEmpty()) a.fontHintView.setText("共 " + a.fontItems.size() + " 个字体");
         else if (shown.isEmpty()) a.fontHintView.setText("没有匹配「" + a.fontQuery.trim() + "」的字体，清空搜索框显示全部");
         else a.fontHintView.setText("匹配 " + shown.size() + " / 共 " + a.fontItems.size() + " 个字体");
-        for (String[] font : shown) a.fontListViews.addView(a.spaced(fontRow(font, a.fontAppliedMark), 8));
+        for (String[] font : shown) a.fontListViews.addView(a.widgets.spaced(fontRow(font, a.fontAppliedMark), 8));
     }
 
     /** 列表读取失败或目录为空时的重试入口：按当前目录重新走一遍 root 列表 + 兜底扫描。 */
-    View reloadFontsButton() {
+    private View reloadFontsButton() {
         return a.ink.button("重新加载列表", Ink.Kind.SECONDARY, v -> {
             a.fontHintView.setText("正在扫描…");
             loadFonts(a.fontDir, a.fontAppliedMark);
@@ -155,7 +155,7 @@ final class FontPages {
     }
 
     /** 扫描目录里的 TTF/OTF（含无扩展名的主题字体包），返回 {绝对路径, 文件名, 大小文本}。 */
-    static List<String[]> scanFonts(String dir) {
+    private static List<String[]> scanFonts(String dir) {
         List<String[]> result = new ArrayList<>();
         java.io.File[] files = new java.io.File(dir).listFiles();
         if (files == null) return result;
@@ -175,13 +175,13 @@ final class FontPages {
         return result;
     }
 
-    static String fontSize(long bytes) {
+    private static String fontSize(long bytes) {
         return bytes >= 1048576
                 ? String.format(Locale.ROOT, "%.1f MB", bytes / 1048576f) : (bytes / 1024) + " KB";
     }
 
     /** 一个字体一个卡片：左侧名字+大小，「应用」按钮独立一列、在整个卡片内垂直居中。 */
-    View fontRow(String[] font, String applied) {
+    private View fontRow(String[] font, String applied) {
         boolean current = font[1].equals(applied);
         TextView name = a.ink.text(font[1], 15, Ink.BOLD);
         name.setSingleLine(false);
@@ -194,7 +194,7 @@ final class FontPages {
         LinearLayout textCol = new LinearLayout(a);
         textCol.setOrientation(LinearLayout.VERTICAL);
         textCol.addView(name);
-        textCol.addView(a.spaced(size, 2));
+        textCol.addView(a.widgets.spaced(size, 2));
         LinearLayout row = new LinearLayout(a);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -223,13 +223,13 @@ final class FontPages {
         }, false);
     }
 
-    void pickFontDir() {
+    private void pickFontDir() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         try { a.startActivityForResult(intent, MainActivity.FONT_DIR_REQUEST); }
         catch (android.content.ActivityNotFoundException error) { a.showText("无法选择目录", "系统没有可用的文件夹选择界面。"); }
     }
 
-    void pickFontFile() {
+    private void pickFontFile() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
         try { a.startActivityForResult(intent, MainActivity.FONT_REQUEST); }
         catch (android.content.ActivityNotFoundException error) { a.showText("无法选择文件", "系统没有可用的文件选择界面。"); }
@@ -251,7 +251,7 @@ final class FontPages {
         } catch (Exception error) { return null; }
     }
 
-    void applyFontFile(String path, String name) {
+    private void applyFontFile(String path, String name) {
         if (a.busy) { Toast.makeText(a, a.ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
         a.perform(a.ink.t("应用字体"), () -> {
             String result = a.services.applyFont(path);
@@ -261,7 +261,7 @@ final class FontPages {
     }
 
     /** 记住最近应用的字体名；写配置失败不影响字体已经写入的事实。 */
-    void rememberFont(String name) {
+    private void rememberFont(String name) {
         if (FeatureDefinition.path(name) == null) return;
         try { a.change("font.pick", true, name); } catch (Exception ignored) { }
     }
@@ -283,14 +283,14 @@ final class FontPages {
         }, true);
     }
 
-    static String fontName(android.net.Uri uri) {
+    private static String fontName(android.net.Uri uri) {
         String name = uri.getLastPathSegment();
         if (name == null) return "";
         int slash = name.lastIndexOf('/');
         return slash < 0 ? name : name.substring(slash + 1);
     }
 
-    void restoreFont() {
+    private void restoreFont() {
         if (a.busy) { Toast.makeText(a, a.ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
         a.confirm("恢复原厂字体", "把系统原厂默认字体（Roboto-Medium）重新指向当前槽位——也就是系统「字体样式」里的「默认字体」。写完界面自动刷新（全局界面一起换，包括桌面），不用重启。",
                 () -> a.perform(a.ink.t("恢复原厂字体"), () -> a.services.restoreFont(), true));

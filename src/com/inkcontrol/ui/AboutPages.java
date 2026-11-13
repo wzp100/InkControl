@@ -37,7 +37,7 @@ final class AboutPages {
     AboutPages(MainActivity host) { a = host; }
 
     /** 只跳浏览器，不在应用内下载或安装任何东西。 */
-    void openLink(String url) {
+    private void openLink(String url) {
         try {
             a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } catch (Exception failure) {
@@ -46,8 +46,8 @@ final class AboutPages {
     }
 
     /** 一条外链：名字 + 一行说明。不放头像，图标也不加背景形状。 */
-    View linkRow(String name, String detail, String url) {
-        LinearLayout row = a.column(a.ink.text(name, 16, Ink.BOLD), a.spaced(a.paragraph(detail, 13), 4));
+    private View linkRow(String name, String detail, String url) {
+        LinearLayout row = a.widgets.column(a.ink.text(name, 16, Ink.BOLD), a.widgets.spaced(a.widgets.paragraph(detail, 13), 4));
         row.setPadding(a.ink.dp(2), a.ink.dp(10), a.ink.dp(2), a.ink.dp(10));
         row.setBackground(a.ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
                 a.ink.box(Ink.PAPER, Ink.INK, 2, 10)));
@@ -57,13 +57,13 @@ final class AboutPages {
     }
 
     /** 一组外链放在同一张卡里，条目之间用细线分隔。 */
-    View aboutSection(String title, View... rows) {
-        LinearLayout box = a.column(a.ink.text(title, 16, Ink.BOLD));
+    private View aboutSection(String title, View... rows) {
+        LinearLayout box = a.widgets.column(a.ink.text(title, 16, Ink.BOLD));
         for (int i = 0; i < rows.length; i++) {
-            if (i > 0) box.addView(a.spaced(a.ink.rule(1), 10));
-            box.addView(a.spaced(rows[i], 10));
+            if (i > 0) box.addView(a.widgets.spaced(a.ink.rule(1), 10));
+            box.addView(a.widgets.spaced(rows[i], 10));
         }
-        return a.spaced(a.card(box), 12);
+        return a.widgets.spaced(a.widgets.card(box), 12);
     }
 
     void aboutPage() {
@@ -78,10 +78,10 @@ final class AboutPages {
         } catch (Exception ignored) { /* 取不到图标就只显示名字 */ }
         TextView name = a.ink.text("墨控", 26, Ink.BOLD);
         name.setGravity(Gravity.CENTER);
-        brand.addView(a.spaced(name, 10));
+        brand.addView(a.widgets.spaced(name, 10));
         TextView version = a.ink.text("版本 v" + BuildInfo.VERSION, 13, Ink.REGULAR);
         version.setGravity(Gravity.CENTER);
-        brand.addView(a.spaced(version, 6));
+        brand.addView(a.widgets.spaced(version, 6));
         a.body.addView(brand);
 
         LinearLayout primary = new LinearLayout(a);
@@ -91,9 +91,9 @@ final class AboutPages {
         LinearLayout.LayoutParams docParams = new LinearLayout.LayoutParams(0, -2, 1);
         docParams.leftMargin = a.ink.dp(10);
         primary.addView(a.ink.button("文档", Ink.Kind.SECONDARY, v -> openLink(MainActivity.README_URL)), docParams);
-        a.body.addView(a.spaced(primary, 14));
+        a.body.addView(a.widgets.spaced(primary, 14));
 
-        a.body.addView(a.spaced(a.card(a.column(a.paragraph(
+        a.body.addView(a.widgets.spaced(a.widgets.card(a.widgets.column(a.widgets.paragraph(
                 "海信 A5 Pro 经典版（HLTE203T / Android 10）的墨水屏增强模块。全部增强默认关闭，按需开启。", 14))), 12));
 
         // 作者、上游与参考项目分开两张卡：作者卡只留自述与来源，
@@ -109,10 +109,10 @@ final class AboutPages {
                 linkRow("liuqianhe/Hisense-E-Ink-auto-refreshs", "该项目的分支", MainActivity.REFRESH_FORK),
                 linkRow("wave-up", "体感相关的参考项目", MainActivity.WAVEUP_REFERENCE)));
 
-        LinearLayout update = a.column(a.ink.text("查看更新", 16, Ink.BOLD));
-        update.addView(a.spaced(a.paragraph("当前版本 v" + BuildInfo.VERSION
+        LinearLayout update = a.widgets.column(a.ink.text("查看更新", 16, Ink.BOLD));
+        update.addView(a.widgets.spaced(a.widgets.paragraph("当前版本 v" + BuildInfo.VERSION
                 + "。只在点按钮时检测一次，不会自动检查、下载或安装。", 13), 8));
-        update.addView(a.spaced(a.ink.button("检测更新", Ink.Kind.SECONDARY, v -> checkForUpdate()), 12));
+        update.addView(a.widgets.spaced(a.ink.button("检测更新", Ink.Kind.SECONDARY, v -> checkForUpdate()), 12));
         a.aboutUpdateView = a.ink.text(a.aboutUpdateText.isEmpty() ? "检测结果会显示在这里。" : a.aboutUpdateText,
                 14, Ink.REGULAR);
         if (!a.aboutUpdateUrl.isEmpty()) {
@@ -120,14 +120,14 @@ final class AboutPages {
             a.aboutUpdateView.setOnClickListener(v -> openLink(a.aboutUpdateUrl));
             a.aboutUpdateView.setClickable(true);
         }
-        update.addView(a.spaced(a.aboutUpdateView, 12));
-        update.addView(a.spaced(linkRow("打开发布页", "在浏览器里查看全部版本", MainActivity.RELEASES), 12));
-        a.body.addView(a.spaced(a.card(update), 12));
-        a.body.addView(a.spaced(a.paragraph("第三方二进制与社区作品的权利归原权利人所有，详见仓库 NOTICE.md。", 13), 12));
+        update.addView(a.widgets.spaced(a.aboutUpdateView, 12));
+        update.addView(a.widgets.spaced(linkRow("打开发布页", "在浏览器里查看全部版本", MainActivity.RELEASES), 12));
+        a.body.addView(a.widgets.spaced(a.widgets.card(update), 12));
+        a.body.addView(a.widgets.spaced(a.widgets.paragraph("第三方二进制与社区作品的权利归原权利人所有，详见仓库 NOTICE.md。", 13), 12));
     }
 
     /** 手动检测一次最新版本；结果留在字段里，页面重建后仍然可见。 */
-    void checkForUpdate() {
+    private void checkForUpdate() {
         if (a.checkingUpdate) return;
         a.checkingUpdate = true;
         a.aboutUpdateText = "正在检测最新版本…";

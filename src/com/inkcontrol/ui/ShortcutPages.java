@@ -38,32 +38,32 @@ final class ShortcutPages {
 
     void shortcutPage() {
         List<String> chosen = UiShortcuts.saved(a);
-        a.body.addView(a.spaced(a.card(a.column(
-                a.heading("长按桌面图标", 18),
-                a.spaced(a.paragraph("长按桌面上的「墨控」图标，弹出的菜单里直接列出下面这几项，点一个就到对应功能页，"
+        a.body.addView(a.widgets.spaced(a.widgets.card(a.widgets.column(
+                a.widgets.heading("长按桌面图标", 18),
+                a.widgets.spaced(a.widgets.paragraph("长按桌面上的「墨控」图标，弹出的菜单里直接列出下面这几项，点一个就到对应功能页，"
                         + "不再多一层面板。最多 " + UiShortcuts.MAX + " 个。", 14), 8),
-                a.spaced(a.paragraph("说明：这几条是安卓的「动态快捷方式」，桌面把它们画成一列「图标 + 名字」，"
+                a.widgets.spaced(a.widgets.paragraph("说明：这几条是安卓的「动态快捷方式」，桌面把它们画成一列「图标 + 名字」，"
                         + "和系统自带的「分享 / 冻结 / 卸载」那一行是同一块菜单的不同样式。"
                         + "名字只留两三个字，字多了会被桌面截成「遮挡息…」。", 13), 8))), 16));
 
-        LinearLayout chosenCard = a.column();
-        if (chosen.isEmpty()) chosenCard.addView(a.paragraph("还没有选择任何功能。", 14));
+        LinearLayout chosenCard = a.widgets.column();
+        if (chosen.isEmpty()) chosenCard.addView(a.widgets.paragraph("还没有选择任何功能。", 14));
         for (int i = 0; i < chosen.size(); i++) {
             String id = chosen.get(i);
             // 「刷新格言」不是功能页：没有 FeatureDefinition，单独给一行标题，别被 continue 掉。
             if (UiShortcuts.MOTTO.equals(id)) {
-                chosenCard.addView(a.spaced(shortcutRow(i + 1, "刷新格言", "快捷动作 · 换下一条"), 10));
+                chosenCard.addView(a.widgets.spaced(shortcutRow(i + 1, "刷新格言", "快捷动作 · 换下一条"), 10));
                 continue;
             }
             FeatureDefinition feature;
             try { feature = FeatureCatalog.get(Guide.destination(id)); }
             catch (RuntimeException unknown) { continue; }
-            chosenCard.addView(a.spaced(shortcutRow(i + 1, feature.title, feature.group), 10));
+            chosenCard.addView(a.widgets.spaced(shortcutRow(i + 1, feature.title, feature.group), 10));
         }
-        a.body.addView(a.spaced(a.card(chosenCard), 16));
+        a.body.addView(a.widgets.spaced(a.widgets.card(chosenCard), 16));
 
-        a.body.addView(a.spaced(a.ink.button("选择功能", Ink.Kind.PRIMARY, v -> shortcutPicker()), 12));
-        a.body.addView(a.spaced(a.ink.button("恢复默认四个", Ink.Kind.SECONDARY, v -> {
+        a.body.addView(a.widgets.spaced(a.ink.button("选择功能", Ink.Kind.PRIMARY, v -> shortcutPicker()), 12));
+        a.body.addView(a.widgets.spaced(a.ink.button("恢复默认四个", Ink.Kind.SECONDARY, v -> {
             boolean ok = UiShortcuts.reset(a);
             a.dismissNotice();
             a.message = ok ? "已恢复默认：遮挡息屏、锁屏显示、自动刷新、桌面主题" : "桌面没有接受这次改动，稍后再试一次";
@@ -71,11 +71,11 @@ final class ShortcutPages {
             a.render();
             if (ok) a.scheduleNoticeDismiss();
         }), 12));
-        a.body.addView(a.spaced(a.paragraph("改完立即生效，不用重启桌面。个别桌面会缓存长按菜单，"
+        a.body.addView(a.widgets.spaced(a.widgets.paragraph("改完立即生效，不用重启桌面。个别桌面会缓存长按菜单，"
                 + "第一次可能要多等几秒，或者先滑一下桌面再长按。", 13), 12));
     }
 
-    View shortcutRow(int index, String title, String group) {
+    private View shortcutRow(int index, String title, String group) {
         LinearLayout row = new LinearLayout(a);
         // 序号要对齐标题那一行，不能按整块居中：描述一长，圆点会掉到中间去。
         row.setGravity(Gravity.TOP);
@@ -85,8 +85,8 @@ final class ShortcutPages {
         LinearLayout.LayoutParams badge = new LinearLayout.LayoutParams(a.ink.dp(26), a.ink.dp(26));
         badge.topMargin = a.ink.dp(1);
         row.addView(number, badge);
-        LinearLayout text = a.column(a.ink.text(title, 16, Ink.MEDIUM),
-                a.spaced(a.paragraph(group, 12), 2));
+        LinearLayout text = a.widgets.column(a.ink.text(title, 16, Ink.MEDIUM),
+                a.widgets.spaced(a.widgets.paragraph(group, 12), 2));
         LinearLayout.LayoutParams content = new LinearLayout.LayoutParams(0, -2, 1);
         content.leftMargin = a.ink.dp(12);
         row.addView(text, content);
@@ -95,7 +95,7 @@ final class ShortcutPages {
     }
 
     /** 选快捷方式：列全部分类下的功能，勾满上限后自动挡回。 */
-    void shortcutPicker() {
+    private void shortcutPicker() {
         Set<String> selected = new LinkedHashSet<>(UiShortcuts.saved(a));
         List<CheckBox> boxes = new ArrayList<>();
         List<String> ids = new ArrayList<>();
@@ -157,7 +157,7 @@ final class ShortcutPages {
         LinearLayout content = new LinearLayout(a);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(a.ink.dp(10), a.ink.dp(4), a.ink.dp(10), a.ink.dp(4));
-        content.addView(a.paragraph("勾选顺序按列表从上到下排列，与点选先后无关。", 12));
+        content.addView(a.widgets.paragraph("勾选顺序按列表从上到下排列，与点选先后无关。", 12));
         content.addView(scroller, new LinearLayout.LayoutParams(-1, a.ink.dp(380)));
         new AlertDialog.Builder(a)
                 .setTitle(a.ink.t("选择快捷方式") + "（最多 " + UiShortcuts.MAX + " 个）")

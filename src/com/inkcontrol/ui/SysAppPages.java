@@ -45,7 +45,7 @@ final class SysAppPages {
             a.body.postDelayed(() -> { if (!a.busy) a.perform("读取卸载状态", this::readSysAppStates, false); }, 60);
         }
         // 页头已经有分类名与 intro，这里只补一句「卸载到底做了什么」，不再重复标题
-        a.body.addView(a.card(a.column(a.paragraph("「卸载」只从机主账号移除，系统文件保留，点「还原」即可装回。", 14))));
+        a.body.addView(a.widgets.card(a.widgets.column(a.widgets.paragraph("「卸载」只从机主账号移除，系统文件保留，点「还原」即可装回。", 14))));
         LinearLayout list = new LinearLayout(a);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setBackground(a.ink.outline(12));
@@ -53,13 +53,13 @@ final class SysAppPages {
             if (i > 0) list.addView(a.ink.rule(1));
             list.addView(sysAppRow(MainActivity.SYS_APPS[i][0], MainActivity.SYS_APPS[i][1]));
         }
-        a.body.addView(a.spaced(list, 18));
-        a.body.addView(a.spaced(a.paragraph("常驻组件不在此列：冻结压不住，卸载会让系统软重启。", 13), 10));
-        a.body.addView(a.spaced(a.ink.button("重新读取状态", Ink.Kind.SECONDARY,
+        a.body.addView(a.widgets.spaced(list, 18));
+        a.body.addView(a.widgets.spaced(a.widgets.paragraph("常驻组件不在此列：冻结压不住，卸载会让系统软重启。", 13), 10));
+        a.body.addView(a.widgets.spaced(a.ink.button("重新读取状态", Ink.Kind.SECONDARY,
                 v -> a.perform("读取卸载状态", this::readSysAppStates, false)), 14));
     }
 
-    View sysAppRow(String pkg, String name) {
+    private View sysAppRow(String pkg, String name) {
         String state = a.sysAppStates.get(pkg);
         boolean installed = "installed".equals(state);
         LinearLayout row = new LinearLayout(a);
@@ -68,8 +68,8 @@ final class SysAppPages {
         LinearLayout content = new LinearLayout(a);
         content.setOrientation(LinearLayout.VERTICAL);
         content.addView(a.ink.text(name, 17, Ink.MEDIUM));
-        content.addView(a.spaced(a.paragraph(pkg, 12), 4));
-        content.addView(a.spaced(a.ink.text("状态：" + sysAppStateLabel(state), 13, installed ? Ink.BOLD : Ink.REGULAR), 5));
+        content.addView(a.widgets.spaced(a.widgets.paragraph(pkg, 12), 4));
+        content.addView(a.widgets.spaced(a.ink.text("状态：" + sysAppStateLabel(state), 13, installed ? Ink.BOLD : Ink.REGULAR), 5));
         row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
         TextView action = installed
                 ? a.ink.button("卸载", Ink.Kind.DANGER, v -> a.confirm("卸载「" + name + "」",
@@ -82,7 +82,7 @@ final class SysAppPages {
     }
 
     /** 执行卸载或还原，并把新状态记下来；返回值直接作为顶部提示条。 */
-    String sysAppChange(String pkg, String name, boolean remove) throws Exception {
+    private String sysAppChange(String pkg, String name, boolean remove) throws Exception {
         if (remove) a.services.sysAppRemove(pkg); else a.services.sysAppRestore(pkg);
         String state = a.services.sysAppState(pkg)[0];
         a.sysAppStates.put(pkg, state);
@@ -90,7 +90,7 @@ final class SysAppPages {
     }
 
     /** 一次读完所有预置应用的状态，返回给提示条；perform 成功后会自动重画页面。 */
-    String readSysAppStates() throws Exception {
+    private String readSysAppStates() throws Exception {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < MainActivity.SYS_APPS.length; i++) {
             String state;
@@ -102,7 +102,7 @@ final class SysAppPages {
         return out.toString();
     }
 
-    static String sysAppStateLabel(String state) {
+    private static String sysAppStateLabel(String state) {
         if ("installed".equals(state)) return "已安装";
         if ("removed".equals(state)) return "已卸载";
         if ("absent".equals(state)) return "设备上没有这个应用";

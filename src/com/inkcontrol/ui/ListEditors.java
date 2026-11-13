@@ -47,43 +47,43 @@ final class ListEditors {
     /** 翻页动画只对名单里的阅读器生效；这里只管选应用，参数由各功能页自己保存。 */
     void pageReadersEditor(FeatureDefinition f, boolean requested, String current) {
         List<String> chosen = plainList(current);
-        LinearLayout box = a.column(
+        LinearLayout box = a.widgets.column(
                 a.ink.text("目标阅读器", 18, Ink.BOLD),
-                a.spaced(a.paragraph("只有名单里的应用会触发翻页动画；不选则不会触发。上下滚动仍走原厂刷新。", 13), 10),
-                a.spaced(a.ink.text(chosen.isEmpty() ? "尚未选择应用" : "当前名单", 15, Ink.BOLD), 10));
-        if (!chosen.isEmpty()) box.addView(a.spaced(a.paragraph(String.join("、", chosen), 13), 6));
-        box.addView(a.spaced(a.ink.button("选择阅读器", Ink.Kind.PRIMARY,
+                a.widgets.spaced(a.widgets.paragraph("只有名单里的应用会触发翻页动画；不选则不会触发。上下滚动仍走原厂刷新。", 13), 10),
+                a.widgets.spaced(a.ink.text(chosen.isEmpty() ? "尚未选择应用" : "当前名单", 15, Ink.BOLD), 10));
+        if (!chosen.isEmpty()) box.addView(a.widgets.spaced(a.widgets.paragraph(String.join("、", chosen), 13), 6));
+        box.addView(a.widgets.spaced(a.ink.button("选择阅读器", Ink.Kind.PRIMARY,
                 v -> appPickerDialog(f, requested, current, true)), 10));
-        a.body.addView(a.spaced(box, 22));
+        a.body.addView(a.widgets.spaced(box, 22));
     }
 
     void appsFilterEditor(FeatureDefinition f, boolean requested, String current) {
         boolean white = FeatureDefinition.filterWhitelist(current);
         List<String> chosen = MainActivity.appList(current);
-        LinearLayout box = a.column(a.ink.text("名单模式", 18, Ink.BOLD),
-                a.spaced(modeCard(f, requested, current, true, "白名单", "只有名单内应用会触发刷新", white), 10),
-                a.spaced(modeCard(f, requested, current, false, "黑名单", "名单内应用会被跳过，其余照常", !white), 10),
-                a.spaced(a.ink.text((white ? "白名单" : "黑名单") + " · " + (chosen.isEmpty() ? "尚未选择应用" : "已加入 " + chosen.size() + " 个应用"), 15, Ink.BOLD), 14),
-                a.spaced(a.ink.button("选择应用", Ink.Kind.PRIMARY, v -> appPickerDialog(f, requested, current)), 10));
-        if (!chosen.isEmpty()) box.addView(a.spaced(a.ink.button("清空名单", Ink.Kind.SECONDARY, v -> {
+        LinearLayout box = a.widgets.column(a.ink.text("名单模式", 18, Ink.BOLD),
+                a.widgets.spaced(modeCard(f, requested, current, true, "白名单", "只有名单内应用会触发刷新", white), 10),
+                a.widgets.spaced(modeCard(f, requested, current, false, "黑名单", "名单内应用会被跳过，其余照常", !white), 10),
+                a.widgets.spaced(a.ink.text((white ? "白名单" : "黑名单") + " · " + (chosen.isEmpty() ? "尚未选择应用" : "已加入 " + chosen.size() + " 个应用"), 15, Ink.BOLD), 14),
+                a.widgets.spaced(a.ink.button("选择应用", Ink.Kind.PRIMARY, v -> appPickerDialog(f, requested, current)), 10));
+        if (!chosen.isEmpty()) box.addView(a.widgets.spaced(a.ink.button("清空名单", Ink.Kind.SECONDARY, v -> {
             String value = FeatureDefinition.withActiveList(current, "");
             if (!a.begin(f.id, requested, value)) return;
             a.perform("清空名单", () -> {
-                a.saveValueKeeping(f, value);
+                a.optionViews.saveValueKeeping(f, value);
                 return "已清空名单应用";
             }, false);
         }), 10));
-        a.body.addView(a.spaced(box, 22));
+        a.body.addView(a.widgets.spaced(box, 22));
     }
 
     /** 白/黑名单模式卡片；点按立即写入，保留已选名单。 */
-    View modeCard(FeatureDefinition f, boolean requested, String current, boolean white, String name, String detail, boolean selected) {
+    private View modeCard(FeatureDefinition f, boolean requested, String current, boolean white, String name, String detail, boolean selected) {
         LinearLayout card = new LinearLayout(a);
         card.setPadding(a.ink.dp(14), a.ink.dp(14), a.ink.dp(14), a.ink.dp(14));
         card.setBackground(a.ink.box(Ink.PAPER, Ink.INK, selected ? 3 : 1.5f, 12));
-        LinearLayout content = a.column(a.ink.text(name, 16, selected ? Ink.BOLD : Ink.MEDIUM),
-                a.spaced(a.paragraph(detail, 13), 4));
-        if (selected) content.addView(a.spaced(a.ink.tag(requested ? "✓ 正在使用" : "已选（未开启）", true), 6));
+        LinearLayout content = a.widgets.column(a.ink.text(name, 16, selected ? Ink.BOLD : Ink.MEDIUM),
+                a.widgets.spaced(a.widgets.paragraph(detail, 13), 4));
+        if (selected) content.addView(a.widgets.spaced(a.ink.tag(requested ? "✓ 正在使用" : "已选（未开启）", true), 6));
         card.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
         card.setContentDescription(a.ink.t(name));
         card.setOnClickListener(v -> {
@@ -91,7 +91,7 @@ final class ListEditors {
             String value = FeatureDefinition.filterMode(current, white);
             if (!a.begin(f.id, requested, value)) return;
             a.perform("使用「" + name + "」", () -> {
-                a.saveValueKeeping(f, value);
+                a.optionViews.saveValueKeeping(f, value);
                 return "已保存「" + f.title + "」：" + name;
             }, false);
         });
@@ -121,7 +121,7 @@ final class ListEditors {
             boxes.add(box);
             packages.add(app.getKey());
         }
-        if (boxes.isEmpty()) list.addView(a.paragraph("没有可选择的启动器应用。", 14));
+        if (boxes.isEmpty()) list.addView(a.widgets.paragraph("没有可选择的启动器应用。", 14));
         ScrollView scroller = new ScrollView(a);
         scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroller.addView(list);
@@ -157,7 +157,7 @@ final class ListEditors {
                             : FeatureDefinition.withActiveList(current, String.join(",", chosen));
                     if (!a.begin(f.id, requested, value)) return;
                     a.perform(a.ink.t("保存"), () -> {
-                        a.saveValueKeeping(f, value);
+                        a.optionViews.saveValueKeeping(f, value);
                         return "已保存「" + f.title + "」：" + chosen.size() + " 个应用";
                     }, false);
                 }).show();
@@ -175,8 +175,8 @@ final class ListEditors {
         boolean legacy = parts.length == FeatureDefinition.COUNTDOWNS_MAX * FeatureDefinition.COUNTDOWN_LEGACY_FIELDS;
         boolean modern = parts.length == FeatureDefinition.COUNTDOWNS_MAX * FeatureDefinition.COUNTDOWN_FIELDS;
         int step = legacy ? FeatureDefinition.COUNTDOWN_LEGACY_FIELDS : (modern ? FeatureDefinition.COUNTDOWN_FIELDS : 0);
-        LinearLayout box = a.column(a.ink.text("倒数日事项", 18, Ink.BOLD),
-                a.spaced(a.paragraph("最多三个，按目标日先后显示。事项名可留空；日期为空该组停用。开启「农历日期」时按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭「显示」可暂时隐藏该组。", 13), 12));
+        LinearLayout box = a.widgets.column(a.ink.text("倒数日事项", 18, Ink.BOLD),
+                a.widgets.spaced(a.widgets.paragraph("最多三个，按目标日先后显示。事项名可留空；日期为空该组停用。开启「农历日期」时按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭「显示」可暂时隐藏该组。", 13), 12));
         final TextView[] dateButtons = new TextView[FeatureDefinition.COUNTDOWNS_MAX];
         final EditText[] itemFields = new EditText[FeatureDefinition.COUNTDOWNS_MAX];
         for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
@@ -218,12 +218,12 @@ final class ListEditors {
             LinearLayout.LayoutParams dateParams = new LinearLayout.LayoutParams(-2, -2);
             dateParams.leftMargin = a.ink.dp(8);
             row.addView(date, dateParams);
-            box.addView(a.spaced(row, 6));
+            box.addView(a.widgets.spaced(row, 6));
             // 日期按钮下方：本组独立的「农历日期」「显示」两个开关
             LinearLayout sub = new LinearLayout(a);
             sub.setGravity(Gravity.CENTER_VERTICAL);
             sub.addView(a.ink.text("农历日期", 13, Ink.MEDIUM));
-            final CompoundButton lunarToggle = a.miniToggle(lunar[i]);
+            final CompoundButton lunarToggle = a.widgets.miniToggle(lunar[i]);
             lunarToggle.setOnClickListener(v -> {
                 lunar[index] = lunarToggle.isChecked();
                 dateButtons[index].setText(dates[index].isEmpty() ? "选日期" : dates[index] + (lunarToggle.isChecked() ? "（农历）" : ""));
@@ -233,12 +233,12 @@ final class ListEditors {
             LinearLayout.LayoutParams showParams = new LinearLayout.LayoutParams(-2, -2);
             showParams.leftMargin = a.ink.dp(18);
             sub.addView(showLabel, showParams);
-            final CompoundButton showToggle = a.miniToggle(shown[i]);
+            final CompoundButton showToggle = a.widgets.miniToggle(shown[i]);
             showToggle.setOnClickListener(v -> shown[index] = showToggle.isChecked());
             sub.addView(showToggle);
-            box.addView(a.spaced(sub, 8));
+            box.addView(a.widgets.spaced(sub, 8));
         }
-        box.addView(a.spaced(a.ink.button("保存", Ink.Kind.PRIMARY, v -> {
+        box.addView(a.widgets.spaced(a.ink.button("保存", Ink.Kind.PRIMARY, v -> {
             // 填了事项却没选日期：该组不会显示（日期为空停用），先明确提示再保存
             for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
                 if (!itemFields[i].getText().toString().trim().isEmpty() && dates[i].isEmpty()) {
@@ -264,13 +264,13 @@ final class ListEditors {
                 Toast.makeText(a, a.ink.t("日期格式不正确"), Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!a.begin(target.id, a.enableOnSave(target) || a.snapshot.config.requested(target.id), text)) return;
+            if (!a.begin(target.id, a.optionViews.enableOnSave(target) || a.snapshot.config.requested(target.id), text)) return;
             a.perform(a.ink.t("保存"), () -> {
-                a.saveValue(target, text);
+                a.optionViews.saveValue(target, text);
                 return "已保存「" + target.title + "」";
             }, false);
         }), 14));
-        a.body.addView(a.spaced(box, 16));
+        a.body.addView(a.widgets.spaced(box, 16));
     }
 
     // ── 字体：目录、字体列表、文件选择、恢复与刷新都在同一页 ─────────────────
