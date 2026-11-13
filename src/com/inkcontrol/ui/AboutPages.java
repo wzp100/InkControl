@@ -144,7 +144,6 @@ final class AboutPages {
                 connection.setConnectTimeout(6000);
                 connection.setReadTimeout(6000);
                 connection.setRequestMethod("GET");
-                connection.setRequestProperty("Accept", "application/vnd.github+json");
                 connection.setRequestProperty("User-Agent", "InkControl/" + BuildInfo.VERSION);
                 connection.setInstanceFollowRedirects(true);
                 try {
@@ -156,22 +155,17 @@ final class AboutPages {
                     int count;
                     while ((count = input.read(chunk)) > 0) buffer.write(chunk, 0, count);
                     input.close();
-                    // 读发布列表而不是 releases/latest：后者不含预发布，只有 rc 版本时会返回 404。
-                    // 在非草稿的发布里取版本号最高的一个，正式版与候选版一起比较。
-                    org.json.JSONArray releases = new org.json.JSONArray(
-                            new String(buffer.toByteArray(), java.nio.charset.StandardCharsets.UTF_8));
-                    String latest = "", page = MainActivity.RELEASES;
-                    for (int i = 0; i < releases.length(); i++) {
-                        JSONObject release = releases.getJSONObject(i);
-                        if (release.optBoolean("draft", false)) continue;
-                        String tag = release.optString("tag_name", "");
-                        String version = tag.startsWith("v") ? tag.substring(1) : tag;
-                        if (version.isEmpty()) continue;
-                        if (latest.isEmpty() || com.inkcontrol.core.Versions.compare(version, latest) > 0) {
-                            latest = version;
-                            page = release.optString("html_url", MainActivity.RELEASES);
-                        }
+                    // 读发布页的订阅源而不是 API：API 的匿名调用按出口地址限流（共用出口时常年 403），
+                    // 而且 releases/latest 不含预发布。订阅源两个问题都没有，取其中版本号最高的一个。
+                    String feed = new String(buffer.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+                    java.util.regex.Matcher tags = java.util.regex.Pattern
+                            .compile("/releases/tag/v([0-9][0-9A-Za-z.\\-]{0,40})").matcher(feed);
+                    String latest = "";
+                    while (tags.find()) {
+                        String version = tags.group(1);
+                        if (latest.isEmpty() || com.inkcontrol.core.Versions.compare(version, latest) > 0) latest = version;
                     }
+                    String page = latest.isEmpty() ? MainActivity.RELEASES : MainActivity.RELEASES + "/tag/v" + latest;
                     if (latest.isEmpty()) throw new java.io.IOException("发布页没有版本标签");
                     // 只按版本号比大小：线上可能还停在旧版本（本机是提前构建的），
                     // 单纯判断「相等/不等」会把旧发布报成新版本。

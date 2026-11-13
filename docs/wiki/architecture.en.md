@@ -29,6 +29,6 @@ The Provider runs in its own `:state` process, restricts callers by UID and role
 
 Restoration uses before/written ledgers and restores only values still owned by InkControl. Field-level XML merges preserve later user edits. Magisk disable/uninstall handles recovery. Display-backend monitoring reuses the Magisk startup service. Auto refresh and Proximity each have an accessibility service (`:refresh` and `:motion` processes) that the backend adds to the enabled list only while its switch is on and removes afterwards.
 
-The app declares network permission solely for the manual update check on the About page (GitHub Release API; nothing is checked, downloaded or installed automatically) and storage read permission for choosing font files.
+The app declares network permission solely for the manual update check on the About page (it reads the GitHub releases feed; nothing is checked, downloaded or installed automatically) and storage read permission for choosing font files.
 
 Sources: `R01`, `R04`. [source-provenance.json](../source-provenance.json) records imported originals, not current modified-file hashes. Current source provenance belongs to the build manifest.
