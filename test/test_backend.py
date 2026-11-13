@@ -25,6 +25,7 @@ class BackendTest(unittest.TestCase):
 IC_STATE={shlex.quote(posix(self.root))}
 IC_MODULE="$IC_STATE/module"
 IC_LIB={shlex.quote(posix(SCHEMA))}
+IC_AWK={shlex.quote(posix(ROOT/'backend/lib/validate.awk'))}
 . {shlex.quote(posix(ROOT/'backend/lib/common.sh'))}
 '''
     def tearDown(self): self.tmp.cleanup()
