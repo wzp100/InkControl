@@ -98,7 +98,7 @@ final class DisplayPages {
         LinearLayout row = a.widgets.column(a.ink.text("独立迟滞", 18, Ink.BOLD),
                 a.widgets.spaced(a.widgets.paragraph("减少静止区域闪点，可能增加拖尾。与算法选择独立保存。", 14), 6));
         CompoundButton toggle = new CompoundButton(a) {
-            @Override public void a.featureRows.toggle() { }
+            @Override public void toggle() { }
             @Override public CharSequence getAccessibilityClassName() { return Switch.class.getName(); }
         };
         toggle.setButtonDrawable(a.ink.switchDrawable());
