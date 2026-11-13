@@ -11,7 +11,7 @@ SOURCES = ('ui/MainActivity.java', 'ui/SysAppPages.java', 'ui/PanelPages.java', 
            'core/FeatureCatalog.java', 'core/DisplayAlgorithms.java', 'core/FeatureService.java',
            'core/Configuration.java', 'core/Integrity.java', 'core/FeatureDefinition.java',
            # 系统界面与桌面进程里弹出的提示也走同一张翻译表（见 platform/HookText.java）
-           'features/qsext/PanelHook.java', 'features/lock/Hook.java', 'features/desktop/ThemeWidgetView.java',
+           'features/qsext/PanelHook.java', 'features/qsext/PanelActions.java', 'features/qsext/PanelLaunch.java', 'features/lock/Hook.java', 'features/desktop/ThemeWidgetView.java',
            'ui/PanelToggleActivity.java')
 
 def main():

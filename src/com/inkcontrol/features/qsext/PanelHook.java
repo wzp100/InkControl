@@ -66,7 +66,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * 下次弹出即恢复原样。
  */
 public class PanelHook implements IXposedHookLoadPackage {
-    private static final String TAG = "InkControl-Panel: ";
+    static final String TAG = "InkControl-Panel: ";
     private static final String POP = "com.hmct.systemui.epd.InkPopWindow";
     private static final String PKG = "com.android.systemui";
     private static final String PANEL = "qs.panel";
@@ -75,7 +75,7 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static final String PIN_SIZE = "qs.panel.pinsize";
     private static final String[] SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3",
             "qs.panel.btn4", "qs.panel.btn5"};
-    private static final ComponentName HOME =
+    static final ComponentName HOME =
             new ComponentName("com.inkcontrol", "com.inkcontrol.ui.MainActivity");
     /** 墨控里「快捷设置」页：MainActivity 读到这个 extra 直接渲染遮挡息屏 / 锁屏主题 / 自动刷新。 */
     private static final String QUICK_EXTRA = "quick";
@@ -87,27 +87,27 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static final String REFRESH = "refresh.master", LOCK = "lock.style", COVER = "wave.lock",
             PAGEANIM = "pageanim.master", GCSWEEP = "motion.gc_clear";
     /** 「整屏翻页」的原厂设置键（TurnOverPageTile 读写的就是它）。 */
-    private static final String TURN_PAGE = "slide_turn_over_page";
+    static final String TURN_PAGE = "slide_turn_over_page";
     /** 悬浮球（FooView）的显示开关与原厂广播。 */
-    private static final String FLOAT_STATE = "fooview_float_icon_state";
-    private static final String FLOAT_ACTION = "com.fooview.android.intent.SET_ICON_STATUS";
-    private static final ComponentName FLOAT_RECEIVER = new ComponentName(
+    static final String FLOAT_STATE = "fooview_float_icon_state";
+    static final String FLOAT_ACTION = "com.fooview.android.intent.SET_ICON_STATUS";
+    static final ComponentName FLOAT_RECEIVER = new ComponentName(
             "com.fooview.android.fooview.haixin", "com.fooview.android.fooview.fvprocess.FooDaemonReceiver");
     /**
      * 海信的「省电模式」不是 AOSP 的 Battery Saver：状态在 Settings.System 的
      * {@code powermanager_mode_common}，开关由 com.hmct.powermanager 收广播去做。
      * 直接调 PowerManager.setPowerSaveMode 在这台设备上不生效（原厂磁贴也不那么调）。
      */
-    private static final String SAVER_STATE = "powermanager_mode_common";
-    private static final String SAVER_ON = "com.hmct.powermanager.intent.action.INTO_COMMON_MODE_NEW";
-    private static final String SAVER_OFF = "com.hmct.powermanager.intent.action.EXIT_COMMON_MODE_NEW";
+    static final String SAVER_STATE = "powermanager_mode_common";
+    static final String SAVER_ON = "com.hmct.powermanager.intent.action.INTO_COMMON_MODE_NEW";
+    static final String SAVER_OFF = "com.hmct.powermanager.intent.action.EXIT_COMMON_MODE_NEW";
     /** 墨控的状态 Provider：只用来让应用进程代写配置（面板自己写不了别人的私有目录）。 */
     private static final Uri STATE = Uri.parse("content://com.inkcontrol.state");
 
-    private static final Handler MAIN = new Handler(Looper.getMainLooper());
-    private static boolean sInstalled, sTorchWatched;
-    private static volatile boolean sTorch;
-    private static volatile String sTorchId;
+    static final Handler MAIN = new Handler(Looper.getMainLooper());
+    static boolean sInstalled, sTorchWatched;
+    static volatile boolean sTorch;
+    static volatile String sTorchId;
 
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         if (!PKG.equals(lpparam.packageName) || sInstalled) return;
@@ -144,7 +144,7 @@ public class PanelHook implements IXposedHookLoadPackage {
         // 原厂那个「截屏便签」先摘下来：它可能被排到别的位次，也可能这一格换成了别的东西。
         View pin = findPinButton(parent, context);
         if (pin != null) parent.removeView(pin);
-        watchTorch(context);
+        PanelActions.watchTorch(context);
         boolean fit = RuntimeConfig.enabled(PIN_SIZE);
 
         List<View> items = new ArrayList<>();
@@ -160,7 +160,7 @@ public class PanelHook implements IXposedHookLoadPackage {
             } else if (isApp(action)) {
                 item = appItem(window, context, layout, action);
                 if (item == null) continue;
-                attach(context, item, v -> openApp(context, window, action));
+                attach(context, item, v -> PanelLaunch.openApp(context, window, action));
             } else {
                 item = tree(window, context, layout, label(action), iconName(action));
                 if (item == null) continue;
@@ -211,7 +211,7 @@ public class PanelHook implements IXposedHookLoadPackage {
     }
 
     /** 按位置读动作；取值非法（比如旧配置）时退回该位置自己的默认值。 */
-    private static String action(String slot) {
+    static String action(String slot) {
         String value = RuntimeConfig.value(slot);
         if (value == null || value.isEmpty()) return FeatureCatalog.get(slot).defaultValue();
         FeatureDefinition feature = FeatureCatalog.get(slot);
@@ -351,8 +351,8 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static void click(Context context, Object window, String action) {
         if ("quick".equals(action)) {
             // 面板是系统层悬浮窗，会盖在墨控上面：先收起来再启动。
-            hidePanel(window);
-            start(context, new Intent().putExtra(QUICK_EXTRA, "1"));
+            PanelLaunch.hidePanel(window);
+            PanelLaunch.start(context, new Intent().putExtra(QUICK_EXTRA, "1"));
             return;
         }
         if (feature(action) != null) {
@@ -362,9 +362,9 @@ public class PanelHook implements IXposedHookLoadPackage {
             toggle(context, window, action);
             return;
         }
-        String message = run(context, action);
+        String message = PanelActions.run(context, action);
         // 先收面板再提示：提示走系统默认的底部居中位置，面板还开着就会把这条压住。
-        if (RuntimeConfig.enabled(CLOSE)) hidePanel(window);
+        if (RuntimeConfig.enabled(CLOSE)) PanelLaunch.hidePanel(window);
         if (message != null) toast(context, message);
     }
 
@@ -373,17 +373,17 @@ public class PanelHook implements IXposedHookLoadPackage {
      * 所以这一条不给开关。没有对应设置页的动作（铃声、手电筒等）就不响应。
      */
     private static void longPress(Context context, Object window, String action) {
-        if ("wifi".equals(action)) { hidePanel(window); openSettings(context, Settings.ACTION_WIFI_SETTINGS); return; }
-        if ("bt".equals(action)) { hidePanel(window); openSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS); return; }
+        if ("wifi".equals(action)) { PanelLaunch.hidePanel(window); PanelLaunch.openSettings(context, Settings.ACTION_WIFI_SETTINGS); return; }
+        if ("bt".equals(action)) { PanelLaunch.hidePanel(window); PanelLaunch.openSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS); return; }
         // 刷新格言没有对应功能项，长按直接落到「锁屏显示」那一页（格言徽标就在那儿）。
         if ("motto".equals(action)) {
-            hidePanel(window);
-            start(context, new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(LOCK).group));
+            PanelLaunch.hidePanel(window);
+            PanelLaunch.start(context, new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(LOCK).group));
             return;
         }
         String id = feature(action);
         if (id == null) return;
-        hidePanel(window);
+        PanelLaunch.hidePanel(window);
         // 「自动刷新」「遮挡息屏」「翻页动画」「全刷扫过」各是一整组开关，长按要落到大功能那一页，别停在
         // 总开关 / 遮挡息屏这一项的说明页。分类名取功能目录的 group，和首页卡片用的是同一份名字。
         if ("refresh".equals(action) || "cover".equals(action) || "pageanim".equals(action)
@@ -391,11 +391,11 @@ public class PanelHook implements IXposedHookLoadPackage {
             // 全刷扫过是「动画」里的一个小节：多带一个 focus，落到那一页后滚到它所在的分组。
             Intent intent = new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(id).group);
             if ("gcsweep".equals(action)) intent.putExtra(FOCUS_EXTRA, GCSWEEP);
-            start(context, intent);
+            PanelLaunch.start(context, intent);
             return;
         }
         // 锁屏主题的详情就是样式选择器，仍走桌面快捷方式那条通道直达那一页。
-        start(context, new Intent(UiShortcuts.ACTION).putExtra(UiShortcuts.EXTRA, id));
+        PanelLaunch.start(context, new Intent(UiShortcuts.ACTION).putExtra(UiShortcuts.EXTRA, id));
     }
 
     /** 墨控自己的开关对应的功能 id；不是这几项返回 null。 */
@@ -417,7 +417,7 @@ public class PanelHook implements IXposedHookLoadPackage {
         final String name = label(action);
         final boolean on = !RuntimeConfig.enabled(id);
         // 跟 WiFi／蓝牙一样按目标状态提示；真失败时应用进程会再补一条提示。
-        if (RuntimeConfig.enabled(CLOSE)) hidePanel(window);
+        if (RuntimeConfig.enabled(CLOSE)) PanelLaunch.hidePanel(window);
         toast(context, name + (on ? "已打开" : "已关闭"));
         new Thread(() -> {
             try {
@@ -444,167 +444,6 @@ public class PanelHook implements IXposedHookLoadPackage {
         }, "inkcontrol-toggle").start();
     }
 
-    /** 各动作都照原厂磁贴的同一套调用做：同一个进程、同样的权限，行为与下拉面板一致。 */
-    private static String run(Context context, String action) {
-        try {
-            // 刷新格言不是开关：让原厂格言往前跳一条。接收方就在本进程（SystemUI 的锁屏 Hook），
-            // 它会自己提示换到了哪一条，这里不再重复提示。
-            if ("motto".equals(action)) {
-                context.sendBroadcast(new Intent(com.inkcontrol.features.lock.Hook.ACTION_MOTTO_NEXT)
-                        .setPackage("com.android.systemui"));
-                return null;
-            }
-            if ("wifi".equals(action)) return toggleWifi(context);
-            if ("bt".equals(action)) return toggleBluetooth(context);
-            if ("ring".equals(action)) return toggleRing(context);
-            if ("airplane".equals(action)) return toggleAirplane(context);
-            if ("torch".equals(action)) return toggleTorch(context);
-            if ("rotate".equals(action)) return toggleRotate(context);
-            if ("page".equals(action)) return togglePage(context);
-            if ("dnd".equals(action)) return toggleDnd(context);
-            if ("saver".equals(action)) return toggleSaver(context);
-            if ("float".equals(action)) return toggleFloat(context);
-        } catch (Throwable error) {
-            XposedBridge.log(TAG + action + " failed: " + error);
-            return label(action) + "切换失败";
-        }
-        return null;
-    }
-
-    private static String toggleWifi(Context context) {
-        WifiManager manager = (WifiManager) context.getApplicationContext()
-                .getSystemService(Context.WIFI_SERVICE);
-        if (manager == null) return "WiFi 不可用";
-        boolean on = !manager.isWifiEnabled();
-        // setWifiEnabled 只是「请求已受理」，真正的状态切换是异步的，所以提示按目标状态写。
-        boolean accepted = manager.setWifiEnabled(on);
-        return accepted ? (on ? "WiFi 已打开" : "WiFi 已关闭") : "WiFi 切换失败";
-    }
-
-    private static String toggleBluetooth(Context context) {
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-        if (adapter == null) return "蓝牙不可用";
-        boolean on = !adapter.isEnabled();
-        boolean accepted = on ? adapter.enable() : adapter.disable();
-        return accepted ? (on ? "蓝牙已打开" : "蓝牙已关闭") : "蓝牙切换失败";
-    }
-
-    /** 响铃 → 振动 → 静音。原厂磁贴用的是隐藏的 setRingerModeInternal，这里优先跟它一致。 */
-    private static String toggleRing(Context context) {
-        AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        if (audio == null) return "铃声不可用";
-        int mode = audio.getRingerMode();
-        int next = mode == AudioManager.RINGER_MODE_NORMAL ? AudioManager.RINGER_MODE_VIBRATE
-                : mode == AudioManager.RINGER_MODE_VIBRATE ? AudioManager.RINGER_MODE_SILENT
-                : AudioManager.RINGER_MODE_NORMAL;
-        try {
-            XposedHelpers.callMethod(audio, "setRingerModeInternal", next);
-        } catch (Throwable ignored) {
-            audio.setRingerMode(next);
-        }
-        return next == AudioManager.RINGER_MODE_SILENT ? "铃声：静音"
-                : next == AudioManager.RINGER_MODE_VIBRATE ? "铃声：振动" : "铃声：响铃";
-    }
-
-    private static String toggleAirplane(Context context) {
-        ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (manager == null) return "飞行模式不可用";
-        boolean on = Settings.Global.getInt(context.getContentResolver(),
-                Settings.Global.AIRPLANE_MODE_ON, 0) == 0;
-        // 原厂磁贴就调这一个：它自己会写设置、广播并切换射频。
-        XposedHelpers.callMethod(manager, "setAirplaneMode", on);
-        return on ? "飞行模式已打开" : "飞行模式已关闭";
-    }
-
-    private static String toggleTorch(Context context) throws Exception {
-        CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-        if (manager == null) return "手电筒不可用";
-        String id = torchId(manager);
-        if (id == null) return "这台设备没有闪光灯";
-        boolean on = !sTorch;
-        manager.setTorchMode(id, on);     // CameraAccessException 由 run() 统一兜住
-        return on ? "手电筒已打开" : "手电筒已关闭";
-    }
-
-    /** 找带闪光灯的那个摄像头。 */
-    private static String torchId(CameraManager manager) {
-        String cached = sTorchId;
-        if (cached != null) return cached;
-        try {
-            for (String id : manager.getCameraIdList()) {
-                Boolean flash = manager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-                if (Boolean.TRUE.equals(flash)) { sTorchId = id; return id; }
-            }
-        } catch (Throwable error) {
-            XposedBridge.log(TAG + "torch probe failed: " + error);
-        }
-        return null;
-    }
-
-    /** 手电筒的开关状态只有回调知道：注册一次，免得在别处开过之后这边记反。 */
-    private static void watchTorch(Context context) {
-        if (sTorchWatched) return;
-        sTorchWatched = true;
-        try {
-            CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-            if (manager == null) return;
-            manager.registerTorchCallback(new CameraManager.TorchCallback() {
-                @Override public void onTorchModeChanged(String cameraId, boolean enabled) { sTorch = enabled; }
-                @Override public void onTorchModeUnavailable(String cameraId) { sTorch = false; }
-            }, MAIN);
-        } catch (Throwable error) {
-            XposedBridge.log(TAG + "torch watch failed: " + error);
-        }
-    }
-
-    private static String toggleRotate(Context context) {
-        ContentResolver resolver = context.getContentResolver();
-        boolean on = Settings.System.getInt(resolver, Settings.System.ACCELEROMETER_ROTATION, 0) == 0;
-        Settings.System.putInt(resolver, Settings.System.ACCELEROMETER_ROTATION, on ? 1 : 0);
-        return on ? "自动旋转已打开" : "自动旋转已关闭";
-    }
-
-    private static String togglePage(Context context) {
-        ContentResolver resolver = context.getContentResolver();
-        boolean on = Settings.Global.getInt(resolver, TURN_PAGE, 0) == 0;
-        Settings.Global.putInt(resolver, TURN_PAGE, on ? 1 : 0);
-        return on ? "整屏翻页已打开" : "整屏翻页已关闭";
-    }
-
-    private static String toggleDnd(Context context) {
-        NotificationManager manager =
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (manager == null) return "免打扰不可用";
-        boolean on = manager.getCurrentInterruptionFilter() == NotificationManager.INTERRUPTION_FILTER_ALL;
-        manager.setInterruptionFilter(on ? NotificationManager.INTERRUPTION_FILTER_PRIORITY
-                : NotificationManager.INTERRUPTION_FILTER_ALL);
-        return on ? "免打扰已打开" : "免打扰已关闭";
-    }
-
-    /**
-     * 海信的省电模式是自家的「普通模式」：状态记在 Settings.System 的
-     * {@code powermanager_mode_common}，由 com.hmct.powermanager 收广播切换。
-     * 这里之前调的是 AOSP 的 PowerManager.setPowerSaveMode，这台设备没有那条路径，
-     * 每次都抛异常，所以一直提示「省电模式切换失败」。
-     */
-    private static String toggleSaver(Context context) {
-        ContentResolver resolver = context.getContentResolver();
-        boolean on = Settings.System.getInt(resolver, SAVER_STATE, 0) != 1;
-        context.sendBroadcast(new Intent(on ? SAVER_ON : SAVER_OFF));
-        return on ? "省电模式已打开" : "省电模式已关闭";
-    }
-
-    /** 悬浮球由 FooView 自己写状态，原厂磁贴也只是发一条广播，这里照抄。 */
-    private static String toggleFloat(Context context) {
-        // 系统界面这个 Context 本来就是当前用户的，直接按用户读，不碰隐藏的 UserHandle 接口。
-        boolean show = Settings.System.getInt(context.getContentResolver(), FLOAT_STATE, 0) == 0;
-        Intent intent = new Intent(FLOAT_ACTION).putExtra("fv_icon_visible", show).setComponent(FLOAT_RECEIVER);
-        context.sendBroadcast(intent);
-        return show ? "悬浮球已显示" : "悬浮球已隐藏";
-    }
-
-    // ── 图标与文字 ──
-
     private static String iconName(String action) {
         if ("wifi".equals(action)) return "ic_wifi_open_signal_4";
         if ("bt".equals(action)) return "ic_qs_bluetooth_on";
@@ -629,7 +468,7 @@ public class PanelHook implements IXposedHookLoadPackage {
         return "";
     }
 
-    private static String label(String action) {
+    static String label(String action) {
         for (String[] entry : FeatureCatalog.PANEL_ACTIONS) if (entry[0].equals(action)) return entry[1];
         return action;
     }
@@ -662,7 +501,7 @@ public class PanelHook implements IXposedHookLoadPackage {
     // ── 通用 ──
 
     /** 请求没被受理时别提示「已打开」，那会骗人（典型是权限被系统收走）。 */
-    private static void toast(Context context, String text) {
+    static void toast(Context context, String text) {
         try {
             Toast toast = Toast.makeText(context, com.inkcontrol.platform.HookText.t(context, text), Toast.LENGTH_SHORT);
             // 用系统默认位置（底部居中）。这里不再手动 setGravity 抬到顶部：
@@ -674,68 +513,7 @@ public class PanelHook implements IXposedHookLoadPackage {
         }
     }
 
-    /** 打开一格应用：墨控自己走自己的 MainActivity（要 SINGLE_TOP），其余按启动意图跳。 */
-    private static void openApp(Context context, Object window, String pkg) {
-        hidePanel(window);
-        if ("com.inkcontrol".equals(pkg)) {
-            start(context, new Intent());
-            return;
-        }
-        try {
-            Intent launch = context.getPackageManager().getLaunchIntentForPackage(pkg);
-            if (launch == null) { toast(context, "找不到这个应用"); return; }
-            context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (Throwable error) {
-            XposedBridge.log(TAG + "open " + pkg + " failed: " + error);
-            toast(context, "打不开这个应用");
-        }
-    }
-
-    private static void openSettings(Context context, String action) {
-        try {
-            context.startActivity(new Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (Throwable error) {
-            XposedBridge.log(TAG + "open settings " + action + " failed: " + error);
-        }
-    }
-
-    /**
-     * 面板是 type=0x7d9 的系统悬浮窗，不收起会一直盖在启动的应用上面。
-     *
-     * <p>必须走它自己的 {@code closePopWindow()}，不能只把 {@code mReallyView} 设成 GONE：
-     * {@code isShowing()} 判的就是 {@code mPopWindow != null}，只藏视图的话内部仍认为「开着」，
-     * 下次唤起会被当成「关闭」吞掉一次。{@code closePopWindow()} 会 removeView 并置空，
-     * 下次 {@code showPopWindow()} 重新 inflate，按钮也重新装饰一遍。
-     */
-    static void hidePanel(Object window) {
-        try {
-            XposedHelpers.callMethod(window, "closePopWindow");
-        } catch (Throwable error) {
-            XposedBridge.log(TAG + "closePopWindow failed, fallback to GONE: " + error);
-            try {
-                Object really = XposedHelpers.getObjectField(window, "mReallyView");
-                if (really instanceof View) ((View) really).setVisibility(View.GONE);
-            } catch (Throwable inner) {
-                XposedBridge.log(TAG + "hide panel failed: " + inner);
-            }
-        }
-    }
-
-    /**
-     * 拉起墨控。{@code SINGLE_TOP} 是必须的：{@code MainActivity} 没声明 launchMode，光带
-     * {@code NEW_TASK} 时系统只会把已有任务拉到前台，新 Intent 不会送达，extras 白带。
-     */
-    private static void start(Context context, Intent intent) {
-        try {
-            intent.setComponent(HOME);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            context.startActivity(intent);
-        } catch (Throwable error) {
-            XposedBridge.log(TAG + "start InkControl failed: " + error);
-        }
-    }
-
-    private static int id(Context context, String name) {
+    static int id(Context context, String name) {
         return resource(context, name, "id");
     }
 
