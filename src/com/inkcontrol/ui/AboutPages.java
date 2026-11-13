@@ -156,11 +156,22 @@ final class AboutPages {
                     int count;
                     while ((count = input.read(chunk)) > 0) buffer.write(chunk, 0, count);
                     input.close();
-                    JSONObject release = new JSONObject(
+                    // 读发布列表而不是 releases/latest：后者不含预发布，只有 rc 版本时会返回 404。
+                    // 在非草稿的发布里取版本号最高的一个，正式版与候选版一起比较。
+                    org.json.JSONArray releases = new org.json.JSONArray(
                             new String(buffer.toByteArray(), java.nio.charset.StandardCharsets.UTF_8));
-                    String tag = release.optString("tag_name", "");
-                    String page = release.optString("html_url", MainActivity.RELEASES);
-                    String latest = tag.startsWith("v") ? tag.substring(1) : tag;
+                    String latest = "", page = MainActivity.RELEASES;
+                    for (int i = 0; i < releases.length(); i++) {
+                        JSONObject release = releases.getJSONObject(i);
+                        if (release.optBoolean("draft", false)) continue;
+                        String tag = release.optString("tag_name", "");
+                        String version = tag.startsWith("v") ? tag.substring(1) : tag;
+                        if (version.isEmpty()) continue;
+                        if (latest.isEmpty() || com.inkcontrol.core.Versions.compare(version, latest) > 0) {
+                            latest = version;
+                            page = release.optString("html_url", MainActivity.RELEASES);
+                        }
+                    }
                     if (latest.isEmpty()) throw new java.io.IOException("发布页没有版本标签");
                     // 只按版本号比大小：线上可能还停在旧版本（本机是提前构建的），
                     // 单纯判断「相等/不等」会把旧发布报成新版本。

@@ -62,7 +62,7 @@ public final class MainActivity extends Activity {
     static final String REPO = "https://github.com/wzp100/InkControl";
     static final String RELEASES = REPO + "/releases";
     static final String README_URL = REPO + "/blob/main/README.md";
-    static final String LATEST_API = "https://api.github.com/repos/wzp100/InkControl/releases/latest";
+    static final String LATEST_API = "https://api.github.com/repos/wzp100/InkControl/releases?per_page=20";
     static final String AUTHOR_URL = "https://github.com/liuqianhe";
     static final String UPSTREAM_REPO = "https://github.com/wzp100/InkControl";
     static final String COMMUNITY_NUKU = "http://www.coolapk.com/u/21150263";
