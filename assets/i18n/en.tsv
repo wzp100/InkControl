@@ -1472,3 +1472,43 @@ APP…（当前：	App… (current:
 字体目录无效	Invalid font folder
 包名无效	Invalid package name
 快照编号无效	Invalid snapshot ID
+已打开	 is on
+已关闭	 is off
+切换失败	 switch failed
+WiFi 不可用	WiFi unavailable
+WiFi 已打开	WiFi is on
+WiFi 已关闭	WiFi is off
+WiFi 切换失败	WiFi switch failed
+蓝牙不可用	Bluetooth unavailable
+蓝牙已打开	Bluetooth is on
+蓝牙已关闭	Bluetooth is off
+蓝牙切换失败	Bluetooth switch failed
+铃声不可用	Ringer unavailable
+铃声：静音	Ringer: silent
+铃声：振动	Ringer: vibrate
+铃声：响铃	Ringer: ring
+飞行模式不可用	Airplane mode unavailable
+飞行模式已打开	Airplane mode is on
+飞行模式已关闭	Airplane mode is off
+手电筒不可用	Flashlight unavailable
+这台设备没有闪光灯	This device has no flash
+手电筒已打开	Flashlight is on
+手电筒已关闭	Flashlight is off
+自动旋转已打开	Auto-rotate is on
+自动旋转已关闭	Auto-rotate is off
+整屏翻页已打开	Full-screen page turn is on
+整屏翻页已关闭	Full-screen page turn is off
+免打扰不可用	Do not disturb unavailable
+免打扰已打开	Do not disturb is on
+免打扰已关闭	Do not disturb is off
+省电模式已打开	Power saving is on
+省电模式已关闭	Power saving is off
+悬浮球已显示	Floating ball shown
+悬浮球已隐藏	Floating ball hidden
+找不到这个应用	This app was not found
+打不开这个应用	This app could not be opened
+格言没换成：系统没有给出下一条	Motto not changed: the system returned no next motto
+已换到下一条格言：	Switched to the next motto: 
+纸间主题	Paper theme
+小组件	Widget
+暂时无法打开对应应用	The matching app cannot be opened right now

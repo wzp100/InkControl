@@ -46,6 +46,8 @@ final class UiLanguage {
                 .setTitle("语言 / Language")
                 .setSingleChoiceItems(new String[]{"跟随系统 / System", "简体中文", "English"}, Math.max(0, checked), (dialog, which) -> {
                     if (preferences(activity).edit().putString("language", values[which]).commit()) {
+                        // 被注入进程里的提示文字也跟着换语言：通知它们重读配置（语言随配置一并下发）。
+                        activity.getContentResolver().notifyChange(android.net.Uri.withAppendedPath(com.inkcontrol.platform.ConfigProvider.URI, "config"), null);
                         dialog.dismiss(); activity.recreate();
                     }
                 }).setNegativeButton(android.R.string.cancel, null).show();

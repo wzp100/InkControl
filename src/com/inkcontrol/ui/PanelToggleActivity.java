@@ -35,7 +35,7 @@ public final class PanelToggleActivity extends Activity {
             }
             final String message = failure;
             runOnUiThread(() -> {
-                if (!message.isEmpty()) Toast.makeText(this, "切换失败：" + message, Toast.LENGTH_LONG).show();
+                if (!message.isEmpty()) Toast.makeText(this, UiLanguage.text(this, "切换失败：" + message), Toast.LENGTH_LONG).show();
                 finish();
             });
         }, "inkcontrol-panel-retry").start();

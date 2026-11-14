@@ -66,5 +66,5 @@ final class ThemeWidgetView extends View {
         }
         else{i=getContext().getPackageManager().getLaunchIntentForPackage(Hook.state.getString("mediaPackage","com.netease.cloudmusic"));if(i==null)i=getContext().getPackageManager().getLaunchIntentForPackage("com.netease.cloudmusic");}
         if(i!=null){i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);getContext().startActivity(i);}
-    }catch(Exception e){android.widget.Toast.makeText(getContext(),"暂时无法打开对应应用",android.widget.Toast.LENGTH_SHORT).show();}}
+    }catch(Exception e){android.widget.Toast.makeText(getContext(),com.inkcontrol.platform.HookText.t(getContext(),"暂时无法打开对应应用"),android.widget.Toast.LENGTH_SHORT).show();}}
 }

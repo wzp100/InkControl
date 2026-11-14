@@ -286,7 +286,7 @@ public class Hook implements IXposedHookLoadPackage {
         if (sHandler == null) return;
         sHandler.post(() -> {
             try {
-                android.widget.Toast.makeText(sContext, text, android.widget.Toast.LENGTH_SHORT).show();
+                android.widget.Toast.makeText(sContext, com.inkcontrol.platform.HookText.t(sContext, text), android.widget.Toast.LENGTH_SHORT).show();
             } catch (Throwable t) { XposedBridge.log(TAG + "motto toast failed: " + t); }
         });
     }

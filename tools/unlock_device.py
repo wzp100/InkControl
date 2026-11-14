@@ -41,7 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import adb_target  # noqa: E402  设备选择规则见 adb_target.py
 
 ADB = adb_target.ADB
-# 空 = 自动选择（有线海信 > 无线 192.168.2.25 > 任意无线海信）
+# 空 = 自动选择（有线海信 > INK_WIRELESS 指定的无线目标 > 任意无线海信）
 SERIAL = os.environ.get("INK_DEVICE", "").strip()
 # 不内置任何真实 PIN；由 --pin 或环境变量 INK_UNLOCK_PIN 提供。
 DEFAULT_PIN = os.environ.get("INK_UNLOCK_PIN", "").strip()
@@ -72,7 +72,7 @@ def adb(*args, timeout=30):
 
 
 def connect():
-    """选目标（有线海信优先，其次无线 192.168.2.25）并确认可用。"""
+    """选目标（有线海信优先，其次 INK_WIRELESS 指定的无线目标）并确认可用。"""
     global SERIAL
     if not SERIAL:
         SERIAL = adb_target.ensure()

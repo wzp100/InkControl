@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import time
 
@@ -13,7 +14,9 @@ class Session:
         self.serial = serial
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
-        self.adb_path = Path(os.environ['LOCALAPPDATA'])/'Android/Sdk/platform-tools/adb.exe'
+        # 环境变量 ADB > PATH 里的 adb > Windows 上 Android SDK 的默认位置
+        found = os.environ.get('ADB') or shutil.which('adb')
+        self.adb_path = Path(found) if found else Path(os.environ['LOCALAPPDATA'])/'Android/Sdk/platform-tools/adb.exe'
         product=self.adb('shell','getprop','ro.product.device').stdout.strip()
         if product != b'HLTE203T': raise ValueError('设备不是目标 HLTE203T')
 

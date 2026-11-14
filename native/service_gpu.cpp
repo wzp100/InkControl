@@ -125,7 +125,6 @@ __attribute__((constructor)) static void initialize(){dl_iterate_phdr(findHwc,nu
 #include "service_stock_color.hpp"
 #include "service_transitions.hpp"
 #include "service_reading_capture.hpp"
-#include "service_pageanim.hpp"
 #include "service_fusion.hpp"
 
 // 融合分带这次的延长帧数；0 表示本次波形不分带。frame 0 的原厂调用之后
@@ -311,8 +310,6 @@ static void hookPattern(void*p){
     reinterpret_cast<void(*)(void*)>(base+0x97540)(p);
 }
 static int hookUpdate(void*entry,void*ctl){
-    // 翻页动画 4 块原型：属性没打开时只读一个 prop 就返回 false，原流程零变化。
-    if(einkpageanim::probe(entry,ctl,base))return 0;
     // 融合路线：把分块揭示重写成 GPU 波形的条带相位，默认关闭、恒不接管。
     (void)einkfusion::probe(entry,ctl,base);
     uint64_t start=now();int ordinal=generated++;

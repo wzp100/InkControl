@@ -4,9 +4,15 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCES = ('ui/MainActivity.java', 'ui/Guide.java', 'ui/Charts.java', 'ui/MotionDemo.java',
+SOURCES = ('ui/MainActivity.java', 'ui/SysAppPages.java', 'ui/PanelPages.java', 'ui/ListEditors.java', 'ui/FontPages.java',
+           'ui/HoldEditor.java', 'ui/AboutPages.java', 'ui/ShortcutPages.java', 'ui/BackupPages.java',
+           'ui/Widgets.java', 'ui/CategoryPages.java', 'ui/FeatureRows.java', 'ui/FeaturePage.java', 'ui/LockPages.java',
+           'ui/QuickPages.java', 'ui/DisplayPages.java', 'ui/PreviewViews.java', 'ui/OptionViews.java', 'ui/ModulePages.java', 'ui/Guide.java', 'ui/Charts.java', 'ui/MotionDemo.java',
            'core/FeatureCatalog.java', 'core/DisplayAlgorithms.java', 'core/FeatureService.java',
-           'core/Configuration.java', 'core/Integrity.java', 'core/FeatureDefinition.java')
+           'core/Configuration.java', 'core/Integrity.java', 'core/FeatureDefinition.java',
+           # 系统界面与桌面进程里弹出的提示也走同一张翻译表（见 platform/HookText.java）
+           'features/qsext/PanelHook.java', 'features/qsext/PanelActions.java', 'features/qsext/PanelLaunch.java', 'features/lock/Hook.java', 'features/desktop/ThemeWidgetView.java',
+           'ui/PanelToggleActivity.java')
 
 def main():
     def decode(text): return text.replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\')

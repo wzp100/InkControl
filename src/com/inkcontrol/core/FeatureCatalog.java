@@ -17,6 +17,34 @@ public final class FeatureCatalog {
      */
     private static final Set<String> REQUIRED = new HashSet<>(Arrays.asList(
             "pageanim.style", "pageanim.spacing", "pageanim.bands"));
+    /**
+     * 首个公开版本（0.1.0-rc15）就有的键：配置里必须成对出现，缺了就是损坏。
+     * 之后新增的功能整对缺省时按默认值处理，旧配置升级不会被判无效。
+     * 这张表导出到后端 {@code lib/features.tsv} 的第四列，新增功能不要往里加。
+     */
+    private static final Set<String> BASELINE = new HashSet<>(Arrays.asList(
+            "display.gpu", "display.sampling", "display.idle", "display.dynamic", "display.apps",
+            "motion.master", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back",
+            "motion.dialog", "motion.gc_clear", "motion.lock", "motion.unlock", "motion.dim", "motion.steps",
+            "motion.hold", "motion.origin", "motion.direction", "motion.spread", "motion.scale",
+            "lock.style", "lock.weather", "lock.lyric", "lock.statusbar", "lock.first", "lock.update",
+            "lock.lyricmode", "lock.delay", "lock.dither",
+            "desktop.theme", "desktop.icons", "desktop.wallpaper", "desktop.widget",
+            "fix.exceptions", "fix.configlock", "fix.modes", "fix.video", "fix.permissions",
+            "guard.config", "experiment.cache", "experiment.video"));
+    /** 这个键是否必须出现在配置里（见 {@link #BASELINE}）。 */
+    public static boolean baseline(String id) { return BASELINE.contains(id); }
+    /** 默认配置里是否写成开启：必选参数，或总开关关闭时不产生效果的默认开启子项。 */
+    public static boolean defaultEnabled(FeatureDefinition feature) { return required(feature.id) || feature.defaultOn; }
+    /**
+     * 已下线的功能 ID：旧配置里可能还留着这些键，App 解析与后端校验都要容忍并丢弃。
+     * 这张表是唯一来源，构建时导出为后端的 {@code lib/retired.txt}。
+     */
+    public static final List<String> RETIRED = java.util.Collections.unmodifiableList(Arrays.asList(
+            "font2.dir", "font2.pick", "font2.saf", "fix.google", "lock.notifyhide", "wave.master",
+            "desktop.font", "qs.pinlaunch", "pageanim.touch", "pageanim.keys", "pageanim.debounce"));
+    /** 这个 ID 是否属于已下线功能。 */
+    public static boolean retired(String id) { return RETIRED.contains(id); }
     /** 这一项是否没有开关、始终启用。 */
     public static boolean required(String id) { return REQUIRED.contains(id); }
     /**

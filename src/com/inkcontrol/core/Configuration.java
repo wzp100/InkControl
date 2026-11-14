@@ -113,9 +113,7 @@ public final class Configuration {
         // 现在那一格就是动作表里的「截屏便签」，隐藏/换应用/无都由 qs.panel.btnN 表达。
         fields.keySet().removeIf(key -> {
             String name = key.endsWith(".value") ? key.substring(0, key.length() - 6) : key;
-            return name.startsWith("font2.") || name.startsWith("fix.google")
-                    || name.equals("lock.notifyhide") || name.equals("wave.master")
-                    || name.equals("desktop.font") || name.equals("qs.pinlaunch")
+            return FeatureCatalog.retired(name)
                     || name.matches("lock\\.ext\\.(wifi|bt|audio|airplane)");
         });
         if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");

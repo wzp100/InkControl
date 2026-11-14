@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.inkcontrol" android:versionCode="28" android:versionName="0.3.0-rc1">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.inkcontrol" android:versionCode="29" android:versionName="0.3.0-rc2">
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="29" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -9,7 +9,8 @@
         <activity android:name="com.inkcontrol.ui.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
-        <activity android:name="com.inkcontrol.ui.PanelToggleActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <!-- 只给系统界面的面板兜底用：STATUS_BAR_SERVICE 是平台签名权限，其他应用拿不到，无法借它切换开关。 -->
+        <activity android:name="com.inkcontrol.ui.PanelToggleActivity" android:exported="true" android:permission="android.permission.STATUS_BAR_SERVICE" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
         <!-- 「刷新格言」的无界面入口：桌面快捷方式与 am start 都走它，不会打开墨控主界面。 -->
         <activity android:name="com.inkcontrol.ui.MottoActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
         <!-- 外部广播入口：am broadcast -a com.inkcontrol.action.REFRESH_MOTTO -->

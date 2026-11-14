@@ -400,10 +400,40 @@ public final class CoreTest {
         reject(() -> Integrity.verifySha256(new java.io.ByteArrayInputStream(new byte[]{97,98,100}), sha));
         reject(() -> Integrity.verifySha256(new java.io.ByteArrayInputStream(new byte[0]), "invalid"));
         // 「检测更新」按版本号比大小，不是比字符串：线上停在旧版时不能报成新版本。
+        // 默认开启项的确切名单只在这里固定；包校验与后端测试都从功能目录导出的表里读。
+        Set<String> defaultOn = new TreeSet<>();
+        int baselineCount = 0;
+        for (FeatureDefinition feature : FeatureCatalog.all()) {
+            if (FeatureCatalog.defaultEnabled(feature)) defaultOn.add(feature.id);
+            if (FeatureCatalog.baseline(feature.id)) baselineCount++;
+            check(!FeatureCatalog.retired(feature.id));
+        }
+        check(defaultOn.equals(new TreeSet<>(Arrays.asList("lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane",
+                "qs.panel.pinsize", "pageanim.style", "pageanim.spacing", "pageanim.bands", "pageanim.vkey"))));
+        check(baselineCount == 42);
+        check(FeatureCatalog.baseline("display.gpu") && !FeatureCatalog.baseline("wave.lock") && !FeatureCatalog.baseline("display.alg.clear"));
+        // 已下线的键：旧配置里残留时解析必须容忍并丢弃，未知键仍然拒绝。
+        String base = new Configuration().text();
+        for (String id : FeatureCatalog.RETIRED) {
+            Configuration kept = Configuration.parse(base + id + "=1\n" + id + ".value=default\n");
+            check(!kept.text().contains(id + "="));
+            boolean unknown = false;
+            try { FeatureCatalog.get(id); } catch (RuntimeException expected) { unknown = true; }
+            check(unknown);
+        }
+        boolean rejected = false;
+        try { Configuration.parse(base + "not.a.feature=1\n"); } catch (IllegalArgumentException expected) { rejected = true; }
+        check(rejected);
         check(Versions.compare("0.2.6-r26", "0.2.5-r23") > 0);
         check(Versions.compare("0.2.5-r23", "0.2.6-r26") < 0);
         check(Versions.compare("0.2.6-r26", "v0.2.6-r26") == 0);
-        check(Versions.compare("0.2.6", "0.2.6-r0") == 0);
+        // 正式版比同号候选新；候选之间按候选号比较。
+        check(Versions.compare("0.2.6", "0.2.6-r0") > 0);
+        check(Versions.compare("0.3.0", "0.3.0-rc1") > 0);
+        check(Versions.compare("0.3.0-rc1", "0.3.0") < 0);
+        check(Versions.compare("0.3.0-rc2", "0.3.0-rc1") > 0);
+        check(Versions.compare("v0.3.0", "0.3.0") == 0);
+        check(Versions.compare("0.3.1-rc1", "0.3.0") > 0);
         check(Versions.compare("0.3.0-r1", "0.2.9-r99") > 0);
         check(Versions.compare("1.0.0-r26", "0.99.99-r999") > 0);
         check(Versions.compare("0.2.6-r27", "0.2.6-r26") > 0);

@@ -14,7 +14,7 @@
 
 ## 前置条件
 
-1. 电脑有 adb（PATH 里，或 `C:\Paths\adbtools-platform-tools-latest-windows\adb.exe`）；
+1. 电脑有 adb（PATH 里，或用环境变量 `ADB` 指定）；
 2. 设备已 root（Magisk）且 adb 获得过 su 授权（首次弹框点允许）；
 3. 设备装有墨控模块、LSPosed 已启用，作用域含 `com.android.systemui`；
 4. 锁屏用的是墨控自定义样式（原厂样式不走模块路径，取到的是原厂海报也可用）；
@@ -27,7 +27,7 @@
 python tools/eink_lock_capture.py
 
 # 指定设备（无线/序列号均可）并输出横版阅读图
-python tools/eink_lock_capture.py -s 192.168.2.25:5555 -o shot.png --rotate
+python tools/eink_lock_capture.py -s <IP>:5555 -o shot.png --rotate
 
 # 息屏后等 20s 再取（海报出得慢时）
 python tools/eink_lock_capture.py --wait 20
