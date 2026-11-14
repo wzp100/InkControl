@@ -31,7 +31,7 @@
 
 **用户说又卡了：** 先读[诊断](operations.md)，保留首故障与保护标记，判断 GPU 计数是否增长；不要先清日志、清停用标记或重启 HWC。`stock` 慢不等于 CPU 回退。
 
-**发版本：** 同步 `AndroidManifest.xml`、`tools/build.py`、`backend/lib/common.sh`、知识索引、中英 README 与发布说明的 versionCode/版本串；已发布版本不覆盖，行为有变才递增。推送 main 后签名构建、回归和双语 UI 全部通过才自动 Release，PR 只跑回归检查；版本号必须是 `X.Y.Z` 或 `X.Y.Z-rcN`。**提交信息可以详细，发布说明与 README 保持精简**；发布说明中英双语，必须保留备用机、异地备份、无法开机／数据丢失／可能不可恢复的免责声明。
+**发版本：** 用 `python tools/bump_version.py <版本>` 一次改全（它会同步 `AndroidManifest.xml`、`tools/build.py`、`backend/lib/common.sh`、知识索引与 Wiki 里的 versionCode/版本串，并生成双语发布说明骨架）；已发布版本不覆盖，行为有变才递增。推送 main 后签名构建、回归和双语 UI 全部通过才自动 Release，PR 只跑回归检查；版本号必须是 `X.Y.Z` 或 `X.Y.Z-rcN`。**提交信息可以详细，发布说明与 README 保持精简**；发布说明中英双语，必须保留备用机、异地备份、无法开机／数据丢失／可能不可恢复的免责声明。
 
 ## 操作边界与交接
 
