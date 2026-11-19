@@ -181,8 +181,8 @@ IC_AWK={shlex.quote(posix(ROOT/'backend/lib/validate.awk'))}
     def test_hot_properties_are_independent_and_off_by_default(self):
         output=self.shell('setprop() { echo "$1=$2"; }\nic_properties\n')
         expected={'debug.inkcontrol.sampling=0','debug.inkcontrol.cache=0','debug.eink.lock.dither=stock','debug.eink.video.dither=blue'}
-        expected.update('debug.eink.alg.'+scope+'=default' for scope in ('clear','reading','fast','extreme','video'))
-        expected.update('debug.eink.hyst.'+scope+'=default' for scope in ('fast','extreme','video'))
+        expected.update('debug.eink.alg.'+scope+'=default' for scope in ('clear','reading','fast','extreme','partial','video'))
+        expected.update('debug.eink.hyst.'+scope+'=default' for scope in ('fast','extreme','partial','video'))
         # 原厂算法总开关与翻页动画融合默认都关：对应属性必须显式写 0。
         expected.update({'debug.eink.alg.stock=0','debug.inkcontrol.fusion=0','debug.inkcontrol.fusion.drive=0',
                          'debug.inkcontrol.fusion.armed=0','debug.inkcontrol.fusion.reader=0'})
@@ -190,6 +190,14 @@ IC_AWK={shlex.quote(posix(ROOT/'backend/lib/validate.awk'))}
         self.config.write_text(self.config.read_text().replace('display.gpu=0','display.gpu=1').replace('lock.dither=0','lock.dither=1'),encoding='utf-8')
         output=self.shell('setprop() { echo "$1=$2"; }\nic_properties\n')
         self.assertIn('debug.eink.lock.dither=nearest',output); self.assertIn('debug.inkcontrol.cache=0',output)
+    def test_retired_video_option_keeps_working_until_app_rewrites(self):
+        # experiment.video 已并入 display.alg.video；App 尚未重写的旧配置必须通过校验并保持原视频算法。
+        text=self.config.read_text(encoding='utf-8').replace('display.gpu=0','display.gpu=1')
+        self.assertNotIn('experiment.video',text)
+        self.config.write_text(text+'experiment.video=1\nexperiment.video.value=stock\n',encoding='utf-8')
+        self.shell('ic_validate "$IC_CONFIG"\n')
+        output=self.shell('setprop() { echo "$1=$2"; }\nic_properties\n')
+        self.assertIn('debug.eink.video.dither=stock',output); self.assertIn('debug.eink.alg.video=default',output)
     def test_legacy_configuration_keeps_defaults_without_rewriting(self):
         original=self.config.read_text(encoding='utf-8')
         legacy='\n'.join(line for line in original.splitlines() if not line.startswith(('display.alg.','display.hyst.')))+'\n'
@@ -205,12 +213,12 @@ IC_AWK={shlex.quote(posix(ROOT/'backend/lib/validate.awk'))}
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_mode_choices_reject_cross_family_and_invalid_hysteresis(self):
         original=self.config.read_text(encoding='utf-8')
-        for key,value in (('display.alg.clear','blue'),('display.alg.reading','threshold'),('display.alg.fast','nearest'),('display.alg.extreme','bayer16'),('display.alg.video','nearest'),('display.hyst.video','12')):
+        for key,value in (('display.alg.clear','blue'),('display.alg.reading','threshold'),('display.alg.fast','nearest'),('display.alg.extreme','bayer16'),('display.alg.video','nearest'),('display.alg.partial','bayer16'),('display.hyst.partial','12'),('display.hyst.video','12')):
             self.config.write_text(original.replace(key+'.value=default',key+'.value='+value),encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_mode_choices_are_independent_and_parent_disable_resets_properties(self):
         text=self.config.read_text(encoding='utf-8').replace('display.gpu=0','display.gpu=1')
-        choices={'display.alg.clear':'nearest','display.alg.reading':'bayer16','display.alg.fast':'blue','display.alg.extreme':'threshold','display.alg.video':'stock','display.hyst.fast':'on','display.hyst.extreme':'off','display.hyst.video':'off'}
+        choices={'display.alg.clear':'nearest','display.alg.reading':'bayer16','display.alg.fast':'blue','display.alg.extreme':'threshold','display.alg.video':'stock','display.alg.partial':'blue','display.hyst.partial':'on','display.hyst.fast':'on','display.hyst.extreme':'off','display.hyst.video':'off'}
         for key,value in choices.items():
             text=text.replace(key+'=0',key+'=1').replace(key+'.value=default',key+'.value='+value)
         self.config.write_text(text,encoding='utf-8')

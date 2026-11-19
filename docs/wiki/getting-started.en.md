@@ -28,7 +28,7 @@ These steps require device-operation authorization; documentation work and CI do
 
 ## Everyday use
 
-- Each display mode and video has separate algorithm selection. This chooses quantization; it does not switch an application's refresh mode. See [algorithms](algorithms.en.md).
+- Each display mode, partial refresh (scrolling) and video has separate algorithm selection. This chooses quantization; it does not switch an application's refresh mode. See [algorithms](algorithms.en.md).
 - Disabling a parent stops child effects while preserving selections. Startup features require a restart. Saved intent is not activation proof.
 - Language selection on **Module settings** offers system, Simplified Chinese, and English without changing feature configuration or global system language.
 - Without Root, guides, previews, language choice, and installer export work; this does not mean the GPU backend is active.

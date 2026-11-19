@@ -4,16 +4,16 @@
 
 ## 生产接口及约束
 
-`native/service_algorithm_policy.hpp` 是生产使用的纯选择策略。先排除 reset/transition/blank，再判 `mode & 0x400`、`selected & 255 == 8` 和 `internal == 8`，视频优先于所有外部低字节（包括自动0、7、原厂视频8）。其余只接管外部2的清晰、3/4/5的阅读、6的快速和9的极速；不匹配内部状态/selected 时沿旧行为。
+`native/service_algorithm_policy.hpp` 是生产使用的纯选择策略。先排除 reset/transition/blank，再判 `mode & 0x400`、`selected & 255 == 8` 和 `internal == 8`，视频优先于所有外部低字节（包括自动0、7、原厂视频8）。其余只接管外部1的局部刷新（A2 8/8 或 DU 1/1）、2的清晰、3/4/5的阅读、6的快速和9的极速；不匹配内部状态/selected 时沿旧行为。
 
 | 属性 | 合法值 | 缺失/非法/default |
 | --- | --- | --- |
 | `debug.eink.alg.clear`、`.reading` | default / stock / nearest / bayer16 | 保留原来的 stock16 / Tone / Raw 分支；原锁屏 nearest 条件仍生效 |
-| `debug.eink.alg.fast`、`.extreme` | default / bayer / blue / threshold | 普通 Bayer，无迟滞 |
+| `debug.eink.alg.fast`、`.extreme`、`.partial` | default / stock / bayer / blue / threshold | 普通 Bayer，无迟滞；stock 整波交回原厂 CPU；partial 为 default 时跟随阅读的 stock |
 | `debug.eink.alg.video` | default / blue / bayer / stock / threshold | 沿旧 video.dither，非法旧值仍回 blue |
-| `debug.eink.hyst.fast`、`.extreme`、`.video` | default / on / off | 普通关；视频 blue/bayer/threshold 开；stock 保留原厂 history |
+| `debug.eink.hyst.fast`、`.extreme`、`.partial`、`.video` | default / on / off | 普通关；视频 blue/bayer/threshold 开；stock 保留原厂 history |
 
-灰度显式 stock 选择 stock16，nearest 选择16级就近量化，bayer16 选择16级有序抖动；显式选择覆盖旧 lock.dither。`default` 保留原分支，阅读未带0x100时不会强行开启 stock16。没有改波形、扫描计数、LUT或提交点。
+「原厂」的判定在 `einkalg::stockFor`：阅读、快速、极速、局部刷新选 stock 时整波交回原厂 CPU；清晰选 stock 时走 GPU 逐位复刻的 stock16，以保留全刷扫过等波形动画。灰度显式 stock 选择 stock16，nearest 选择16级就近量化，bayer16 选择16级有序抖动；显式选择覆盖旧 lock.dither。`default` 保留原分支，阅读未带0x100时不会强行开启 stock16。没有改波形、扫描计数、LUT或提交点。
 
 黑白输出等级仍只有0和30，灰度等级仍为0、2、…、30。PairY4的偶数字节放 old pair，奇数字节放 new pair，送入每像素REGAL混合时仍使用同一组等级。
 

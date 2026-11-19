@@ -77,6 +77,8 @@ public final class Configuration {
         // 「显示设备状态」开关，收到旧值时把那个开关补上（新配置里已经有 lock.ext 就以新值为准）。
         boolean legacyExt = false;
         boolean hasExtKey = fields.containsKey("lock.ext");
+        // 旧「实验室 → 视频抖动算法」（experiment.video）已并入「显示 → 视频场景算法」。
+        String legacyVideoFlag = fields.get("experiment.video"), legacyVideo = fields.get("experiment.video.value");
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             String flag = fields.remove(feature.id), value = fields.remove(feature.id + ".value");
             if (flag != null && !"0".equals(flag) && !"1".equals(flag)) throw new IllegalArgumentException("功能开关无效");
@@ -101,6 +103,13 @@ public final class Configuration {
             values.put(feature.id, value);
         }
         if (legacyExt && !hasExtKey) flags.put("lock.ext", true);
+        // 旧值只有 blue / stock；blue 与新页面的默认相同，只有 stock 需要搬过去。
+        // 新页面已经明确选了算法（开启且不是「保持现状」）时以新选择为准，与原来的优先级一致。
+        if ("1".equals(legacyVideoFlag) && "stock".equals(legacyVideo)
+                && !(Boolean.TRUE.equals(flags.get("display.alg.video")) && !"default".equals(values.get("display.alg.video")))) {
+            flags.put("display.alg.video", true);
+            values.put("display.alg.video", "stock");
+        }
         // 旧版残留键已删除：「字体2」（font2.*）并入「字体」（font.*）；
         // 「Google 设置图标修复」（fix.google）、「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、
         // 「体感息屏唤醒」（wave.master）整体下线；「字体换肤」（desktop.font）也下线，
