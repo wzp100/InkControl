@@ -26,7 +26,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.3.0-rc2' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.3.0-rc3' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
@@ -44,6 +44,8 @@ ic_properties() {
     ic_enabled display.sampling && sampling=1
     ic_enabled experiment.cache && cache=1
     ic_enabled lock.dither && dither=nearest
+    # experiment.video 已下线（并入 display.alg.video），App 保存配置时会迁移；
+    # 尚未被 App 重写的旧配置里仍可能留着它，这里继续读，保证升级后到首次保存前行为不变。
     ic_enabled experiment.video && video=$(ic_get experiment.video.value)
     setprop debug.inkcontrol.sampling "$sampling" || return 1
     setprop debug.inkcontrol.cache "$cache" || return 1
@@ -51,23 +53,23 @@ ic_properties() {
     setprop debug.eink.video.dither "$video" || return 1
     # default 保留既有路径：包括锁屏点量化和旧版视频算法选择。
     # 关闭选项或 GPU 后端时明确复位属性，避免停用后遗留之前的选择。
-    # display.alg.stock 是「改用原厂显示算法」总开关：开启时五个模式一律不接管，逐模式的选择只保留在配置里。
+    # display.alg.stock 是「改用原厂显示算法」总开关：开启时各场景一律不接管，逐模式的选择只保留在配置里。
     ic_stock=0
     if ic_enabled display.alg.stock; then ic_stock=1; fi
     # 原厂算法总开关下发给 native：=1 时 GPU 不接管任何像素量化（A2 二值与灰阶全走原厂 CPU 路径）。
     setprop debug.eink.alg.stock "$ic_stock" || return 1
-    for ic_scope in clear reading fast extreme video; do
+    for ic_scope in clear reading fast extreme partial video; do
         ic_algorithm=default
         if [ "$ic_stock" = 0 ] && ic_enabled "display.alg.$ic_scope"; then
             ic_algorithm=$(ic_get "display.alg.$ic_scope.value")
         fi
         case "$ic_scope:$ic_algorithm" in
-            clear:default|clear:stock|clear:nearest|clear:bayer16|reading:default|reading:stock|reading:nearest|reading:bayer16|fast:default|fast:stock|fast:bayer|fast:blue|fast:threshold|extreme:default|extreme:stock|extreme:bayer|extreme:blue|extreme:threshold|video:default|video:blue|video:bayer|video:stock|video:threshold) ;;
+            clear:default|clear:stock|clear:nearest|clear:bayer16|reading:default|reading:stock|reading:nearest|reading:bayer16|fast:default|fast:stock|fast:bayer|fast:blue|fast:threshold|extreme:default|extreme:stock|extreme:bayer|extreme:blue|extreme:threshold|partial:default|partial:stock|partial:bayer|partial:blue|partial:threshold|video:default|video:blue|video:bayer|video:stock|video:threshold) ;;
             *) return 1 ;;
         esac
         setprop "debug.eink.alg.$ic_scope" "$ic_algorithm" || return 1
     done
-    for ic_scope in fast extreme video; do
+    for ic_scope in fast extreme partial video; do
         ic_hysteresis=default
         if [ "$ic_stock" = 0 ] && ic_enabled "display.hyst.$ic_scope"; then
             ic_hysteresis=$(ic_get "display.hyst.$ic_scope.value")

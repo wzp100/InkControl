@@ -129,16 +129,33 @@ public final class CoreTest {
                 check(DisplayAlgorithms.hysteresis(selected, scope) == (supports && (policy.equals("on") || policy.equals("default") && scope.equals("video"))));
             }
         }
+        // 旧「视频抖动算法」(experiment.video) 已下线：stock 搬到 display.alg.video，blue 与默认相同不必搬。
         Configuration legacy = Configuration.parse("version=1\nrevision=27\ndisplay.gpu=1\nexperiment.video=1\nexperiment.video.value=stock\nlock.dither=1\nlock.dither.value=nearest\n");
-        for (String scope : DisplayAlgorithms.SCOPES) check(!legacy.requested("display.alg." + scope));
-        check(legacy.value("display.alg.video").equals("default"));
-        check(DisplayAlgorithms.algorithm(legacy, "video").equals("stock"));
+        check(FeatureCatalog.retired("experiment.video") && !legacy.text().contains("experiment.video"));
+        for (String scope : DisplayAlgorithms.SCOPES) check(legacy.requested("display.alg." + scope) == scope.equals("video"));
+        check(legacy.value("display.alg.video").equals("stock") && DisplayAlgorithms.algorithm(legacy, "video").equals("stock"));
         check(!DisplayAlgorithms.supportsHysteresis(legacy, "video"));
+        check(Configuration.parse(legacy.text()).text().equals(legacy.text()));
+        Configuration blueLegacy = Configuration.parse("version=1\nrevision=27\ndisplay.gpu=1\nexperiment.video=1\nexperiment.video.value=blue\n");
+        check(!blueLegacy.requested("display.alg.video") && DisplayAlgorithms.algorithm(blueLegacy, "video").equals("blue"));
+        check(!Configuration.parse("version=1\nrevision=27\nexperiment.video=0\nexperiment.video.value=stock\n").requested("display.alg.video"));
+        // 新页面已明确选择时以新选择为准；开着但选「保持现状」时，旧选择照旧生效。
+        Configuration chosen = Configuration.parse("version=1\nrevision=27\ndisplay.gpu=1\nexperiment.video=1\nexperiment.video.value=stock\ndisplay.alg.video=1\ndisplay.alg.video.value=bayer\n");
+        check(DisplayAlgorithms.algorithm(chosen, "video").equals("bayer"));
+        Configuration kept = Configuration.parse("version=1\nrevision=27\ndisplay.gpu=1\nexperiment.video=1\nexperiment.video.value=stock\ndisplay.alg.video=1\ndisplay.alg.video.value=default\n");
+        check(DisplayAlgorithms.algorithm(kept, "video").equals("stock"));
         Configuration video = legacy.change("display.alg.video", true, "bayer").change("display.hyst.video", true, "off");
         check(DisplayAlgorithms.algorithm(video, "video").equals("bayer") && !DisplayAlgorithms.hysteresis(video, "video"));
-        check(video.value("experiment.video").equals("stock") && video.enabled("lock.dither"));
+        check(video.enabled("lock.dither"));
         Configuration back = video.change("display.alg.video", true, "default");
-        check(DisplayAlgorithms.algorithm(back, "video").equals("stock") && back.enabled("display.hyst.video"));
+        check(DisplayAlgorithms.algorithm(back, "video").equals("blue") && back.enabled("display.hyst.video"));
+        // 局部刷新未单独选择时跟随阅读的「原厂」（旧行为）；明确选择后独立。
+        Configuration readingStock = gpu.change("display.alg.reading", true, "stock");
+        check(DisplayAlgorithms.algorithm(readingStock, "partial").equals("stock") && !DisplayAlgorithms.supportsHysteresis(readingStock, "partial"));
+        check(DisplayAlgorithms.algorithm(readingStock.change("display.alg.partial", true, "blue"), "partial").equals("blue"));
+        check(DisplayAlgorithms.algorithm(readingStock.change("display.alg.reading", false, "stock"), "partial").equals("bayer"));
+        check(DisplayAlgorithms.algorithm(gpu.change("display.alg.partial", true, "threshold"), "fast").equals("bayer"));
+        check(DisplayAlgorithms.scopeForMode(0x201).equals("partial") && DisplayAlgorithms.scopeForMode(0x200).isEmpty());
         Configuration stock = video.change("display.alg.video", true, "stock").change("display.hyst.video", true, "on");
         check(!DisplayAlgorithms.hysteresis(stock, "video"));
         check(DisplayAlgorithms.hysteresis(stock.change("display.alg.video", true, "blue"), "video"));
@@ -410,7 +427,7 @@ public final class CoreTest {
         }
         check(defaultOn.equals(new TreeSet<>(Arrays.asList("lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane",
                 "qs.panel.pinsize", "pageanim.style", "pageanim.spacing", "pageanim.bands", "pageanim.vkey"))));
-        check(baselineCount == 42);
+        check(baselineCount == 41);
         check(FeatureCatalog.baseline("display.gpu") && !FeatureCatalog.baseline("wave.lock") && !FeatureCatalog.baseline("display.alg.clear"));
         // 已下线的键：旧配置里残留时解析必须容忍并丢弃，未知键仍然拒绝。
         String base = new Configuration().text();

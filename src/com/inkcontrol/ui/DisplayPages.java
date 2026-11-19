@@ -68,7 +68,6 @@ final class DisplayPages {
         if (!DisplayAlgorithms.gray(scope)) displayHysteresis(scope);
         else a.body.addView(a.widgets.spaced(a.widgets.paragraph("16级灰阶算法没有独立迟滞选项。保持现状会保留锁屏细线处理；明确选择算法会覆盖本模式的灰阶量化。", 14), 18));
         a.body.addView(a.widgets.spaced(a.widgets.section("需要知道", a.widgets.paragraph(guide.cost, 14)), 20));
-        if (scope.equals("video")) a.body.addView(a.widgets.spaced(a.widgets.paragraph("旧实验室的视频选择继续保存在配置中，本页选「保持现状」即可沿用。新算法选择优先；恢复默认不会清除旧选择。", 14), 12));
     }
 
     private String displayBaseline(String scope) {
@@ -76,13 +75,13 @@ final class DisplayPages {
                 + (a.snapshot.config.enabled("lock.dither") ? "已开启。" : "未开启。" );
         FeatureDefinition feature = FeatureCatalog.get("display.alg." + scope);
         return Guide.optionName(feature, DisplayAlgorithms.baselineAlgorithm(a.snapshot.config, scope))
-                + (scope.equals("video") && a.snapshot.config.enabled("experiment.video") ? "（沿用旧视频选择）。" : "。");
+                + (scope.equals("partial") && DisplayAlgorithms.baselineAlgorithm(a.snapshot.config, scope).equals("stock") ? "（跟随阅读模式）。" : "。");
     }
 
     private void displayHysteresis(String scope) {
         com.inkcontrol.core.Configuration config = a.snapshot.config;
         if (!config.enabled("display.gpu")) {
-            a.body.addView(a.widgets.spaced(a.widgets.section("独立迟滞", a.widgets.paragraph("开启 GPU 显示后端后，可按当前算法设置。视频默认开启，快速和极速默认关闭。", 14)), 20));
+            a.body.addView(a.widgets.spaced(a.widgets.section("独立迟滞", a.widgets.paragraph("开启 GPU 显示后端后，可按当前算法设置。视频默认开启，快速、极速和局部刷新默认关闭。", 14)), 20));
             return;
         }
         // 算法提交期间保持原页开关静止，快照更新后才按新算法改变可用性。

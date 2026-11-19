@@ -70,13 +70,11 @@ GPU 显示后端未开启，当前沿用系统显示路径；已保存的选择�
 ，已选择	, selected
 本模式算法	Algorithm for this mode
 16级灰阶算法没有独立迟滞选项。保持现状会保留锁屏细线处理；明确选择算法会覆盖本模式的灰阶量化。	16-level grayscale algorithms have no separate hysteresis option. Keeping defaults preserves lock-screen line removal; an explicit algorithm overrides grayscale quantization for this mode.
-旧实验室的视频选择继续保存在配置中，本页选「保持现状」即可沿用。新算法选择优先；恢复默认不会清除旧选择。	The old experimental video selection is retained. Choose Keep current to use it. An explicit new algorithm takes priority; restoring defaults does not erase the old selection.
 沿用原有16级灰阶处理，由原分支决定是否需要抖动；需要抖动且符合锁屏细线条件时，仍沿用「消除锁屏细线」的点量化。该项当前	Keep the existing 16-level grayscale path, including its conditional dithering. When applicable, lock-screen line removal still uses nearest-level quantization. That feature is currently 
 已开启。	enabled.
 未开启。	disabled.
-（沿用旧视频选择）。	 (using the legacy video selection).
 独立迟滞	Independent hysteresis
-开启 GPU 显示后端后，可按当前算法设置。视频默认开启，快速和极速默认关闭。	Enable the GPU display backend to configure this algorithm. Default: on for video, off for Fast and Extreme.
+开启 GPU 显示后端后，可按当前算法设置。视频默认开启，快速、极速和局部刷新默认关闭。	Enable the GPU display backend to configure this algorithm. Default: on for video, off for Fast, Extreme, and partial refresh.
 历史处理	History processing
 原厂误差扩散有内部历史处理，不能使用独立迟滞开关。已保存的独立迟滞选择会保留，切回 Bayer、蓝噪声或固定阈值时继续使用。	Stock error diffusion has its own history processing and does not support this switch. Your hysteresis selection is retained for Bayer, blue noise, or fixed threshold.
 减少静止区域闪点，可能增加拖尾。与算法选择独立保存。	Reduce flicker in static areas; may increase trailing. Saved independently of the algorithm.
@@ -244,10 +242,8 @@ GPU 显示后端	GPU display backend
 作用域	Scopes
 框架（如 Vector/LSPosed）里给模块勾选的、允许它进入的系统进程。墨控需要：系统框架、系统界面、桌面。	System processes the framework, such as Vector or LSPosed, allows a module to enter. InkControl needs System Framework, System UI, and the launcher.
 显示	Display
-按清晰、阅读、快速、极速和视频分别选算法，调整触摸响应。	Choose algorithms separately for Clear, Reading, Fast, Extreme, and video, and adjust touch response.
 核心	Core
 原厂四模式 · 算法	Four stock modes · Algorithms
-独立视频场景	Separate video scenario
 触摸与响应	Touch and response
 系统刷新设置	System refresh settings
 打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。	Transitions for opening apps, going back, dialogs, and locking, designed for e-ink.
@@ -289,14 +285,11 @@ GPU 显示后端	GPU display backend
 只调整	Only changes image processing for 
 的画面处理，不改变刷新模式。	; does not change the refresh mode.
 仅提供16级灰阶算法。	Only 16-level grayscale algorithms are offered.
-仅提供黑白算法。快速、极速和视频分别保存选择。	Only black-and-white algorithms are offered. Fast, Extreme, and video retain separate selections.
 需要 GPU 显示后端。算法与迟滞均为热更新配置，实际生效以运行回执为准。新算法尚需实屏对照。	Requires the GPU display backend. Algorithm and hysteresis settings apply live; runtime acknowledgements determine actual status. New algorithms still need screen comparison.
 保持现状	Keep current
 保留原有灰阶路径，也保留「消除锁屏细线」的条件处理。	Keep the existing grayscale path, including conditional lock-screen line removal.
-沿用旧视频选择；没有旧覆盖时是蓝噪声。迟滞单独设置。	Use the legacy video selection, or blue noise if none exists. Hysteresis is configured separately.
 沿用 Bayer。迟滞单独设置，默认关闭。	Keep Bayer. Hysteresis is configured separately and defaults to off.
 原厂误差扩散	Stock error diffusion
-明确使用原厂16级灰阶误差扩散；会覆盖该模式的锁屏细线算法选择。	Explicitly use stock 16-level grayscale error diffusion, overriding lock-screen line removal for this mode.
 点量化	Nearest level
 就近取16级灰阶，不向相邻像素传播误差。	Round to the nearest of 16 gray levels without spreading error to neighboring pixels.
 16级 Bayer	16-level Bayer
@@ -533,7 +526,6 @@ GPU 显示后端	GPU display backend
 GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结果缓存起来。	Cache GPU program parameter locations instead of querying them for every frame.
 只是局部优化，日常几乎感觉不到差别。需要 GPU 显示后端。	A small local optimization with little perceptible daily difference. Requires the GPU backend.
 缓存参数位置	Cache parameter locations
-旧版视频选择，已归入显示分类	Legacy video selection, now under Display
 旧配置继续保留。「显示 → 视频场景算法」选保持现状时沿用这里的选择；新页面明确选择算法时优先使用新选择。	The old selection is retained. Display → Video algorithm → Keep current uses it; an explicit new algorithm takes priority.
 不开启时：默认使用蓝噪声与迟滞。	When disabled: blue noise with hysteresis by default.
 选“原厂误差扩散”时：使用与原厂对应的网点算法。当前 GPU 后端也有它的实现，逐行依赖较多，本机视频对照中明显更慢。	Stock error diffusion uses the corresponding stock dot algorithm. The GPU implementation has row dependencies and was much slower in video comparisons on this device.
@@ -682,7 +674,6 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 GPU 参数缓存	GPU parameter cache
 提交阶段局部优化，不承诺整机提速	Local submission optimization; no promise of overall device speedup
 缓存uniform位置	Cache uniform locations
-视频抖动算法	Video dithering algorithm
 关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比	GPU blue noise when disabled; stock error diffusion available for comparison
 蓝噪声与迟滞,原厂误差扩散	Blue noise with hysteresis,Stock error diffusion
 未知功能：	Unknown feature: 
@@ -910,7 +901,6 @@ GPU 记录到执行错误	GPU execution error recorded
 打开时各模式自己保存的算法与迟滞只保留在配置里、不生效，关掉立刻按原设置恢复。适合对照排查「换了算法之后残影变重」这类问题。本开关不需要先开启 GPU 显示后端；但开启期间波形动画（墨迹/网点/扫描线/百叶窗）与「全刷扫过」都无法生效，因为 GPU 的逐像素波形时序会被一并停用。	While on, the per-mode algorithm and hysteresis choices stay saved but inactive; turning it off restores them immediately. No GPU backend is needed, but waveform animations and the Full-refresh sweep cannot work while it is on, because the GPU per-pixel wave timing is disabled too.
 需要 GPU 显示后端，并关闭「改用原厂显示算法」	Requires the GPU backend, and the stock display algorithm must be off
 像素量化交回系统原厂处理，白底、灰底不再出现规则方格；代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。	Hand pixel quantization back to the stock path, so flat backgrounds no longer show a regular grid. Waveform animations are unavailable in this mode; the full-refresh sweep belongs to Clear mode and is unaffected.
-像素量化严格交回系统原厂 CPU 路径，白底、灰底不再出现规则网点；滑动时系统会自动切到均衡模式，那条 A2 局部刷新路径也跟随这里的选择，所以这一项同时决定滚动、切页时的网点样式。代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。	Hand pixel quantization strictly back to the stock CPU path, so flat backgrounds no longer show a regular dot grid. Scrolling makes the system switch to Balanced mode automatically, and that A2 partial-refresh path follows this setting, so it also decides the dot pattern while scrolling and paging. Waveform animations stop working in this mode; the full-refresh sweep belongs to Clear mode and is unaffected.
 模块设置	Module settings
 功能列表排序	Feature list order
 桌面快捷方式	Launcher shortcuts
@@ -1189,7 +1179,6 @@ APP…（当前：	App… (current:
 保持原厂：不加任何过渡，画面直接切换，也不额外刷新。	Keep stock: no transition is added, the screen switches directly and nothing extra is refreshed.
 原厂算法	Stock algorithm
 一键退回原厂算法，优先级高于 GPU 后端	Return to the stock algorithm in one step; takes priority over the GPU backend
-清晰、阅读、快速、极速、视频五个模式都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，触摸响应加速与全刷复用照常可用，但所有像素量化都走原厂路径。	Clear, Reading, Fast, Extreme and Video modes all stop overriding the quantization algorithm and hysteresis and hand everything back to stock. The GPU display backend itself stays loaded, so touch-response acceleration and full-refresh reuse still work, but all pixel quantization takes the stock path.
 使用原厂算法	Use stock algorithm
 翻页时把新一页分块、分阶段揭示	Reveal the new page in bands and phases when turning pages
 翻页动画由墨控自己的 GPU 波形层实现，需要同时开启 GPU 显示后端：整屏刷新按选定的风格逐带揭示，与分模式算法、波形动画同时生效，开关与参数实时生效不用重启。触发范围由「目标阅读器」名单决定：只有名单里的应用在前台时才播放。GPU 显示后端关闭时翻页动画不生效。	The page-turn animation is implemented by InkControl's own GPU waveform layer and requires the GPU display backend: a full-screen refresh is revealed band by band in the chosen style, together with per-mode algorithms and waveform animations, and switches and parameters apply live without a restart. The trigger range is set by the "Target readers" list: it plays only while a listed app is in the foreground. With the GPU display backend off the page-turn animation has no effect.
@@ -1512,3 +1501,15 @@ WiFi 切换失败	WiFi switch failed
 纸间主题	Paper theme
 小组件	Widget
 暂时无法打开对应应用	The matching app cannot be opened right now
+（跟随阅读模式）。	 (following Reading mode).
+按清晰、阅读、快速、极速、局部刷新和视频分别选算法，调整触摸响应。	Choose algorithms separately for Clear, Reading, Fast, Extreme, partial refresh, and video, and adjust touch response.
+独立场景 · 算法	Separate scenarios · Algorithms
+仅提供黑白算法。快速、极速、局部刷新和视频分别保存选择。	Only black-and-white algorithms are offered. Fast, Extreme, partial refresh, and video retain separate selections.
+局部刷新是滚动、切页时系统使用的 A2 局部刷新入口，不属于原厂四个模式，以前固定使用 Bayer。	Partial refresh is the A2 partial-refresh entry the system uses while scrolling and switching pages. It is not one of the four stock modes and previously always used Bayer.
+蓝噪声。迟滞单独设置，默认开启。	Blue noise. Hysteresis is configured separately and defaults to on.
+沿用 Bayer；阅读模式选了「原厂误差扩散」时跟随它交回原厂。迟滞单独设置，默认关闭。	Keep Bayer; when Reading mode uses stock error diffusion, follow it back to the stock path. Hysteresis is configured separately and defaults to off.
+像素量化整波交回系统原厂 CPU 路径，白底、灰底不再出现规则网点；「局部刷新」保持现状时，滚动、切页用的局部刷新也跟随这里交回原厂。会覆盖锁屏细线的点量化。代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。	Hand each whole wave back to the stock CPU path, so flat white and gray backgrounds no longer show a regular dot pattern. While Partial refresh keeps its default, the partial refresh used for scrolling and page switches follows this choice too. Overrides lock-screen line removal. Waveform animations in this mode stop working (the full-refresh sweep uses Clear mode and is unaffected).
+使用原厂16级灰阶误差扩散，由 GPU 逐位复刻，结果与原厂一致，全刷扫过等波形动画照常可用。	Use stock 16-level grayscale error diffusion, reproduced bit for bit on the GPU. The result matches stock, and waveform animations such as the full-refresh sweep keep working.
+快速、极速和局部刷新默认关闭。	Off by default for Fast, Extreme, and partial refresh.
+清晰、阅读、快速、极速、局部刷新、视频六个场景都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，触摸响应加速与全刷复用照常可用，但所有像素量化都走原厂路径。	Clear, Reading, Fast, Extreme, partial refresh, and video all stop overriding the quantization algorithm and hysteresis and hand back to stock processing. The GPU display backend stays loaded, so faster touch response and full-refresh reuse still work, but all pixel quantization uses the stock path.
+局部刷新	Partial refresh

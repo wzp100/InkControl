@@ -11,7 +11,7 @@ int main(){
     // 按实际 stock 映射列举外部入口，防止仅凭 selected=8 混淆快速与极速。
     for(const auto&c:std::vector<Case>{{2,2,2,Group::Clear},{3,5,5,Group::Reading},
         {4,5,5,Group::Reading},{5,5,5,Group::Reading},{6,8,8,Group::Fast},{9,8,8,Group::Extreme},
-        {0,8,8,Group::None},{1,1,1,Group::None},{7,8,8,Group::None},{8,8,8,Group::None},
+        {0,8,8,Group::None},{1,1,1,Group::Partial},{1,8,8,Group::Partial},{1,5,5,Group::None},{1,8,1,Group::None},{7,8,8,Group::None},{8,8,8,Group::None},
         {255,8,8,Group::None},{6,6,8,Group::None},{9,8,2,Group::None},{2,8,8,Group::None}}){
         for(unsigned flags:{0u,0x100u,0x200u,0x300u}){
             Context s{c.mode|flags,c.selected,c.internal};CHECK(group(s)==c.want);
@@ -30,6 +30,8 @@ int main(){
     CHECK(std::string(algorithmProperty(group({0x206,8,8})))=="debug.eink.alg.fast");
     CHECK(std::string(algorithmProperty(group({0x209,8,8})))=="debug.eink.alg.extreme");
     CHECK(std::string(hysteresisProperty(group({0x609,8,8})))=="debug.eink.hyst.video");
+    CHECK(std::string(algorithmProperty(group({0x201,8,8})))=="debug.eink.alg.partial");
+    CHECK(std::string(hysteresisProperty(group({0x101,1,1})))=="debug.eink.hyst.partial");
     CHECK(algorithmProperty(Group::None)==nullptr&&hysteresisProperty(Group::Reading)==nullptr);
     // 同一次配置：快速 blue、极速 threshold，视频单独 stock。外部6和9不能共用一项。
     auto configured=[](Context c){
@@ -43,7 +45,7 @@ int main(){
     CHECK(configured({0x606,8,8})==Algorithm::Stock);
     CHECK(configured({0x609,8,8})==Algorithm::Stock);
     CHECK(configured({0x200,8,8})==Algorithm::Default);
-    for(auto g:{Group::None,Group::Clear,Group::Reading,Group::Fast,Group::Extreme,Group::Video}){
+    for(auto g:{Group::None,Group::Clear,Group::Reading,Group::Fast,Group::Extreme,Group::Partial,Group::Video}){
         for(const char*v:{static_cast<const char*>(nullptr),"","default","Default","blue ","on","?"})
             CHECK(parseAlgorithm(g,v)==Algorithm::Default);
         CHECK(parseHysteresis(nullptr)==Hysteresis::Default);
@@ -52,8 +54,8 @@ int main(){
             const auto a=parseAlgorithm(g,v);
             if(g==Group::Clear||g==Group::Reading)
                 CHECK(a==Algorithm::Default||a==Algorithm::Stock||a==Algorithm::Nearest||a==Algorithm::Bayer16);
-            else if(g==Group::Fast||g==Group::Extreme)
-                // 快速/极速自 0.3.0 起也可选「原厂」：该模式的像素量化交回原厂 CPU 路径。
+            else if(g==Group::Fast||g==Group::Extreme||g==Group::Partial)
+                // 快速/极速/局部刷新也可选「原厂」：整波交回原厂 CPU 路径。
                 CHECK(a==Algorithm::Default||a==Algorithm::Stock||a==Algorithm::Bayer||a==Algorithm::Blue||a==Algorithm::Threshold);
         }
     }
@@ -63,6 +65,25 @@ int main(){
     CHECK(parseAlgorithm(Group::Fast,"blue")==Algorithm::Blue);
     CHECK(parseAlgorithm(Group::Extreme,"threshold")==Algorithm::Threshold);
     CHECK(parseAlgorithm(Group::Video,"stock")==Algorithm::Stock);
+    CHECK(parseAlgorithm(Group::Partial,"blue")==Algorithm::Blue);
+    CHECK(parseAlgorithm(Group::Partial,"nearest")==Algorithm::Default);
+    // 局部刷新未单独选择时默认 Bayer、迟滞关闭，与旧版逐位一致。
+    {auto b=binary(false,parseAlgorithm(Group::Partial,"default"),Hysteresis::Default,Algorithm::Blue);
+     CHECK(b.algorithm==Algorithm::Bayer&&b.legacyBayerCheck()&&!b.hysteresis);}
+    // 「原厂」按外部入口整波交回 CPU（清晰走 GPU 复刻，不在此列）；局部刷新未单独选择时跟随阅读（旧行为）。
+    for(unsigned flags:{0u,0x100u,0x200u}){
+        CHECK(!stockFor(1|flags,nullptr,nullptr,nullptr,nullptr));
+        CHECK(stockFor(1|flags,"stock","","",""));
+        CHECK(stockFor(1|flags,"stock","","","default"));
+        CHECK(!stockFor(1|flags,"stock","","","blue"));
+        CHECK(stockFor(1|flags,"","","","stock"));
+        CHECK(!stockFor(2|flags,"stock","stock","stock","stock"));
+        for(unsigned m:{3u,4u,5u})CHECK(stockFor(m|flags,"stock","","","")&&!stockFor(m|flags,"","stock","stock","stock"));
+        CHECK(stockFor(6|flags,"","stock","","")&&!stockFor(6|flags,"stock","","stock","stock"));
+        CHECK(stockFor(9|flags,"","","stock","")&&!stockFor(9|flags,"stock","stock","","stock"));
+        for(unsigned m:{0u,7u,8u,255u})CHECK(!stockFor(m|flags,"stock","stock","stock","stock"));
+        for(unsigned m:{1u,5u,6u,9u})CHECK(!stockFor(m|flags|0x400u,"stock","stock","stock","stock"));
+    }
     for(const char*alg:{"","default","garbage"})for(const char*hyst:{"","default","garbage"}){
         auto b=binary(false,parseAlgorithm(Group::Fast,alg),parseHysteresis(hyst),Algorithm::Stock);
         CHECK(b.algorithm==Algorithm::Bayer&&b.legacyBayerCheck()&&!b.hysteresis);
@@ -92,10 +113,10 @@ int main(){
         CHECK(gray(Algorithm::Nearest,oldStock,lock)==Gray::Nearest16);
         CHECK(gray(Algorithm::Bayer16,oldStock,lock)==Gray::Bayer16);
     }
-    // 逐低字节证明不会向自动/未公开模式泄漏 fast/extreme 属性。
+    // 逐低字节证明不会向自动/未公开模式泄漏 fast/extreme/partial 属性。
     for(unsigned external=0;external<256;external++){
         auto g=group({external|0x200u,8,8});
-        CHECK(g==(external==6?Group::Fast:external==9?Group::Extreme:Group::None));
+        CHECK(g==(external==6?Group::Fast:external==9?Group::Extreme:external==1?Group::Partial:Group::None));
         Context v{external|0x600u,8,8};CHECK(group(v)==Group::Video);
         v.reset=true;CHECK(group(v)==Group::None);v.reset=false;
         v.transition=true;CHECK(group(v)==Group::None);v.transition=false;

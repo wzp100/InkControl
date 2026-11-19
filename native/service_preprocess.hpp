@@ -41,23 +41,17 @@ struct PixelPolicy {
 };
 // 每波只读一次选择属性；候选 BW 路径和 stockVideo 回退使用同一个快照。
 static PixelPolicy pixelPolicy;
-// 快速/极速模式选了「原厂」：本波像素量化交回原厂 CPU 路径（GPU 二值 shader 没有原厂实现）。
-// 只影响该模式；清晰模式的 GC16 波形（全刷扫过）不受影响。
+// 本入口选了「原厂」：整波像素量化交回原厂 CPU 路径。只影响该入口自己的波形。
 static bool modeStock=false,modeStockLogged=false;
-// 外部模式号 → 这个模式是否选了「原厂」。必须按 **外部模式** 判断：
-// Group::None（自动选 A2、过渡、空白等五个命名组之外的波）同样会被自研 shader 接管，
-// 只看命名组会漏掉它们，浅灰底上照样出方格。
+// 外部模式号 → 这个入口是否选了「原厂」。必须按 **外部模式** 判断：
+// Group::None（自动选 A2、过渡、空白等命名组之外的波）同样会被自研 shader 接管，
+// 只看命名组会漏掉它们。判定规则在 einkalg::stockFor，与独立 probe 共用。
 static bool modeStockFor(int mode){
-    if(mode&0x400)return false;                       // 视频场景保持自有语义
-    unsigned ext=unsigned(mode)&255u;
-    // ext==1 是「A2 局部刷新」入口（切页、滚动主要走它），不归属五个命名模式。
-    // 滑动时系统会自动切到「均衡模式」（阅读），实测这条路径就落在 ext==1，
-    // 所以它跟随阅读模式的选择，不能错绑到快速。
-    const char*key=(ext==1||ext==3||ext==4||ext==5)?"debug.eink.alg.reading":
-        ext==6?"debug.eink.alg.fast":ext==9?"debug.eink.alg.extreme":nullptr;
-    if(!key)return false;
-    char v[PROP_VALUE_MAX]={};__system_property_get(key,v);
-    return std::strcmp(v,"stock")==0;
+    char reading[PROP_VALUE_MAX]={},fast[PROP_VALUE_MAX]={},extreme[PROP_VALUE_MAX]={},partial[PROP_VALUE_MAX]={};
+    __system_property_get("debug.eink.alg.reading",reading);
+    __system_property_get("debug.eink.alg.fast",fast);__system_property_get("debug.eink.alg.extreme",extreme);
+    __system_property_get("debug.eink.alg.partial",partial);
+    return einkalg::stockFor(unsigned(mode),reading,fast,extreme,partial);
 }
 static PixelPolicy readPixelPolicy(void*ctl,int mode,int selected){
     PixelPolicy p;

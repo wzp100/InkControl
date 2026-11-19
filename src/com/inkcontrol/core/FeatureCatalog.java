@@ -31,7 +31,7 @@ public final class FeatureCatalog {
             "lock.lyricmode", "lock.delay", "lock.dither",
             "desktop.theme", "desktop.icons", "desktop.wallpaper", "desktop.widget",
             "fix.exceptions", "fix.configlock", "fix.modes", "fix.video", "fix.permissions",
-            "guard.config", "experiment.cache", "experiment.video"));
+            "guard.config", "experiment.cache"));
     /** 这个键是否必须出现在配置里（见 {@link #BASELINE}）。 */
     public static boolean baseline(String id) { return BASELINE.contains(id); }
     /** 默认配置里是否写成开启：必选参数，或总开关关闭时不产生效果的默认开启子项。 */
@@ -42,7 +42,8 @@ public final class FeatureCatalog {
      */
     public static final List<String> RETIRED = java.util.Collections.unmodifiableList(Arrays.asList(
             "font2.dir", "font2.pick", "font2.saf", "fix.google", "lock.notifyhide", "wave.master",
-            "desktop.font", "qs.pinlaunch", "pageanim.touch", "pageanim.keys", "pageanim.debounce"));
+            "desktop.font", "qs.pinlaunch", "pageanim.touch", "pageanim.keys", "pageanim.debounce",
+            "experiment.video"));
     /** 这个 ID 是否属于已下线功能。 */
     public static boolean retired(String id) { return RETIRED.contains(id); }
     /** 这一项是否没有开关、始终启用。 */
@@ -232,7 +233,6 @@ public final class FeatureCatalog {
         // 补上的按 28dp 图标 / 12sp 文字），默认缩到同一档，并排的几个按钮才齐平。
         add("qs.panel.pinsize", "快捷面板修改", "截屏便签对齐尺寸", "把原厂「截屏便签」的图标和文字缩到和补上的按钮一样大", "systemui", "qs.panel", HOT, false, "default", "统一尺寸", true);
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
-        add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");
         add("refresh.touch", "自动刷新", "响应触摸", "点击或滑动累计到设定次数后刷新", "system", "refresh.master", HOT, false, "default", "响应点击");
         add("refresh.key", "自动刷新", "响应按键", "按下音量键或翻页键后刷新", "system", "refresh.master", HOT, false, "default", "响应按键");

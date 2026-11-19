@@ -33,8 +33,7 @@ def main():
         for id, prop, enabled, disabled in (
             ('display.sampling','debug.inkcontrol.sampling','1','0'),
             ('lock.dither','debug.eink.lock.dither','nearest','stock'),
-            ('experiment.cache','debug.inkcontrol.cache','1','0'),
-            ('experiment.video','debug.eink.video.dither','blue','stock')):
+            ('experiment.cache','debug.inkcontrol.cache','1','0')):
             try:
                 change(id, True)
                 actual = session.record(args.prefix+'-'+id+'-on', 'getprop '+prop)

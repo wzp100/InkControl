@@ -82,10 +82,10 @@ final class Guide {
 
     static final Map<String, Category> CATEGORIES = new LinkedHashMap<>();
     static {
-        cat("显示", "按清晰、阅读、快速、极速和视频分别选算法，调整触摸响应。", new String[][]{
+        cat("显示", "按清晰、阅读、快速、极速、局部刷新和视频分别选算法，调整触摸响应。", new String[][]{
                 {"核心", "display.gpu", "display.alg.stock"},
                 {"原厂四模式 · 算法", "display.alg.clear", "display.alg.reading", "display.alg.fast", "display.alg.extreme"},
-                {"独立视频场景", "display.alg.video"},
+                {"独立场景 · 算法", "display.alg.partial", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
         cat("锁屏显示", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词与格言相关设置。", new String[][]{
                 {"样式", "lock.style", "lock.weather"},
@@ -150,7 +150,7 @@ final class Guide {
     static final java.util.Set<String> INTERNAL = new java.util.HashSet<>(Arrays.asList(
             "lock.countdowns", "font.pick", "font.saf"));
 
-    /** 迟滞内嵌在算法页；旧视频入口只跳到新页，配置仍可解析。 */
+    /** 迟滞内嵌在算法页；已下线的旧视频入口（旧桌面快捷方式里可能还有）跳到新页。 */
     static String destination(String id) {
         if (id.equals("experiment.video")) return "display.alg.video";
         if (id.startsWith("display.hyst.")) return "display.alg." + DisplayAlgorithms.scope(id);
@@ -200,15 +200,17 @@ final class Guide {
             boolean gray = DisplayAlgorithms.gray(scope);
             String mode = DisplayAlgorithms.name(scope);
             Entry e = put("display.alg." + scope).summary(mode + "，单独保存算法选择")
-                    .what("只调整" + mode + "的画面处理，不改变刷新模式。" + (gray ? "仅提供16级灰阶算法。" : "仅提供黑白算法。快速、极速和视频分别保存选择。"))
+                    .what("只调整" + mode + "的画面处理，不改变刷新模式。" + (gray ? "仅提供16级灰阶算法。" : "仅提供黑白算法。快速、极速、局部刷新和视频分别保存选择。")
+                            + (scope.equals("partial") ? "局部刷新是滚动、切页时系统使用的 A2 局部刷新入口，不属于原厂四个模式，以前固定使用 Bayer。" : ""))
                     .cost("需要 GPU 显示后端。算法与迟滞均为热更新配置，实际生效以运行回执为准。新算法尚需实屏对照。")
                     .option("default", "保持现状", gray ? "保留原有灰阶路径，也保留「消除锁屏细线」的条件处理。" : scope.equals("video")
-                            ? "沿用旧视频选择；没有旧覆盖时是蓝噪声。迟滞单独设置。" : "沿用 Bayer。迟滞单独设置，默认关闭。")
+                            ? "蓝噪声。迟滞单独设置，默认开启。" : scope.equals("partial")
+                            ? "沿用 Bayer；阅读模式选了「原厂误差扩散」时跟随它交回原厂。迟滞单独设置，默认关闭。" : "沿用 Bayer。迟滞单独设置，默认关闭。")
                     .term("刷新方式", "抖动");
             if (gray) {
                 e.option("stock", "原厂误差扩散", scope.equals("reading")
-                        ? "像素量化严格交回系统原厂 CPU 路径，白底、灰底不再出现规则网点；滑动时系统会自动切到均衡模式，那条 A2 局部刷新路径也跟随这里的选择，所以这一项同时决定滚动、切页时的网点样式。代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。"
-                        : "明确使用原厂16级灰阶误差扩散；会覆盖该模式的锁屏细线算法选择。")
+                        ? "像素量化整波交回系统原厂 CPU 路径，白底、灰底不再出现规则网点；「局部刷新」保持现状时，滚动、切页用的局部刷新也跟随这里交回原厂。会覆盖锁屏细线的点量化。代价是本模式内的波形动画不再生效（全刷扫过走清晰模式，不受影响）。"
+                        : "使用原厂16级灰阶误差扩散，由 GPU 逐位复刻，结果与原厂一致，全刷扫过等波形动画照常可用。")
                         .option("nearest", "点量化", "就近取16级灰阶，不向相邻像素传播误差。")
                         .option("bayer16", "16级 Bayer", "固定有序网点，保留16级灰阶；纹理需实屏观察。");
             } else {
@@ -221,7 +223,7 @@ final class Guide {
                 put("display.hyst." + scope).summary(DisplayAlgorithms.name(scope) + "内的独立历史稳定开关")
                         .what("仅对本场景的 Bayer、蓝噪声、固定阈值生效。与算法选择独立保存；切到不适用算法时保留选择并隐藏开关。")
                         .cost("可能增加拖尾；原厂误差扩散自带历史处理，此开关不能启停它。")
-                        .option("default", "跟随默认", scope.equals("video") ? "视频默认开启。" : "快速和极速默认关闭。")
+                        .option("default", "跟随默认", scope.equals("video") ? "视频默认开启。" : "快速、极速和局部刷新默认关闭。")
                         .option("on", "开启", "利用前一帧减少闪点。")
                         .option("off", "关闭", "逐帧量化，不使用独立迟滞。").term("迟滞");
             }
@@ -231,7 +233,7 @@ final class Guide {
                 .cost("会替换系统显示库，开关后需要完整重启。墨控持续监测 GPU 运行状态，一旦出错会自动停用，下次重启即回到原厂显示库。")
                 .bars("每次刷新的 CPU 处理时间（实测）", new Bar("原厂", 45.5f, "45 ms"), new Bar("开启后", 3f, "3 ms"))
                 .option("default", "启用 GPU 显示后端", "").term("显示后端", "GPU 显示后端", "完整重启");
-        put("display.alg.stock").summary("一键退回原厂算法，优先级高于 GPU 后端").what("清晰、阅读、快速、极速、视频五个模式都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，触摸响应加速与全刷复用照常可用，但所有像素量化都走原厂路径。")
+        put("display.alg.stock").summary("一键退回原厂算法，优先级高于 GPU 后端").what("清晰、阅读、快速、极速、局部刷新、视频六个场景都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，触摸响应加速与全刷复用照常可用，但所有像素量化都走原厂路径。")
                 .cost("打开时各模式自己保存的算法与迟滞只保留在配置里、不生效，关掉立刻按原设置恢复。适合对照排查「换了算法之后残影变重」这类问题。本开关不需要先开启 GPU 显示后端；但开启期间波形动画（墨迹/网点/扫描线/百叶窗）与「全刷扫过」都无法生效，因为 GPU 的逐像素波形时序会被一并停用。")
                 .option("default", "使用原厂算法", "").term("抖动", "迟滞", "显示后端");
         put("display.sampling").summary("触摸后画面更快开始变化，约快 50 毫秒").what("屏幕正在刷新时，显示服务会提前取走下一张画面排队。等真正轮到它上屏，内容已经过时将近 0.1 秒。开启后改为等队列快空时才取最新的画面。")
@@ -455,10 +457,6 @@ final class Guide {
                 .option("default", "恢复密码输入", "");
         put("experiment.cache").summary("显示后端少做几次重复查询").what("GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结果缓存起来。")
                 .cost("只是局部优化，日常几乎感觉不到差别。需要 GPU 显示后端。").option("default", "缓存参数位置", "").term("GPU 显示后端");
-        put("experiment.video").summary("旧版视频选择，已归入显示分类").what("旧配置继续保留。「显示 → 视频场景算法」选保持现状时沿用这里的选择；新页面明确选择算法时优先使用新选择。")
-                .before("不开启时：默认使用蓝噪声与迟滞。").after("选“原厂误差扩散”时：使用与原厂对应的网点算法。当前 GPU 后端也有它的实现，逐行依赖较多，本机视频对照中明显更慢。")
-                .cost("需要 GPU 显示后端。原厂算法只建议短时间对比画质。")
-                .option("blue", "蓝噪声与迟滞", "推荐，也是不开启时的默认。均匀网点，静止区域不闪。").option("stock", "原厂误差扩散", "用于画质对照，速度取决于实际场景。").term("抖动", "GPU 显示后端");
 
         put("refresh.master").summary("点击、按键或阅读时自动刷新，减少残影").what("墨水屏在点击、翻页、按键后若长时间不刷新会积累残影。开启后，墨控统计你的操作次数，达到设定次数时触发一次清晰刷新；触发方式、次数、延时和周期可在下面分别调整。")
                 .cost("每次触发都会完整刷新一次，画面会短暂闪动，耗电略增。本功能依赖墨控自己的后端，需要安装并完整重启。")

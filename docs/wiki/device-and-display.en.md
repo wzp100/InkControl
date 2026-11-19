@@ -20,7 +20,7 @@ The page-turn banded reveal is implemented in the same GPU waveform timing (`nat
 
 The GPU helper handles matched image, statistics, waveform, and scan computations. EGL/GLES import and synchronization matter; unsupported or faulty paths may still use the stock CPU consumer. Framework events, quantization, waveform selection, and panel scanning are separate layers.
 
-External low-byte modes: 2 Clear; 3/4/5 Reading family; 6 Fast; 9 Extreme; 0 automatic. Internal selections also gate interception. Video additionally needs `0x400` and actual A2 selection. See [exact routing](algorithms.en.md).
+External low-byte modes: 1 A2 partial refresh (scrolling, page switches); 2 Clear; 3/4/5 Reading family; 6 Fast; 9 Extreme; 0 automatic. Internal selections also gate interception. Video additionally needs `0x400` and actual A2 selection. See [exact routing](algorithms.en.md).
 
 WBF research identifies INIT, DU, GC16, GL16, GLR16, GLD16, A2, and DU4. A table's presence, standalone-kernel output, and a validated live production entry are different claims.
 

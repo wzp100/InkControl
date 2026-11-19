@@ -12,6 +12,11 @@ from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+# 每次增减功能或原生策略用例都会改变这两个数；改动时与 CoreTest/探针一起更新。
+DEFAULT_OFF = 89
+MIN_POLICY_CHECKS = 1785
+POLICY_LINE = re.compile(r'algorithm_policy: (\d+) checks passed')
+
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = 'wzp100/InkControl'
 
@@ -47,7 +52,7 @@ def validate_candidate(directory, context, certificate_sha):
         raise ValueError('Build checksums do not match manifest')
     package = json.loads((directory/'package-verification.json').read_text(encoding='utf-8'))
     if not (package.get('version') == version and package.get('signing') == 'verified'
-            and package.get('default_off') == 88 and package.get('module_checksums') is True
+            and package.get('default_off') == DEFAULT_OFF and package.get('module_checksums') is True
             and package.get('embedded_zip_identical') is True):
         raise ValueError('Package verification is incomplete')
     if (package.get('apk_sha256') != manifest['artifacts']['InkControl-v'+version+'.apk']
@@ -77,10 +82,12 @@ def validate_evidence(inputs, run, attempt):
     gpu = json.loads((regression/'native/gpu.txt').read_text(encoding='utf-8').splitlines()[-1])
     policy = (regression/'native/policy.txt').read_text(encoding='utf-8')
     queue = (regression/'native/queue.txt').read_text(encoding='utf-8')
-    if gpu != {'scenarios': 59, 'mismatches': 0, 'panel_access': False} or '1785 checks passed' not in policy or '6 scenarios passed' not in queue:
+    found = POLICY_LINE.search(policy)
+    if (gpu != {'scenarios': 59, 'mismatches': 0, 'panel_access': False} or not found
+            or int(found.group(1)) < MIN_POLICY_CHECKS or '6 scenarios passed' not in queue):
         raise ValueError('Native/GPU evidence incomplete')
     return {'regression_commands': len(results), 'ui_pages': sorted(pages), 'software_gpu': gpu,
-            'native_policy_checks': 1785, 'queue_scenarios': 6, 'device_acceptance': 'pending'}
+            'native_policy_checks': int(found.group(1)), 'queue_scenarios': 6, 'device_acceptance': 'pending'}
 
 
 def gh(*args):
